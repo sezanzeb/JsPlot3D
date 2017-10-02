@@ -7,3 +7,5 @@ There will be an upload button that lets you upload a .csv file, afterwards you 
 Alternatively input a formula f(x1,x2) which will be plotted
 
 It will plot using babylon.js. I'm not sure yet whether or not it will process the data server or client side.
+
+It will be written in ES6 syntax and compiled using webpack
