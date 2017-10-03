@@ -1,10 +1,13 @@
 var path = require('path');
 
 module.exports = {
-  entry: path.resolve(__dirname, 'src/3Dplot.js'),
+
+  entry: path.resolve(__dirname, 'src/JsPlot3D.js'),
+
   output: {
     path: path.resolve(__dirname, 'public'),
-    filename: '3DPlotBundle.js'
+    filename: '3DPlotBundle.js',
+    library: 'JSPLOT3D'
   },
 
   module: {
@@ -14,5 +17,5 @@ module.exports = {
         loader: "babel-loader",
         query: { presets:["env"] }
       }]
-  }
+  },
 };

@@ -41,14 +41,13 @@ export function factorial(x)
 
 
 /**
- * helper to be able to replace ln with the logarithm
+ * logarithm to the base of e
  * 
- * @param a     x
- * @param b     base 
+ * @param a     x as in ln(x), the inverse to e^x
  */
-export function log2(a,b)
+export function ln(b)
 {
-    return Math.log(b,a)
+    return Math.log(b,Math.E)
 }
 
 
@@ -72,7 +71,7 @@ export function parse(formula)
     formula = formula.replace(/(e|E)/g,"Math.E")
 
     //support ln()
-    formula = formula.replace(/ln\(/g,"Math2.log2(Math.E,")
+    formula = formula.replace(/ln\(/g,"MathParser.ln(")
 
     //support powers (WHAAT browsers support this? Testet with firefox and chromium-browser)
     formula = formula.replace(/\^/g,"**")
@@ -115,8 +114,7 @@ export function parse(formula)
             //console.log("opening bracket on index "+j)
 
 
-            //check if there is an expression to the left of the leftmost bracket
-            //also check if there is an expression instead of a bracket
+            //check if there is an expression to the left
             //f(foo)^2 or Math.sin(bar)^2
             //the regex max also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
             if(/[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
@@ -136,7 +134,7 @@ export function parse(formula)
             let cutl = formulafac[0].substring(0,j)
 
             //create formula with proper factorial expressions:
-            formula = cutl+"Math2.factorial("+leftExpr+")"+formulafac[1]
+            formula = cutl+"MathParser.factorial("+leftExpr+")"+formulafac[1]
             //console.log("out "+formula)
             //console.log("")
         }
@@ -155,3 +153,6 @@ export function parse(formula)
 
     return formula
 }
+
+
+
