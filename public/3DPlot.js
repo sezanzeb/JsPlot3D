@@ -70,60 +70,153 @@
 "use strict";
 
 
-/*- Entrypoint -*/
-
-__webpack_require__(1);
+var BABYLON = __webpack_require__(1);
 __webpack_require__(2);
-__webpack_require__(4);
 
-/***/ }),
-/* 1 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/*- Calculation of Formula based Plots -*/
-
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var BABYLON = __webpack_require__(3);
 window.addEventListener("DOMContentLoaded", function () {
     return main();
 });
+document.getElementById("formulaForm").addEventListener("submit", function (e) {
+    return formulaSubmit(e);
+});
 
-/* TODO
- * https://www.npmjs.com/package/babel-plugin-lodash
- */
-
-var canvas = void 0;
 var scene = void 0;
-var engine = void 0;
+var plotmesh = void 0;
 
+//boundaries of the plot data
+var xLen = 1;
+var yLen = 1;
+var zLen = 1;
+
+/**
+ * event listener for typed in formulas
+ * 
+ * @param e     event object from the listener
+ */
+function formulaSubmit(e) {
+    e.preventDefault(); //don't reload page
+    createPlotMesh();
+}
+
+/**
+ * entrypoint for creating the babylon.js 3D space
+ */
 function main() {
-    canvas = document.getElementById("babyloncanvas");
-    engine = new BABYLON.Engine(canvas, true);
-    createScene();
+    var canvas = document.getElementById("babyloncanvas");
+    var engine = new BABYLON.Engine(canvas, true);
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0.2, 0.25, 0.3);
+
+    createAxes();
+    createPlotMesh();
+    createLight();
+
+    createArcCamera(new BABYLON.Vector3(xLen / 2, yLen / 2, zLen / 2), BABYLON.Tools.ToRadians(45), BABYLON.Tools.ToRadians(70), xLen + yLen + zLen);
+
     engine.runRenderLoop(function () {
-        scene.render();
+        return scene.render();
     });
 }
 
-function createScene() {
-    scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color3.White();
+/**
+ * function that is used when calculating the x3 values f(x1, x2)
+ * 
+ * @param x1        x1 value in the coordinate system
+ * @param x2        x2 value in the coordinate system
+ */
+function plotFunction(x1, x2) {
+    var formula = document.getElementById("formulaText").value;
+    return eval(formula);
+}
 
-    var box = BABYLON.Mesh.CreateBox("Box", 4.0, scene);
+/**
+ * creates the 3D-plot
+ * 
+ * @param data      array of [[x1,x2,x3],..] values
+ */
+function createPlotMesh(data) {
+    if (plotmesh != undefined) plotmesh.dispose();
+
+    //create a subdivided plane
+    var y = 0;
+    var x = 0;
+    var z = 0;
+    var res = 40;
+
+    var path = new Array(xLen);
+    for (var i = 0; i <= xLen * res; i++) {
+        path[i] = new Array(zLen);
+        for (var j = 0; j <= zLen * res; j++) {
+            x = i / res;
+            z = j / res;
+            y = plotFunction(x, z);
+            path[i][j] = new BABYLON.Vector3(x, y, z);
+            path[i][j] = new BABYLON.Vector3(x, y, z);
+        }
+    }
+
+    //creates faces between paths 0 and 1, 1 and 2, 2 and 3, etc...
+    plotmesh = BABYLON.Mesh.CreateRibbon("Plot", path, false, false, null, scene);
     var material = new BABYLON.StandardMaterial("material1", scene);
-    box.material = material;
+    material.emissiveColor = new BABYLON.Color3(0.2, 0.5, 0);
+    material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    material.backFaceCulling = false;
+    plotmesh.material = material;
+}
 
-    var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 10, 0), scene);
-
-    createArcCamera(BABYLON.Vector3.Zero(), BABYLON.Tools.ToRadians(45), BABYLON.Tools.ToRadians(45), 10.0);
+//not sure if i'm going to need the following
+/**
+ * creates the 3D-plot
+ * http://www.html5gamedevs.com/topic/4530-create-a-mesh-from-a-list-of-vertices-and-faces/
+ * 
+ * @param data      array of [[x1,x2,x3],..] values
+ */
+function createPlotMesh2(data) {
+    BABYLON.Mesh.CreateBox = function (name, size, scene, updatable) {
+        var box = new BABYLON.Mesh(name, scene);
+        var normalsSource = [new BABYLON.Vector3(0, 0, 1), new BABYLON.Vector3(0, 0, -1), new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(-1, 0, 0), new BABYLON.Vector3(0, 1, 0), new BABYLON.Vector3(0, -1, 0)];
+        var indices = [];
+        var positions = [];
+        var normals = [];
+        var uvs = [];
+        // Create each face in turn.        
+        for (var index = 0; index < normalsSource.length; index++) {
+            var normal = normalsSource[index];
+            // Get two vectors perpendicular to the face normal and to each other.            
+            var side1 = new BABYLON.Vector3(normal.y, normal.z, normal.x);
+            var side2 = BABYLON.Vector3.Cross(normal, side1);
+            // Six indices (two triangles) per face.            
+            var verticesLength = positions.length / 3;
+            indices.push(verticesLength);
+            indices.push(verticesLength + 1);
+            indices.push(verticesLength + 2);
+            indices.push(verticesLength);
+            indices.push(verticesLength + 2);
+            indices.push(verticesLength + 3);
+            // Four vertices per face.            
+            var vertex = normal.subtract(side1).subtract(side2).scale(size / 2);
+            positions.push(vertex.x, vertex.y, vertex.z);
+            normals.push(normal.x, normal.y, normal.z);
+            uvs.push(1.0, 1.0);
+            vertex = normal.subtract(side1).add(side2).scale(size / 2);
+            positions.push(vertex.x, vertex.y, vertex.z);
+            normals.push(normal.x, normal.y, normal.z);
+            uvs.push(0.0, 1.0);
+            vertex = normal.add(side1).add(side2).scale(size / 2);
+            positions.push(vertex.x, vertex.y, vertex.z);
+            normals.push(normal.x, normal.y, normal.z);
+            uvs.push(0.0, 0.0);
+            vertex = normal.add(side1).subtract(side2).scale(size / 2);
+            positions.push(vertex.x, vertex.y, vertex.z);
+            normals.push(normal.x, normal.y, normal.z);
+            uvs.push(1.0, 0.0);
+        }
+        box.setVerticesData(positions, BABYLON.VertexBuffer.PositionKind, updatable);
+        box.setVerticesData(normals, BABYLON.VertexBuffer.NormalKind, updatable);
+        box.setVerticesData(uvs, BABYLON.VertexBuffer.UVKind, updatable);
+        box.setIndices(indices);
+        return box;
+    };
 }
 
 /**
@@ -139,15 +232,77 @@ function createArcCamera(target, xAngle, yAngle, distance) {
     camera.setTarget(target);
 
     //controls
-    camera.attachControl(canvas, true);
+    camera.attachControl(getCanvas(), true);
     camera.keysUp.push(87);
     camera.keysDown.push(83);
     camera.keysLeft.push(65);
     camera.keysRight.push(68);
+
+    camera.lowerRadiusLimit = distance;
+    camera.upperRadiusLimit = distance;
+}
+
+/**
+ * @return canvas dom element used for plotting
+ */
+function getCanvas() {
+    return document.getElementById("babyloncanvas");
+}
+
+/**
+ * takes care of creating the light
+ */
+function createLight() {
+    var light = new BABYLON.PointLight("light1", new BABYLON.Vector3(0, 10, 0), scene);
+    light.specular = new BABYLON.Color3(0, 0, 0);
+}
+
+/**
+ * creates the axes that point into the three x, y and z directions as wireframes
+ */
+function createAxes() {
+    var min = -1,
+        max = 1;
+    var rx = Math.random() * (max - min) - min;
+    var ry = Math.random() * (max - min) - min;
+    var rz = Math.random() * (max - min) - min;
+
+    var xPath = new Array(2);
+    var yPath = new Array(2);
+    var zPath = new Array(2);
+
+    xPath = new Array(1);
+    xPath[0] = new Array(2);
+    xPath[0][0] = new BABYLON.Vector3(0, 0, 0);
+    xPath[0][1] = new BABYLON.Vector3(xLen, 0, 0);
+
+    yPath = new Array(1);
+    yPath[0] = new Array(2);
+    yPath[0][0] = new BABYLON.Vector3(0, 0, 0);
+    yPath[0][1] = new BABYLON.Vector3(0, yLen, 0);
+
+    zPath = new Array(1);
+    zPath[0] = new Array(2);
+    zPath[0][0] = new BABYLON.Vector3(0, 0, 0);
+    zPath[0][1] = new BABYLON.Vector3(0, 0, zLen);
+
+    var xAxis = BABYLON.Mesh.CreateRibbon("xAxis", xPath, scene);
+    var yAxis = BABYLON.Mesh.CreateRibbon("yAxis", yPath, scene);
+    var zAxis = BABYLON.Mesh.CreateRibbon("zAxis", zPath, scene);
+
+    console.log(xPath);
+
+    var axesMat = new BABYLON.StandardMaterial("material2", scene);
+    axesMat.wireframe = true;
+    axesMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+
+    xAxis.material = axesMat;
+    yAxis.material = axesMat;
+    zAxis.material = axesMat;
 }
 
 /***/ }),
-/* 3 */
+/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
@@ -73060,7 +73215,7 @@ BABYLON.Effect.IncludesShadersStore={"depthPrePass":"#ifdef DEPTHPREPASS\ngl_Fra
 
 
 /***/ }),
-/* 4 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

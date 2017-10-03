@@ -9,11 +9,17 @@
     <div id="main">
         <canvas id="babyloncanvas"></canvas>
 
+        <p>
+          <form id="formulaForm">
+            f(x1,x2) = <input id="formulaText" type="text" placeholder="javascript syntax"></input>
+            <button id="formulaButton">calc</button>
+          </form>
+        </p>
         <p>upload csv: <input id="fileup" type="file"></input></p>
-        <p>f(x1,x2) = <input id="formula" type="text"></input></p>
+
         <pre id="contents"></pre>
     </div>
 
-    <script src="bundle.js"></script>
+    <script src="3DPlot.js"></script>
   </body>
 </html>

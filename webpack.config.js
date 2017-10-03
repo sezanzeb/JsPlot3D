@@ -1,10 +1,10 @@
 var path = require('path');
 
 module.exports = {
-  entry: path.resolve(__dirname, 'src/app.js'),
+  entry: path.resolve(__dirname, 'src/3Dplot.js'),
   output: {
     path: path.resolve(__dirname, 'public'),
-    filename: 'bundle.js'
+    filename: '3DPlot.js'
   },
 
   module: {

@@ -6,14 +6,24 @@ There will be an upload button that lets you upload a .csv file, afterwards you 
 
 It will be written in ES6 syntax and compiled using webpack.
 
+![Screenshot](https://github.com/sezanzeb/3D-Plot-Js/screenshot.png)
+
+## how to
+
+open public/index.html in your browser
+
+Example for f(x1,x2):
+
+(Math.cos(x1*10+Math.sin(x2*10)))*0.3
+
+(Math.cos(x1*10)+Math.sin(x2*10))*0.2
+
+It has to be in JavaScript syntax
+
 ## Todo
 
-display axes
-
-process .csv files
-
-create datapoints from f(x1,x2)
-
-plot it
-
-heatmapcolor it
+- process .csv files
+- heatmapcolor it
+- support scatterplots
+- make it easy to use as a framework and make a doku for it
+- in the formula input, upon submit try to replace sin() with Math.sin() etc. to make it easier

@@ -1,0 +1,53 @@
+
+    //modify the plane according to the data
+    let positions = plot.getVerticesData(BABYLON.VertexBuffer.PositionKind)
+
+    //http://www.html5gamedevs.com/topic/20050-update-vertices-of-a-box/
+    // Build a map containing all vertices at the same position
+    let numberOfPoints = positions.length / 3
+    let map = []
+    for (let i = 0; i < numberOfPoints; i++)
+    {
+        let p = new BABYLON.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+
+        let found = false
+        for (let index = 0; index < map.length && !found; index++)
+        {
+            let array = map[index]
+            let p0 = array[0]
+            if (p0.equals(p) || (p0.subtract(p)).lengthSquared() < 0.01)
+            {
+                array.push(i * 3)
+                found = true
+            }
+        }
+        if (!found)
+        {
+            let array = []
+            array.push(p, i * 3)
+            map.push(array)
+        }
+    }
+
+
+    /**
+     * For each vertex at a given position, move it according to the plot data
+     * 
+     * @param array     list of points that are at the same position of the unaltered mesh
+     */
+    map.forEach(function(array)
+    {
+        let index, min = -1, max = 1
+        let ry = Math.random() * (max-min) - min
+    
+        for (index = 1; index < array.length; index ++)
+        {
+            let i = array[index]
+            //positions[i] += rx
+            positions[i+1] += ry
+            //positions[i+2] += rz
+        }
+    })
+
+
+    plot.setVerticesData(BABYLON.VertexBuffer.PositionKind,positions)

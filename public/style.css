@@ -1,24 +1,39 @@
 body
 {
-
+    background: #19212f;
+    color:white;
+    font-family:sans-serif;
+    text-align: center;
 }
 
 #main
 {
     margin:50px auto;
     display:block;
-    width:500px;
+    width:700px;
 }
 
 #babyloncanvas
 {
-    width:500px;
-    height:400px;
+    width:700px;
+    height:600px;
     margin:50px auto;
     display:block;
-    border:1px solid black;
+    border-radius:2px;
 }
 
 #babyloncanvas:focus {
     outline: none;
+}
+
+#formulaText {
+    width: 500px;
+    margin-right: 10px;
+}
+input, button {
+    color: white;
+    background: transparent;
+    border: 1px solid white;
+    padding: 15px;
+    border-radius: 5px;
 }
