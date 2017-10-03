@@ -75,7 +75,7 @@ export function parse(formula)
     formula = formula.replace(/ln\(/g,"Math2.log2(Math.E,")
 
     //support powers (WHAAT browsers support this? Testet with firefox and chromium-browser)
-    formula = formula.replace("^","**")
+    formula = formula.replace(/\^/g,"**")
     
     //support expressions without Math. as suffix.
     formula = formula.replace(/(sin\(|cos\(|tan\(|log\(|max\(|min\(|abs\(|sinh\(|cosh\(|tanh\(|acos\(|asin\(|atan\(|exp\(|sqrt\()/g,"Math.$1")
@@ -151,7 +151,7 @@ export function parse(formula)
     //Math.Math. could be there a few times at this point. clear that
     formula = formula.replace("Math.Math.","Math.")
     
-    //console.log("final parsed formula: "+formula)
+    console.log("final parsed formula: "+formula)
 
     return formula
 }
