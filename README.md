@@ -6,7 +6,9 @@ There will be an upload button that lets you upload a .csv file, afterwards you 
 
 It will be written in ES6 syntax and compiled using webpack.
 
-![Screenshot](https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/screenshot.png)
+<p align="center">
+  <img width="60%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/screenshot.png"/>
+</p>
 
 ## how to
 
@@ -14,9 +16,9 @@ open public/index.html in your browser
 
 Example for f(x1,x2):
 
-(Math.cos(x1*10+Math.sin(x2*10)))*0.3
+    (Math.cos(x1*10+Math.sin(x2*10)))*0.3
 
-(Math.cos(x1*10)+Math.sin(x2*10))*0.2
+    (Math.cos(x1*10)+Math.sin(x2*10))*0.2
 
 It has to be in JavaScript syntax
 
