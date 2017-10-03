@@ -195,6 +195,8 @@ function createArcCamera(target,xAngle,yAngle,distance)
 
     camera.lowerRadiusLimit = distance/2
     camera.upperRadiusLimit = distance
+
+    camera.wheelPrecision = 100
 }
 
 

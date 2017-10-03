@@ -4,7 +4,7 @@ module.exports = {
   entry: path.resolve(__dirname, 'src/3Dplot.js'),
   output: {
     path: path.resolve(__dirname, 'public'),
-    filename: '3DPlot.js'
+    filename: '3DPlotBundle.js'
   },
 
   module: {
