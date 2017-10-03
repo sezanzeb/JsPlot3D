@@ -6,7 +6,7 @@ There will be an upload button that lets you upload a .csv file, afterwards you 
 
 It will be written in ES6 syntax and compiled using webpack.
 
-![Screenshot](https://github.com/sezanzeb/3D-Plot-Js/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/screenshot.png)
 
 ## how to
 
