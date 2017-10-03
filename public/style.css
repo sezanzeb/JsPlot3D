@@ -8,7 +8,7 @@ body
 
 #main
 {
-    margin:50px auto;
+    margin:30px auto;
     display:block;
     width:700px;
 }
@@ -17,7 +17,7 @@ body
 {
     width:700px;
     height:600px;
-    margin:50px auto;
+    margin:30px auto;
     display:block;
     border-radius:2px;
 }
@@ -36,4 +36,14 @@ input, button {
     border: 1px solid white;
     padding: 15px;
     border-radius: 5px;
+}
+
+small
+{
+    opacity:0.3;
+}
+
+small p
+{
+    margin:0;
 }

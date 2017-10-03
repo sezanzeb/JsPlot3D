@@ -70,8 +70,15 @@
 "use strict";
 
 
-var BABYLON = __webpack_require__(1);
-__webpack_require__(2);
+var _math = __webpack_require__(1);
+
+var Math2 = _interopRequireWildcard(_math);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var BABYLON = __webpack_require__(2);
+__webpack_require__(3);
+
 
 window.addEventListener("DOMContentLoaded", function () {
     return main();
@@ -83,10 +90,19 @@ document.getElementById("formulaForm").addEventListener("submit", function (e) {
 var scene = void 0;
 var plotmesh = void 0;
 
+//config
+
 //boundaries of the plot data
 var xLen = 1;
 var yLen = 1;
 var zLen = 1;
+var res = 40; //resolution of the mesh
+
+
+//some calculation specific variables
+var formula = void 0;
+var stopRecursion = void 0;
+var calculatedPoints = void 0;
 
 /**
  * event listener for typed in formulas
@@ -95,13 +111,30 @@ var zLen = 1;
  */
 function formulaSubmit(e) {
     e.preventDefault(); //don't reload page
+
+    resetCalculation();
+
+    formula = document.getElementById("formulaText").value;
+
+    formula = Math2.parse(formula);
+
     createPlotMesh();
+}
+
+function resetCalculation() {
+    calculatedPoints = new Array(xLen * res + 1);
+    for (var i = 0; i < calculatedPoints.length; i++) {
+        calculatedPoints[i] = new Array(zLen * res + 1);
+    }formula = "";
+    stopRecursion = false;
 }
 
 /**
  * entrypoint for creating the babylon.js 3D space
  */
 function main() {
+    resetCalculation();
+
     var canvas = document.getElementById("babyloncanvas");
     var engine = new BABYLON.Engine(canvas, true);
     scene = new BABYLON.Scene(engine);
@@ -124,9 +157,37 @@ function main() {
  * @param x1        x1 value in the coordinate system
  * @param x2        x2 value in the coordinate system
  */
-function plotFunction(x1, x2) {
-    var formula = document.getElementById("formulaText").value;
-    return eval(formula);
+function f(x1, x2) {
+    x1 = Math.max(0, x1);
+    x2 = Math.max(0, x2);
+    x1 = Math.min(xLen, x1);
+    x2 = Math.min(yLen, x2);
+
+    var val = calculatedPoints[parseInt(x1 * res)][parseInt(x2 * res)];
+
+    if (val == undefined) //has this point has already been calculated before?
+        {
+            //the browser will throw an error in case of too much recursion
+            //plot what has been calculated so far nevertheless by returning 0 in that case
+            //instead of another recursive call
+            if (!stopRecursion) try {
+                eval(formula);
+            } catch (error) {
+                stopRecursion = true;
+                console.log("stopping recursion/calculation because of error:");
+                console.log(error);
+            }
+
+            //trycatch was successful, therefore calculate it for real
+            if (!stopRecursion) val = eval(formula);
+
+            //still undefined?
+            if (val == undefined) val = 0;
+
+            calculatedPoints[parseInt(x1 * res)][parseInt(x2 * res)] = val;
+        }
+
+    return val;
 }
 
 /**
@@ -141,7 +202,6 @@ function createPlotMesh(data) {
     var y = 0;
     var x = 0;
     var z = 0;
-    var res = 40;
 
     var path = new Array(xLen);
     for (var i = 0; i <= xLen * res; i++) {
@@ -149,7 +209,7 @@ function createPlotMesh(data) {
         for (var j = 0; j <= zLen * res; j++) {
             x = i / res;
             z = j / res;
-            y = plotFunction(x, z);
+            y = f(x, z);
             path[i][j] = new BABYLON.Vector3(x, y, z);
             path[i][j] = new BABYLON.Vector3(x, y, z);
         }
@@ -162,61 +222,6 @@ function createPlotMesh(data) {
     material.diffuseColor = new BABYLON.Color3(1, 0, 0);
     material.backFaceCulling = false;
     plotmesh.material = material;
-}
-
-//not sure if i'm going to need the following
-/**
- * creates the 3D-plot
- * http://www.html5gamedevs.com/topic/4530-create-a-mesh-from-a-list-of-vertices-and-faces/
- * 
- * @param data      array of [[x1,x2,x3],..] values
- */
-function createPlotMesh2(data) {
-    BABYLON.Mesh.CreateBox = function (name, size, scene, updatable) {
-        var box = new BABYLON.Mesh(name, scene);
-        var normalsSource = [new BABYLON.Vector3(0, 0, 1), new BABYLON.Vector3(0, 0, -1), new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(-1, 0, 0), new BABYLON.Vector3(0, 1, 0), new BABYLON.Vector3(0, -1, 0)];
-        var indices = [];
-        var positions = [];
-        var normals = [];
-        var uvs = [];
-        // Create each face in turn.        
-        for (var index = 0; index < normalsSource.length; index++) {
-            var normal = normalsSource[index];
-            // Get two vectors perpendicular to the face normal and to each other.            
-            var side1 = new BABYLON.Vector3(normal.y, normal.z, normal.x);
-            var side2 = BABYLON.Vector3.Cross(normal, side1);
-            // Six indices (two triangles) per face.            
-            var verticesLength = positions.length / 3;
-            indices.push(verticesLength);
-            indices.push(verticesLength + 1);
-            indices.push(verticesLength + 2);
-            indices.push(verticesLength);
-            indices.push(verticesLength + 2);
-            indices.push(verticesLength + 3);
-            // Four vertices per face.            
-            var vertex = normal.subtract(side1).subtract(side2).scale(size / 2);
-            positions.push(vertex.x, vertex.y, vertex.z);
-            normals.push(normal.x, normal.y, normal.z);
-            uvs.push(1.0, 1.0);
-            vertex = normal.subtract(side1).add(side2).scale(size / 2);
-            positions.push(vertex.x, vertex.y, vertex.z);
-            normals.push(normal.x, normal.y, normal.z);
-            uvs.push(0.0, 1.0);
-            vertex = normal.add(side1).add(side2).scale(size / 2);
-            positions.push(vertex.x, vertex.y, vertex.z);
-            normals.push(normal.x, normal.y, normal.z);
-            uvs.push(0.0, 0.0);
-            vertex = normal.add(side1).subtract(side2).scale(size / 2);
-            positions.push(vertex.x, vertex.y, vertex.z);
-            normals.push(normal.x, normal.y, normal.z);
-            uvs.push(1.0, 0.0);
-        }
-        box.setVerticesData(positions, BABYLON.VertexBuffer.PositionKind, updatable);
-        box.setVerticesData(normals, BABYLON.VertexBuffer.NormalKind, updatable);
-        box.setVerticesData(uvs, BABYLON.VertexBuffer.UVKind, updatable);
-        box.setIndices(indices);
-        return box;
-    };
 }
 
 /**
@@ -238,7 +243,7 @@ function createArcCamera(target, xAngle, yAngle, distance) {
     camera.keysLeft.push(65);
     camera.keysRight.push(68);
 
-    camera.lowerRadiusLimit = distance;
+    camera.lowerRadiusLimit = distance / 2;
     camera.upperRadiusLimit = distance;
 }
 
@@ -290,8 +295,6 @@ function createAxes() {
     var yAxis = BABYLON.Mesh.CreateRibbon("yAxis", yPath, scene);
     var zAxis = BABYLON.Mesh.CreateRibbon("zAxis", zPath, scene);
 
-    console.log(xPath);
-
     var axesMat = new BABYLON.StandardMaterial("material2", scene);
     axesMat.wireframe = true;
     axesMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
@@ -303,6 +306,169 @@ function createAxes() {
 
 /***/ }),
 /* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.gamma = gamma;
+exports.factorial = factorial;
+exports.log2 = log2;
+exports.parse = parse;
+
+/**
+ * thanks to https://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
+ * 
+ * @param z     number to Calculate the gamma of 
+ */
+function gamma(z) {
+
+    var g = 7;
+    var C = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716 * Math.pow(10, -6), 1.5056327351493116 * Math.pow(10, -7)];
+
+    if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));else {
+        z -= 1;
+
+        var x = C[0];
+        for (var i = 1; i < g + 2; i++) {
+            x += C[i] / (z + i);
+        }var t = z + g + 0.5;
+        return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+    }
+}
+
+/**
+ * Calculates a factorial
+ * 
+ * @param x     number to Calculate the factorial of "x!"" 
+ */
+function factorial(x) {
+    return gamma(x + 1);
+}
+
+/**
+ * helper to be able to replace ln with the logarithm
+ * 
+ * @param a     x
+ * @param b     base 
+ */
+function log2(a, b) {
+    return Math.log(b, a);
+}
+
+/**
+ * converts mathematical formulas to javascript syntax
+ * 
+ * @param formula       string of a formula that contains !, ^, sin, cos, etc. expressions 
+ */
+function parse(formula) {
+    //regex for numbers of x1 and x2: (x1|x2|\d+(\.\d+){0,1})
+
+    //remove whitespaces for easier regex replaces
+    formula = formula.replace(/\s+/g, "");
+
+    //support mathematical constants
+    formula = formula.replace(/(pi|PI|Pi|π)/g, "Math.PI");
+    formula = formula.replace(/(e|E)/g, "Math.E");
+
+    //support ln()
+    formula = formula.replace(/ln\(/g, "Math2.log2(Math.E,");
+
+    //support expressions without Math. as suffix.
+    formula = formula.replace(/(sin\(|cos\(|tan\(|log\(|max\(|min\(|abs\(|sinh\(|cosh\(|tanh\(|acos\(|asin\(|atan\(|exp\(|sqrt\()/g, "Math.$1");
+
+    //factorial
+    var formulafac = formula.split("!");
+    if (formulafac.length == 2) {
+        //  ( a ( b ( c ) ) ^ ( d ( e ) ) )
+        //      0   1   2 1 | 1   2   1 0
+        //          left        right
+
+        //left, start at the end of the string:
+        var left = 0;
+        var j = formulafac[0].length - 1;
+        do {
+            if (formulafac[0][j] == ")") left++;else if (formulafac[0][j] == "(") left--;
+            j--;
+        } while (j > 0 && left > 0);
+
+        //check if there is an expression to the left of the leftmost bracket
+        //f(foo)^2 or Math.sin(bar)^2
+        //the regex max also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
+        if (/[A-Za-z0-9_\.]/g.test(formulafac[0][j - 1])) {
+            //take that expression into account
+            while (j > 0 && /[A-Za-z0-9_\.]/g.test(formulafac[0][j - 1])) {
+                j--;
+            }
+        }
+
+        //now take j and create the substring that contains the part to be factorialized
+        var leftExpr = formulafac[0].substring(j, formulafac[0].length);
+        //cut it away from formulapow
+        var cutl = formulafac[0].substring(0, j);
+
+        //create formula with proper factorial expressions:
+        formula = cutl + "Math2.factorial(" + leftExpr + ")" + formulafac[1];
+    }
+
+    //pow
+    var formulapow = formula.split("^");
+    if (formulapow.length == 2) {
+        //  ( a ( b ( c ) ) ^ ( d ( e ) ) )
+        //      0   1   2 1 | 1   2   1 0
+        //          left        right
+
+        //left, start at the end of the string:
+        var _left = 0;
+        var _j = formulapow[0].length - 1;
+        do {
+            if (formulapow[0][_j] == ")") _left++;else if (formulapow[0][_j] == "(") _left--;
+            _j--;
+        } while (_j > 0 && _left > 0);
+
+        //right, start at the beginning of the string:
+        var right = 0;
+        var k = 0;
+        do {
+            if (formulapow[1][k] == ")") right--;else if (formulapow[1][k] == "(") right++;
+            k++;
+        } while (k < formulapow[1].length && right > 0);
+
+        //check if there is an expression to the left of the leftmost bracket
+        //f(foo)^2 or Math.sin(bar)^2
+        //the regex max also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
+        if (/[A-Za-z0-9_\.!]/g.test(formulapow[0][_j - 1])) {
+            //take that expression into account
+            while (_j > 0 && /[A-Za-z0-9_\.!]/g.test(formulapow[0][_j - 1])) {
+                _j--;
+            }
+        }
+
+        //now take j and k and create substrings
+        var _leftExpr = formulapow[0].substring(_j, formulapow[0].length);
+        var rightExpr = formulapow[1].substring(0, k);
+
+        //cut it away from formulapow
+        var _cutl = formulapow[0].substring(0, _j);
+        var cutr = formulapow[1].substring(k, formulapow[1].length);
+
+        //create formula with proper Math.pow expressions:
+        formula = _cutl + "Math.pow(" + _leftExpr + "," + rightExpr + ")" + cutr;
+    }
+
+    //Math.Math. could be there a few times at this point. clear that
+    formula = formula.replace("Math.Math.", "Math.");
+
+    console.log("parsed formula: " + formula);
+
+    return formula;
+}
+
+/***/ }),
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
@@ -73215,7 +73381,7 @@ BABYLON.Effect.IncludesShadersStore={"depthPrePass":"#ifdef DEPTHPREPASS\ngl_Fra
 
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

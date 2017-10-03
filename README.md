@@ -16,11 +16,15 @@ open public/index.html in your browser
 
 Example for f(x1,x2):
 
-    (Math.cos(x1*10+Math.sin(x2*10)))*0.3
+    (cos(x1*10+sin(x2*10)))*0.3
 
     (Math.cos(x1*10)+Math.sin(x2*10))*0.2
 
-It has to be in JavaScript syntax
+    tanh(x1)! ^ (x2 + sqrt(2))*2 + ln(sin(x2) + e)*2 - π*1.1
+    //which is converted to:
+    Math.pow(Math2.factorial(Math.tanh(x1)),(x2+Math.sqrt(2)))*2+Math2.log2(Math.E,Math.sin(x2)+Math.E)*2-Math.PI*1.1
+
+It has to be in JavaScript syntax, but some common functions are also supported in regular mathematical syntax. the ^ XOR Operator does not work anymore this way though
 
 ## Todo
 

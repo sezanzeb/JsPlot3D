@@ -1,18 +1,26 @@
 const BABYLON = require("babylonjs")
 require("./process.js")
+import * as Math2 from './math.js'
 
 window.addEventListener("DOMContentLoaded", ()=>main())
 document.getElementById("formulaForm").addEventListener("submit",(e)=>formulaSubmit(e))
 
-
 let scene
 let plotmesh
+
+//config
 
 //boundaries of the plot data
 let xLen = 1
 let yLen = 1
 let zLen = 1
+let res = 40 //resolution of the mesh
 
+
+//some calculation specific variables
+let formula
+let stopRecursion
+let calculatedPoints
 
 
 /**
@@ -23,9 +31,27 @@ let zLen = 1
 function formulaSubmit(e)
 {
     e.preventDefault() //don't reload page
-    createPlotMesh()
+
+    resetCalculation()
+
+    formula = document.getElementById("formulaText").value
+    
+    formula = Math2.parse(formula)
+
+    createPlotMesh()    
 }
 
+
+
+function resetCalculation()
+{
+    calculatedPoints = new Array(xLen*res+1)
+    for(let i = 0;i < calculatedPoints.length; i++)
+        calculatedPoints[i] = new Array(zLen*res+1)
+
+    formula = ""
+    stopRecursion = false
+}
 
 
 /**
@@ -33,6 +59,8 @@ function formulaSubmit(e)
  */
 function main()
 {
+    resetCalculation()
+
     let canvas = document.getElementById("babyloncanvas")
     let engine = new BABYLON.Engine(canvas,true)
     scene = new BABYLON.Scene(engine)
@@ -59,10 +87,42 @@ function main()
  * @param x1        x1 value in the coordinate system
  * @param x2        x2 value in the coordinate system
  */
-function plotFunction(x1, x2)
+function f(x1, x2)
 {
-    let formula = document.getElementById("formulaText").value
-    return eval(formula)
+    x1 = Math.max(0,x1)
+    x2 = Math.max(0,x2)
+    x1 = Math.min(xLen,x1)
+    x2 = Math.min(yLen,x2)
+
+    let val = calculatedPoints[parseInt(x1*res)][parseInt(x2*res)]
+
+    if(val == undefined) //has this point has already been calculated before?
+    {
+        //the browser will throw an error in case of too much recursion
+        //plot what has been calculated so far nevertheless by returning 0 in that case
+        //instead of another recursive call
+        if(!stopRecursion)
+            try {
+                eval(formula)
+            }
+            catch (error) {
+                stopRecursion = true
+                console.log("stopping recursion/calculation because of error:")
+                console.log(error)
+            }
+
+        //trycatch was successful, therefore calculate it for real
+        if(!stopRecursion)
+            val = eval(formula)
+
+        //still undefined?
+        if(val == undefined)
+            val = 0
+        
+        calculatedPoints[parseInt(x1*res)][parseInt(x2*res)] = val
+    }
+
+    return val
 }
 
 
@@ -81,7 +141,6 @@ function createPlotMesh(data)
     let y = 0
     let x = 0
     let z = 0
-    let res = 40
 
     let path = new Array(xLen)
     for(let i = 0; i <= xLen*res; i++)
@@ -91,7 +150,7 @@ function createPlotMesh(data)
         {
             x = i/res
             z = j/res
-            y = plotFunction(x,z)
+            y = f(x,z)
             path[i][j] = new BABYLON.Vector3(x,y,z)
             path[i][j] = new BABYLON.Vector3(x,y,z)
         }
@@ -107,71 +166,6 @@ function createPlotMesh(data)
     plotmesh.material = material
 }
 
-
-//not sure if i'm going to need the following
-/**
- * creates the 3D-plot
- * http://www.html5gamedevs.com/topic/4530-create-a-mesh-from-a-list-of-vertices-and-faces/
- * 
- * @param data      array of [[x1,x2,x3],..] values
- */
-function createPlotMesh2(data)
-{
-    BABYLON.Mesh.CreateBox = function (name, size, scene, updatable)
-    {        
-        let box = new BABYLON.Mesh(name, scene)
-        let normalsSource = [            
-            new BABYLON.Vector3(0, 0, 1),            
-            new BABYLON.Vector3(0, 0, -1),            
-            new BABYLON.Vector3(1, 0, 0),            
-            new BABYLON.Vector3(-1, 0, 0),            
-            new BABYLON.Vector3(0, 1, 0),            
-            new BABYLON.Vector3(0, -1, 0)        
-        ]
-        let indices = []
-        let positions = []
-        let normals = []
-        let uvs = []
-        // Create each face in turn.        
-        for (let index = 0; index < normalsSource.length; index++) 
-        {            
-            let normal = normalsSource[index]
-            // Get two vectors perpendicular to the face normal and to each other.            
-            let side1 = new BABYLON.Vector3(normal.y, normal.z, normal.x)
-            let side2 = BABYLON.Vector3.Cross(normal, side1)
-            // Six indices (two triangles) per face.            
-            let verticesLength = positions.length / 3
-            indices.push(verticesLength)
-            indices.push(verticesLength + 1)
-            indices.push(verticesLength + 2)
-            indices.push(verticesLength)
-            indices.push(verticesLength + 2)
-            indices.push(verticesLength + 3)
-            // Four vertices per face.            
-            let vertex = normal.subtract(side1).subtract(side2).scale(size / 2)
-            positions.push(vertex.x, vertex.y, vertex.z)
-            normals.push(normal.x, normal.y, normal.z)
-            uvs.push(1.0, 1.0)
-            vertex = normal.subtract(side1).add(side2).scale(size / 2)
-            positions.push(vertex.x, vertex.y, vertex.z)
-            normals.push(normal.x, normal.y, normal.z)
-            uvs.push(0.0, 1.0)
-            vertex = normal.add(side1).add(side2).scale(size / 2)
-            positions.push(vertex.x, vertex.y, vertex.z)
-            normals.push(normal.x, normal.y, normal.z)
-            uvs.push(0.0, 0.0)
-            vertex = normal.add(side1).subtract(side2).scale(size / 2)
-            positions.push(vertex.x, vertex.y, vertex.z)
-            normals.push(normal.x, normal.y, normal.z)
-            uvs.push(1.0, 0.0)
-        }        
-        box.setVerticesData(positions, BABYLON.VertexBuffer.PositionKind, updatable)
-        box.setVerticesData(normals, BABYLON.VertexBuffer.NormalKind, updatable)
-        box.setVerticesData(uvs, BABYLON.VertexBuffer.UVKind, updatable)
-        box.setIndices(indices)
-        return box
-    }
-}
 
 
 
@@ -196,7 +190,7 @@ function createArcCamera(target,xAngle,yAngle,distance)
     camera.keysLeft.push(65)
     camera.keysRight.push(68)
 
-    camera.lowerRadiusLimit = distance
+    camera.lowerRadiusLimit = distance/2
     camera.upperRadiusLimit = distance
 }
 
@@ -255,8 +249,6 @@ function createAxes()
     let xAxis = BABYLON.Mesh.CreateRibbon("xAxis", xPath, scene)
     let yAxis = BABYLON.Mesh.CreateRibbon("yAxis", yPath, scene)
     let zAxis = BABYLON.Mesh.CreateRibbon("zAxis", zPath, scene)
-
-    console.log(xPath)
 
     let axesMat = new BABYLON.StandardMaterial("material2", scene)
     axesMat.wireframe = true
