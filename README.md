@@ -36,6 +36,6 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 ## Todo
 
 - process .csv files
-- heatmapcolor it
+- heatmapcolor it according to .csv column or height (for functions)
 - support scatterplots (make dropdown to select plotting type)
 - make it easy to use as a framework and make a doku for it
