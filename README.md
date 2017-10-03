@@ -22,14 +22,20 @@ Example for f(x1,x2):
 
     tanh(x1)! ^ (x2 + sqrt(2))*2 + ln(sin(x2) + e)*2 - π*1.1
     //which is converted to:
-    Math.pow(Math2.factorial(Math.tanh(x1)),(x2+Math.sqrt(2)))*2+Math2.log2(Math.E,Math.sin(x2)+Math.E)*2-Math.PI*1.1
+    Math2.factorial(Math.tanh(x1))**(x2+Math.sqrt(2))*2+Math2.log2(Math.E,Math.sin(x2)+Math.E)*2-Math.PI*1.1
 
 It has to be in JavaScript syntax, but some common functions are also supported in regular mathematical syntax. the ^ XOR Operator does not work anymore this way though
+
+## building
+
+    npm install
+    npm start
+    firefox public/index.html
+
 
 ## Todo
 
 - process .csv files
 - heatmapcolor it
-- support scatterplots
+- support scatterplots (make dropdown to select plotting type)
 - make it easy to use as a framework and make a doku for it
-- in the formula input, upon submit try to replace sin() with Math.sin() etc. to make it easier

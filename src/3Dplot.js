@@ -30,7 +30,8 @@ let calculatedPoints
  */
 function formulaSubmit(e)
 {
-    e.preventDefault() //don't reload page
+    if(e != null)
+        e.preventDefault() //don't reload page
 
     resetCalculation()
 
@@ -59,12 +60,13 @@ function resetCalculation()
  */
 function main()
 {
-    resetCalculation()
-
     let canvas = document.getElementById("babyloncanvas")
     let engine = new BABYLON.Engine(canvas,true)
     scene = new BABYLON.Scene(engine)
     scene.clearColor = new BABYLON.Color3(0.2,0.25,0.3)
+
+    //either this or resetCalculation() needs to happen before createPlotMesh()
+    formulaSubmit(null)
 
     createAxes()
     createPlotMesh()
@@ -77,6 +79,7 @@ function main()
         xLen+yLen+zLen)
 
     engine.runRenderLoop(()=>scene.render())
+
 }
 
 
@@ -89,11 +92,11 @@ function main()
  */
 function f(x1, x2)
 {
-    x1 = Math.max(0,x1)
-    x2 = Math.max(0,x2)
-    x1 = Math.min(xLen,x1)
-    x2 = Math.min(yLen,x2)
+    if(x1 < 0 || x2 < 0 || x1 > xLen || x2 > zLen)
+        return 0
 
+    //checking for a point if it has been calculated already increases the performance and
+    //reduces the number of recursions
     let val = calculatedPoints[parseInt(x1*res)][parseInt(x2*res)]
 
     if(val == undefined) //has this point has already been calculated before?

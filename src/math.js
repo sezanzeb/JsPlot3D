@@ -57,6 +57,8 @@ export function log2(a,b)
  * converts mathematical formulas to javascript syntax
  * 
  * @param formula       string of a formula that contains !, ^, sin, cos, etc. expressions 
+ * 
+ * @return              javascript compatible function in a string that can be executed using eval(string)
  */
 export function parse(formula)
 {
@@ -71,114 +73,85 @@ export function parse(formula)
 
     //support ln()
     formula = formula.replace(/ln\(/g,"Math2.log2(Math.E,")
+
+    //support powers (WHAAT browsers support this? Testet with firefox and chromium-browser)
+    formula = formula.replace("^","**")
     
     //support expressions without Math. as suffix.
     formula = formula.replace(/(sin\(|cos\(|tan\(|log\(|max\(|min\(|abs\(|sinh\(|cosh\(|tanh\(|acos\(|asin\(|atan\(|exp\(|sqrt\()/g,"Math.$1")
 
 
     //factorial
-    let formulafac = formula.split("!")
-    if(formulafac.length == 2)
+    while(true)
     {
-        //  ( a ( b ( c ) ) ^ ( d ( e ) ) )
-        //      0   1   2 1 | 1   2   1 0
-        //          left        right
-
-        //left, start at the end of the string:
-        let left = 0
-        let j = formulafac[0].length-1
-        do
+        let formulafac = formula.split(/!(.*)/g)
+        //console.log("in: "+formula)
+        //console.log(formulafac)
+        if(formula.indexOf("!") != -1) //if threre is a factorial
         {
-            if(formulafac[0][j] == ")")
-                left ++
-            else if(formulafac[0][j] == "(")
-                left --
-            j--
-        } while(j > 0 && left > 0)
+            //  ( a ( b ( c ) ) ! foobar
+            //      0   1   2 1 | 
+            //          left    | right
 
 
-        //check if there is an expression to the left of the leftmost bracket
-        //f(foo)^2 or Math.sin(bar)^2
-        //the regex max also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
-        if(/[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
-        {
-            //take that expression into account
-            while(j > 0 && /[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
-                j--
+            //left, start at the end of the string:
+            let left = 0
+            let j = formulafac[0].length-1
+            if(formulafac[0][j] == ")") //if there is a bracket
+                do //find the opening bracket for this closing bracket
+                {
+                    if(formulafac[0][j] == ")")
+                        left ++
+                    else if(formulafac[0][j] == "(")
+                        left --
+                    j--
+                } while(j > 0 && left > 0)
+            else
+            {
+                //console.log("no bracket to the left")
+            }
+            //the variable j will be 1 lower than the actual index of the opening bracket
+            j++
+            //console.log("opening bracket on index "+j)
+
+
+            //check if there is an expression to the left of the leftmost bracket
+            //also check if there is an expression instead of a bracket
+            //f(foo)^2 or Math.sin(bar)^2
+            //the regex max also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
+            if(/[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
+            {
+                //console.log("found expression")
+                //take that expression into account
+                //check if there is going to be another character for that expression one step to the left
+                while(j > 0 && /[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
+                    j-- //if yes, decrease the index j and check again
+            }
+
+
+            //now take j and create the substring that contains the part to be factorialized
+            let leftExpr = formulafac[0].substring(j,formulafac[0].length)
+            //console.log("to be factorized: "+leftExpr)
+            //cut it away from formulapow
+            let cutl = formulafac[0].substring(0,j)
+
+            //create formula with proper factorial expressions:
+            formula = cutl+"Math2.factorial("+leftExpr+")"+formulafac[1]
+            //console.log("out "+formula)
+            //console.log("")
         }
-
-
-        //now take j and create the substring that contains the part to be factorialized
-        let leftExpr = formulafac[0].substring(j,formulafac[0].length)
-        //cut it away from formulapow
-        let cutl = formulafac[0].substring(0,j)
-
-        //create formula with proper factorial expressions:
-        formula = cutl+"Math2.factorial("+leftExpr+")"+formulafac[1]
-    }
-
-
-    //pow
-    let formulapow = formula.split("^")
-    if(formulapow.length == 2)
-    {
-        //  ( a ( b ( c ) ) ^ ( d ( e ) ) )
-        //      0   1   2 1 | 1   2   1 0
-        //          left        right
-
-        //left, start at the end of the string:
-        let left = 0
-        let j = formulapow[0].length-1
-        do
+        else
         {
-            if(formulapow[0][j] == ")")
-                left ++
-            else if(formulapow[0][j] == "(")
-                left --
-            j--
-        } while(j > 0 && left > 0)
-
-
-        //right, start at the beginning of the string:
-        let right = 0
-        let k = 0
-        do
-        {
-            if(formulapow[1][k] == ")")
-                right --
-            else if(formulapow[1][k] == "(")
-                right ++
-            k++
-        } while(k < formulapow[1].length && right > 0)
-
-
-        //check if there is an expression to the left of the leftmost bracket
-        //f(foo)^2 or Math.sin(bar)^2
-        //the regex max also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
-        if(/[A-Za-z0-9_\.!]/g.test(formulapow[0][j-1]))
-        {
-            //take that expression into account
-            while(j > 0 && /[A-Za-z0-9_\.!]/g.test(formulapow[0][j-1]))
-                j--
+            //console.log("no factorial detected")
+            //console.log("")
+            break
         }
-
-
-        //now take j and k and create substrings
-        let leftExpr = formulapow[0].substring(j,formulapow[0].length)
-        let rightExpr = formulapow[1].substring(0,k)
-        
-        //cut it away from formulapow
-        let cutl = formulapow[0].substring(0,j)
-        let cutr = formulapow[1].substring(k,formulapow[1].length)
-
-        //create formula with proper Math.pow expressions:
-        formula = cutl+"Math.pow("+leftExpr+","+rightExpr+")"+cutr
     }
 
     //Math.Math. could be there a few times at this point. clear that
     formula = formula.replace("Math.Math.","Math.")
     
-    console.log("parsed formula: "+formula)
+    //console.log("final parsed formula: "+formula)
 
     return formula
 }
