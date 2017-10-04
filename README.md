@@ -1,6 +1,6 @@
 # 3D-Plot-Js
 
-**Please not that this is not something stable**
+**Please note that this is not something stable**
 
 Plots functions and .csv files. Scatterplot is also supported.
 
