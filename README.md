@@ -91,3 +91,4 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 - add some type checking for the functions to make debugging easier
 - create setters and maybe move some of the constructor parameters to those (e.g. colors)
 - increase redrawing performance, e.g. by not recreating the basic mesh everytime but rather manipulating the vertices (important for animations by doing timed redraws)
+- for recursive formulas, use scatterplot and plot a datapoint everytime f(x1,x2) gets called, not when the return value finds its way back through the recursion. Datapoints, that have been calculated already at some point, are already cached (helps to stop recursion overflows and increases performance)
