@@ -9,18 +9,20 @@ document.getElementById("formulaForm").addEventListener("submit",function(e)
 })
 
 
+/*- Thanks to Eric Bidelman https://www.html5rocks.com/en/tutorials/file/dndfiles/ -*/
 document.getElementById("fileup").addEventListener("change",function(e)
 {
-    var file = e.target.files[0]
-    var reader = new FileReader()
+    let file = e.target.files[0]
+    let reader = new FileReader()
     reader.readAsDataURL(file)
-    var data
+    let data = ""
 
-    reader.onload = (function(theFile) {
-    return function(e) {
-        data = atob(e.target.this.result.split(",")[1])
-    }
+    reader.onload = (function(theFile)
+    {
+        return function(e)
+        {
+            let data = atob(e.target.result.split(",")[1])
+            plot.plotCsvString(data,1,true)
+        }
     })(file)
-
-    plot.plotCsv(data)
 })
