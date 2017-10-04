@@ -32,30 +32,30 @@ It is written in ES6 syntax and compiled using webpack.
 
 **Plotting .csv Files**
 
-This doesn't rally work yet. It only makes a unnormalized 2D linear plot basically.
+This doesn't rally work yet. It only makes an unnormalized 2D linear plot basically.
 
     <canvas id="canvas" style="width:500px; height:500px;"></canvas>
     <input id="fileup" type="file"></input>
     <script type="text/javascript" src="3DPlotBundle.js"></script>
     <script>
-    var plot = new JSPLOT3D.Plot(document.getElementById("canvas"))
-    document.getElementById("fileup").addEventListener("change",function(e)
-    {
-        let file = e.target.files[0]
-        let reader = new FileReader()
-        reader.readAsDataURL(file)
-        let data = ""
-
-        reader.onload = (function(theFile)
+        var plot = new JSPLOT3D.Plot(document.getElementById("canvas"))
+        document.getElementById("fileup").addEventListener("change",function(e)
         {
-            return function(e)
+            let file = e.target.files[0]
+            let reader = new FileReader()
+            reader.readAsDataURL(file)
+            let data = ""
+
+            reader.onload = (function(theFile)
             {
-                let data = atob(e.target.result.split(",")[1])
-                //second parameter: index of column to be plotted for the y-axis
-                plot.plotCsvString(data,1)
-            }
-        })(file)
-    })
+                return function(e)
+                {
+                    let data = atob(e.target.result.split(",")[1])
+                    //second parameter: index of column to be plotted for the y-axis
+                    plot.plotCsvString(data,1)
+                }
+            })(file)
+        })
     </script>
 
 
