@@ -13,7 +13,7 @@ export class Plot
      * @param backgroundClr     background color of the plot. Default: white
      * @param axesClr           color of the axes. Default: black
      */
-    constructor(canvas, scatterplot=true, backgroundClr="#ffffff", axesClr="#000000")
+    constructor(canvas, backgroundClr="#ffffff", axesClr="#000000")
     {
         //config
         //boundaries of the plot data
@@ -21,7 +21,6 @@ export class Plot
         this.yLen = 1
         this.zLen = 1
         this.res = 40 //this.resolution of the mesh
-        this.scatterplot = scatterplot
         
         //some plotdata specific variables
         this.dataframe
@@ -123,7 +122,7 @@ export class Plot
      * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
      */
-    plotCsvString(sCsv,x1col,x2col,x3col,separator = ",",header = false)
+    plotCsvString(sCsv,x1col,x2col,x3col,separator = ",",header = false,scatterplot=true)
     {
         //transform the sCsv string to a dataframe
         let data = sCsv.split("\n")
@@ -139,7 +138,7 @@ export class Plot
             data.pop() //because there will be one undefined value in the array
 
         //plot the dataframe
-        plot.plotDataFrame(data,x1col,x2col,x3col)
+        plot.plotDataFrame(data,x1col,x2col,x3col,scatterplot)
     }
     
     
@@ -152,7 +151,7 @@ export class Plot
      * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
      */
-    plotDataFrame(df,x1col,x2col,x3col)
+    plotDataFrame(df,x1col,x2col,x3col,scatterplot=true)
     {
         console.log(x1col+" "+x2col+" "+x3col)
         //TODO check if cols are available in the dataframe, if not, throw errors and stop
@@ -195,7 +194,7 @@ export class Plot
         let xRes = this.xLen*this.res
 
 
-        if(!this.scatterplot)
+        if(!scatterplot)
         {
             let plotMeshRawData = new Array(xRes)
     

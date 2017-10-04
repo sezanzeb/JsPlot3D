@@ -77,10 +77,9 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 
 ## Todo
 
-- interpolate the datapoints for 3D Plane based plots
-- for missing datapoints for the plane, remove the vertex
+- csvplot: interpolate the datapoints for 3D Plane based plots
+- csvplot: for missing datapoints in the plane, remove the vertex
 - heatmapcolor it according to .csv column or height (for functions)
 - make it easy to use as a framework and make a doku for it
-- check the parameter types for easier debugging and user experience
-- display the colums that the csv contains in index.html to make selecting the column indices easier
+- csvplot: display the colums that the csv contains in index.html to make selecting the column indices easier
 - add some type checking for the functions to make debugging easier
