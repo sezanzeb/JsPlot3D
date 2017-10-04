@@ -82,3 +82,5 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 - heatmapcolor it according to .csv column or height (for functions)
 - make it easy to use as a framework and make a doku for it
 - check the parameter types for easier debugging and user experience
+- display the colums that the csv contains in index.html to make selecting the column indices easier
+- add some type checking for the functions to make debugging easier
