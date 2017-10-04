@@ -23,11 +23,19 @@ It is written in ES6 syntax and compiled using webpack.
 
 **Plotting Formulas**
 
+this example is also animated because of the interval
+
     <canvas id="canvas" style="width:500px; height:500px;"></canvas>
     <script type="text/javascript" src="3DPlotBundle.js"></script>
     <script>
         var plot = new JSPLOT3D.Plot(document.getElementById("canvas"))
+        plot.res = 10
         plot.plotFormula("sin(2*x1)*sin(2*x2)")
+        var i = 0;
+        window.setInterval(function() {
+            plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)")
+            i += 0.01
+        },41.667)
     </script>
 
 **Plotting .csv Files**
@@ -81,3 +89,5 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 - make it easy to use as a framework and make a doku for it
 - csvplot: display the colums that the csv contains in index.html to make selecting the column indices easier
 - add some type checking for the functions to make debugging easier
+- create setters and maybe move some of the constructor parameters to those (e.g. colors)
+- increase redrawing performance, e.g. by not recreating the basic mesh everytime but rather manipulating the vertices (important for animations by doing timed redraws)
