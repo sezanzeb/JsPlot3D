@@ -32,8 +32,6 @@ It is written in ES6 syntax and compiled using webpack.
 
 **Plotting .csv Files**
 
-This doesn't rally work yet. It only makes an unnormalized 2D linear plot basically.
-
     <canvas id="canvas" style="width:500px; height:500px;"></canvas>
     <input id="fileup" type="file"></input>
     <script type="text/javascript" src="3DPlotBundle.js"></script>
