@@ -13,7 +13,7 @@ export class Plot
      * @param backgroundClr     background color of the plot. Default: white
      * @param axesClr           color of the axes. Default: black
      */
-    constructor(canvas, backgroundClr="#ffffff", axesClr="#000000")
+    constructor(canvas, scatterplot=true, backgroundClr="#ffffff", axesClr="#000000")
     {
         //config
         //boundaries of the plot data
@@ -21,6 +21,7 @@ export class Plot
         this.yLen = 1
         this.zLen = 1
         this.res = 40 //this.resolution of the mesh
+        this.scatterplot = scatterplot
         
         //some plotdata specific variables
         this.dataframe
@@ -66,7 +67,7 @@ export class Plot
 
 
     /**
-     * plots a formula
+     * plots a formula on the canvas element which was defined in the constructor of Plot()
      * 
      * @param s       string of formula
      */
@@ -113,15 +114,16 @@ export class Plot
     
     
     /**
-     * plots a .csv file
+     * plots a .csv file on the canvas element which was defined in the constructor of Plot()
      *
      * @param sCsv      string of the .csv file, e.g. "a;b;c\n1;2;3\n2;3;4"
+     * @param separator separator used in the .csv file. e.g.: 1,2,3 or 1;2;3
      * @param x3col     column index used for plotting the x3 axis (y)
      * @param header    a boolean value whether or not there are headers in the first row. default: false
      * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
      */
-    plotCsvString(sCsv,x3col,header = false,x1col = -1,x2col = -1)
+    plotCsvString(sCsv,x1col,x2col,x3col,separator = ",",header = false)
     {
         //transform the sCsv string to a dataframe
         let data = sCsv.split("\n")
@@ -131,28 +133,30 @@ export class Plot
             i = 1 //start at line index 1 to skip the header
 
         for(;i < data.length; i ++)
-            data[i-1] = data[i].split(";")
+            data[i-1] = data[i].split(separator)
 
         if(header)
             data.pop() //because there will be one undefined value in the array
 
         //plot the dataframe
-        plot.plotDataFrame(data,x3col,x1col,x2col)
+        plot.plotDataFrame(data,x1col,x2col,x3col)
     }
     
     
     
     /**
-     * plots a dataframe
+     * plots a dataframe on the canvas element which was defined in the constructor of Plot()
      *
      * @param df        int[][] of datapoints. [column][row]
      * @param x3col     column index used for plotting the x3 axis (y)
      * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
      */
-    plotDataFrame(df,x3col,x1col = -1,x2col = -1)
+    plotDataFrame(df,x1col,x2col,x3col)
     {
+        console.log(x1col+" "+x2col+" "+x3col)
         //TODO check if cols are available in the dataframe, if not, throw errors and stop
+        //TODO check type of cols, if numbers or not
 
         this.resetCalculation()
         if(this.plotmesh != undefined)
@@ -167,33 +171,144 @@ export class Plot
         x2col = 1
         x3col = 2*/
 
-        //TODO from the data in the dataframe and the selected columns
+        //parameters extracted from the dataframe, needed for normalisation
+        let x1maxDf = 1
+        let x2maxDf = 1
+        let x3maxDf = 1
+
+        //determine max for y-normalisation
+        for(let i = 0; i < df.length; i++)
+            if(df[i][x1col] > x1maxDf)
+                x1maxDf = df[i][x1col]
+
+        for(let i = 0; i < df.length; i++)
+            if(df[i][x2col] > x2maxDf)
+                x2maxDf = df[i][x2col]
+
+        for(let i = 0; i < df.length; i++)
+            if(df[i][x3col] > x3maxDf)
+                x3maxDf = df[i][x3col]
+
+
         //create a 2d xLen*res zLen*res array that contains the datapoints
-        //this way I can even interpolate
-        //then create the path from that array
+        let zRes = this.zLen*this.res
+        let xRes = this.xLen*this.res
 
-        let path = new Array(this.xLen)
-        for(let i = 0; i <= this.xLen*this.res; i++)
+
+        if(!this.scatterplot)
         {
-            path[i] = new Array(this.zLen)
-            for(let j = 0; j <= this.zLen*this.res; j++)
+            let plotMeshRawData = new Array(xRes)
+    
+            for(let x = 0; x < xRes; x++)
             {
-                x = i/this.res
-                z = j/this.res
-                y = df[i][x3col]
-                path[i][j] = new BABYLON.Vector3(x,y,z)
-                path[i][j] = new BABYLON.Vector3(x,y,z)
+                //this is not a 2D array that has the same shape as this.plotmesh basically
+                plotMeshRawData[x] = new Array(zRes)
             }
+    
+    
+            //take a datapoint (which consists of 3 dimensions) and plot that point into the 2D array
+            for(let i = 0; i < df.length; i++)
+            {
+                //find out which x, y and z this datapoint has and normalize those parameters to fit into xLen and zLen
+                //parseInt cuts away the comma. dividing it by the maximum will normalize it
+                let dpx1 = parseInt(df[i][x1col]/x1maxDf*xRes)
+                let dpx2 = parseInt(df[i][x2col]/x2maxDf*zRes)
+                let dpx3 = df[i][x3col]/x3maxDf
+                plotMeshRawData[dpx1][dpx2] = dpx3
+                //TODO interpolate
+            }
+    
+    
+            //TODO not only normalize y, but also x and z. That means all y values need to get into that xLen * zLen square
+    
+            //TODO from the data in the dataframe and the selected columns
+            //create a 2d xLen*res zLen*res array that contains the datapoints
+            //this way I can even interpolate
+            //then create the path from that array
+
+            let path = new Array(this.xLen*this.res)
+            for(let i = 0; i < this.xLen*this.res; i++)
+            {
+                path[i] = new Array(this.zLen*this.res)
+                for(let j = 0; j < this.zLen*this.res; j++)
+                {
+                    x = i/this.res
+                    z = j/this.res
+                    //y = df[i][x3col]
+                    y = plotMeshRawData[i][j]
+                    //not every point might be defined inside the dataframe
+                    if(y == undefined)
+                        y = 0
+                    path[i][j] = new BABYLON.Vector3(x,y,z)
+                    path[i][j] = new BABYLON.Vector3(x,y,z)
+                }
+            }
+
+            //creates faces between paths 0 and 1, 1 and 2, 2 and 3, etc...
+            this.plotmesh = BABYLON.Mesh.CreateRibbon("Plot", path, false, false, null, this.scene)
+            let material = new BABYLON.StandardMaterial("material1", this.scene)
+            material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
+            material.diffuseColor = new BABYLON.Color3(1,0,0)
+            material.backFaceCulling = false
+            this.plotmesh.material = material
         }
+        else
+        {
+
+            let SPS = new BABYLON.SolidParticleSystem("SPS", this.scene)
+            let datapoint = BABYLON.MeshBuilder.CreatePlane("dataPoint"+i,{size:0.02}, this.scene)
+            SPS.addShape(datapoint, df.length)
+            datapoint.dispose()
 
 
-        //creates faces between paths 0 and 1, 1 and 2, 2 and 3, etc...
-        this.plotmesh = BABYLON.Mesh.CreateRibbon("Plot", path, false, false, null, this.scene)
-        let material = new BABYLON.StandardMaterial("material1", this.scene)
-        material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
-        material.diffuseColor = new BABYLON.Color3(1,0,0)
-        material.backFaceCulling = false
-        this.plotmesh.material = material
+            let i = 0
+            SPS.updateParticle = function(particle)
+            {
+                //find out which x, y and z this datapoint has and normalize those parameters to fit into xLen and zLen
+                //parseInt cuts away the comma. dividing it by the maximum will normalize it
+                let dpx1 = df[i][x1col]/x1maxDf
+                let dpx2 = df[i][x2col]/x2maxDf
+                let dpx3 = df[i][x3col]/x3maxDf
+                particle.position = new BABYLON.Vector3(dpx1,dpx2,dpx3)
+                i ++
+            }
+
+            this.plotmesh = SPS.buildMesh()
+
+            SPS.initParticles()
+            SPS.setParticles()
+
+            SPS.billboard = true
+            SPS.computeParticleRotation = false
+            SPS.computeParticleColor = false
+            SPS.computeParticleTexture = false
+
+            this.scene.registerBeforeRender(function() {
+                i = 0
+                SPS.setParticles()
+            })
+
+            /*
+            //take a datapoint (which consists of 3 dimensions) and create a dot for it
+            for(let i = 0; i < df.length; i++)
+            {
+                //find out which x, y and z this datapoint has and normalize those parameters to fit into xLen and zLen
+                //parseInt cuts away the comma. dividing it by the maximum will normalize it
+                let dpx1 = df[i][x1col]/x1maxDf
+                let dpx2 = df[i][x2col]/x2maxDf
+                let dpx3 = df[i][x3col]/x3maxDf
+
+                datapoint.material = material
+                datapoint.position = new BABYLON.Vector3(dpx1,dpx2,dpx3)
+            }*/
+
+
+            let material = new BABYLON.StandardMaterial("material1", this.scene)
+            material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
+            material.diffuseColor = new BABYLON.Color3(1,0,0)
+            material.backFaceCulling = false
+            this.plotmesh.material = material
+        }
     }
 
 

@@ -50,9 +50,8 @@ This doesn't rally work yet. It only makes an unnormalized 2D linear plot basica
             {
                 return function(e)
                 {
-                    let data = atob(e.target.result.split(",")[1])
-                    //second parameter: index of column to be plotted for the y-axis
-                    plot.plotCsvString(data,1)
+                    let data = atob(e.target.result.split("base64,")[1])
+                    plot.plotCsvString(data,0,1,2,";",true)
                 }
             })(file)
         })
@@ -78,7 +77,8 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 
 ## Todo
 
-- process .csv files
+- interpolate the datapoints for 3D Plane based plots
+- for missing datapoints for the plane, remove the vertex
 - heatmapcolor it according to .csv column or height (for functions)
-- support scatterplots (make dropdown to select plotting type)
 - make it easy to use as a framework and make a doku for it
+- check the parameter types for easier debugging and user experience

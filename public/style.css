@@ -47,3 +47,21 @@ small p
 {
     margin:0;
 }
+
+#fileup {
+    padding: 12px 15px;
+}
+
+.indices 
+{
+    margin-left: 6px;
+    width:50px;
+    text-align: center;
+}
+
+#sep
+{
+    margin-left: 6px;
+    width:100px;
+    text-align: center;
+}
