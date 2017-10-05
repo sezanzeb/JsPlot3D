@@ -2,9 +2,7 @@
 
 **Please note that this is not something stable**
 
-Plots functions and .csv files. Scatterplot is also supported.
-
-There will be an upload button that lets you upload a .csv file, afterwards you will be able to select the x1, the x2 and x3 axis. Alternatively input a formula f(x1,x2) which will be plotted. Recursive definitions will work as well as long as I can figure out a appropriate overflow protection. It will plot using babylon.js. Processing will happen client side. It will color the x3 axis according to a heatmap.
+Plots functions and .csv files. Scatterplot is also supported. It will plot using babylon.js. Processing happens client side.
 
 It is written in ES6 syntax and compiled using webpack.
 
@@ -26,7 +24,9 @@ It is written in ES6 syntax and compiled using webpack.
 
 **Plotting Formulas**
 
-this example is also animated because of the interval
+Save the following to a .html file and open it in your browser.
+
+This example is animated because of the interval.
 
     <canvas id="canvas" style="width:500px; height:500px;"></canvas>
     <script type="text/javascript" src="3DPlotBundle.js"></script>
@@ -42,6 +42,10 @@ this example is also animated because of the interval
     </script>
 
 **Plotting .csv Files**
+
+Save the following to a .html file and open it in your browser.
+
+Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your needs. 2-4 are the three columns from the csv file that serve as dimensions of the datapoints. the 5th parameter is the separator of the .csv file format. Very often it's "," or ";".
 
     <canvas id="canvas" style="width:500px; height:500px;"></canvas>
     <input id="fileup" type="file"></input>
@@ -83,6 +87,7 @@ Example for f(x1,x2):
 
 It has to be in JavaScript syntax, but some common functions are also supported in regular mathematical syntax. the ^ XOR Operator does not work anymore this way though
 
+Take "example.csv" in the root directory of this repository or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions. In the last input field that says "sep" type in the .csv separator. e.g. ; or ,
 
 ## Todo
 
