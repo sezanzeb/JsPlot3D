@@ -9,7 +9,8 @@ There will be an upload button that lets you upload a .csv file, afterwards you 
 It is written in ES6 syntax and compiled using webpack.
 
 <p align="center">
-  <img width="60%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/screenshot.png"/>
+  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/scatterplot.png"/>
+  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/planeplot.png"/>
 </p>
 
 

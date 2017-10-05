@@ -177,16 +177,17 @@ export class Plot
 
         //determine max for y-normalisation
         for(let i = 0; i < df.length; i++)
-            if(df[i][x1col] > x1maxDf)
-                x1maxDf = df[i][x1col]
+            if(Math.abs(df[i][x1col]) > x1maxDf)
+                x1maxDf = Math.abs(df[i][x1col])
+
 
         for(let i = 0; i < df.length; i++)
-            if(df[i][x2col] > x2maxDf)
-                x2maxDf = df[i][x2col]
+            if(Math.abs(df[i][x2col]) > x2maxDf)
+                x2maxDf = Math.abs(df[i][x2col])
 
         for(let i = 0; i < df.length; i++)
-            if(df[i][x3col] > x3maxDf)
-                x3maxDf = df[i][x3col]
+            if(Math.abs(df[i][x3col]) > x3maxDf)
+                x3maxDf = Math.abs(df[i][x3col])
 
 
         //create a 2d xLen*res zLen*res array that contains the datapoints
@@ -255,7 +256,7 @@ export class Plot
         {
 
             let SPS = new BABYLON.SolidParticleSystem("SPS", this.scene)
-            let datapoint = BABYLON.MeshBuilder.CreatePlane("dataPoint"+i,{size:0.02}, this.scene)
+            let datapoint = BABYLON.MeshBuilder.CreateDisc("dataPoint"+i,{radius:0.01,tessellation:10}, this.scene)
             SPS.addShape(datapoint, df.length)
             datapoint.dispose()
 
@@ -281,6 +282,7 @@ export class Plot
             SPS.computeParticleRotation = false
             SPS.computeParticleColor = false
             SPS.computeParticleTexture = false
+            SPS.isAlwaysVisible = true
 
             this.scene.registerBeforeRender(function() {
                 i = 0
@@ -303,8 +305,8 @@ export class Plot
 
 
             let material = new BABYLON.StandardMaterial("material1", this.scene)
-            material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
-            material.diffuseColor = new BABYLON.Color3(1,0,0)
+            material.emissiveColor = new BABYLON.Color3(0,0.8,0.5)
+            material.diffuseColor = new BABYLON.Color3(0,0,0)
             material.backFaceCulling = false
             this.plotmesh.material = material
         }
