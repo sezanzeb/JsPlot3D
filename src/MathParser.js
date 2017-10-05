@@ -63,6 +63,10 @@ export function parse(formula)
 {
     //regex for numbers of x1 and x2: (x1|x2|\d+(\.\d+){0,1})
     
+
+    formula = formula.replace(/f\(/g,"this.f(")
+    formula = formula.replace(/this\.this\./g,"this.")
+
     //remove whitespaces for easier regex replaces
     formula = formula.replace(/\s+/g,"")
 

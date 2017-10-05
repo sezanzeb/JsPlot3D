@@ -417,26 +417,8 @@ export class Plot
 
         if(val == undefined) //has this point has already been calculated before?
         {
-            //the browser will throw an error in case of too much recursion
-            //plot what has been calculated so far nevertheless by returning 0 in that case
-            //instead of another recursive call
-            if(!this.stopRecursion)
-                try {
-                    eval(this.formula)
-                }
-                catch (error) {
-                    this.stopRecursion = true
-                    console.log("stopping recursion/calculation because of error:")
-                    console.log(error)
-                }
-
-            //trycatch was successful, therefore calculate it for real
             if(!this.stopRecursion)
                 val = eval(this.formula)
-
-            //still undefined?
-            if(val == undefined)
-                val = 0
             
             this.calculatedPoints[parseInt(x1*this.res)][parseInt(x2*this.res)] = val
         }
