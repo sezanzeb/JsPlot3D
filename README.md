@@ -89,6 +89,8 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 
 Take "example.csv" in the root directory of this repository or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions. In the last input field that says "sep" type in the .csv separator. e.g. ; or ,
 
+You have to upload the .csv file **afterwards** you typed in the configuration at the moment.
+
 ## Todo
 
 - try to do the same in three.js and see what is better suited
@@ -101,6 +103,7 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 - create setters and maybe move some of the constructor parameters to those (e.g. colors)
 - increase redrawing performance, e.g. by not recreating the basic mesh everytime but rather manipulating the vertices (important for animations by doing timed redraws)
 - add axis title and numbers
+- on submit csvform plot the scatterplot
 
 **maybe:**
 - for recursive formulas, use scatterplot and plot a datapoint everytime f(x1,x2) gets called. Datapoints, that have been calculated already at some point, are already cached (helps to stop recursion overflows and increases performance)
