@@ -14,13 +14,19 @@
             f(x1,x2) = <input id="formulaText" type="text" placeholder="javascript syntax"></input><button id="formulaButton">calc</button>
           </form>
         </p>
+        <hr/>
         <p>
           upload csv: <input id="fileup" type="file"></input>
+        </p>
+        <p>
           <input id="x1" class="indices" type="text" placeholder="x1"></input>
           <input id="x2" class="indices" type="text" placeholder="x2"></input>
           <input id="x3" class="indices" type="text" placeholder="x3"></input>
-          <input id="sep" type="text" placeholder="sep"></input>
+          <input id="sep" type="text" placeholder="separator"></input>
+          <button id="submitcsv">plot</button>
         </p>
+        <small>type in the column indices of your csv file that you would like to plot for x1, x2 and x3. Make sure those columns contain numbers. You can use "example.csv" in the project root directory.</small>
+        <hr/>
         <small>
           <p>Hold [ctrl] + [left click] to drag the camera around</p>
           <p>Use the scroll wheel to zoom in</p>

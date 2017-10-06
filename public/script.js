@@ -10,9 +10,9 @@ document.getElementById("formulaForm").addEventListener("submit",function(e)
 
 
 /*- Thanks to Eric Bidelman https://www.html5rocks.com/en/tutorials/file/dndfiles/ -*/
-document.getElementById("fileup").addEventListener("change",function(e)
+document.getElementById("submitcsv").addEventListener("click",function(e)
 {
-    let file = e.target.files[0]
+    let file = document.getElementById("fileup").files[0]
     let reader = new FileReader()
     reader.readAsDataURL(file)
     let data = ""
