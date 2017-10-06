@@ -86,6 +86,9 @@ export class Plot
         if(s == undefined)
             throw("formula is missing in the parameter of plotFormula. Example: plotFormula(\"sin(x1)\")")
             
+        if(this.plotmesh != undefined)
+            this.scene.remove(this.plotmesh)
+
         this.resetCalculation()
             this.formula = MathParser.parse(s)
 
@@ -98,16 +101,109 @@ export class Plot
             let x = 0
             let z = 0
 
+            let geom = new THREE.Geometry()
+            let vIndex = 0
+            let j = 0
+
+            //memorizes the indices that have been in the previous line
+            let indicesMemory = new Array(this.zLen*this.res)
+            let indicesMemoryNew = new Array(this.zLen*this.res)
+
+            //add vertices
+            let buildPlot = function(i, j, vIndex, indicesMemory, dir)
+            {
+                x = i/this.res
+                z = j/this.res
+                y = this.f(x,z)
+                
+                geom.vertices.push(new THREE.Vector3(x,y,z))
+
+                //build a face
+                //
+                //     0 +----+----+----+----+ 4
+                //                 b    a    |
+                //     9 +----+----+----+----+ 5
+                //       |
+                //    10 +----+----+----+----+ 14
+                //                 e    d
+                //
+                // line nr (x). is i, col nr (z). is j
+                //
+                // e is the current vertex.
+                // take the vertex that is on the other side, that means b
+                // take the previous vertex, which is d
+                // finished, three vertex make one face
+                //
+                // do this once it's one vertex away from the side, which means:
+                // j < zLen*zRes && j >= 0
+                //
+                // all i have to get now is the index of b, d and e
+                //
+                // and then do another face with b a and d
+
+                if(i > 0 && j >= 0 && j < this.zLen*this.res-1)
+                {
+                    //read from indicesMemory, which is supposed to be b
+                    let e = vIndex
+                    let d = vIndex+dir
+                    let b = indicesMemory[j]
+                    geom.faces.push(new THREE.Face3(e,d,b))
+                    
+                    //now face the triangle that is missing
+                    let a = indicesMemory[j+1]
+                    geom.faces.push(new THREE.Face3(b,a,d))
+                }
+                //write to indicesMemoryNew
+                indicesMemoryNew[j] = vIndex
+
+            }.bind(this)
+
+            
+            //go over the x-z plane like a snake
+            //     +----+----+----+----+
+            //                         |
+            //     +----+----+----+----+
+            //     |
+            //     +----+----+----+----+
             for(let i = 0; i <= this.xLen*this.res; i++)
             {
-                for(let j = 0; j <= this.zLen*this.res; j++)
+                //from 0 to max
+                for(; j < this.zLen*this.res; j++)
                 {
-                    x = i/this.res
-                    z = j/this.res
-                    y = this.f(x,z)
-                    //THREETODO plot y into the plane
+                    buildPlot(i, j, vIndex, indicesMemory, 1)
+                    vIndex ++
                 }
+                j -- //j is 1 too large now
+
+                //check if end reached
+                i ++ //nextline
+                if(!(i <= this.xLen*this.res))
+                    break
+
+                //swap the indicesMemory
+                indicesMemory = indicesMemoryNew.slice()
+
+                //from max to 0
+                for(; j >= 0; j--)
+                {
+                    buildPlot(i, j, vIndex, indicesMemory, -1)
+                    vIndex ++
+                }
+                j ++ //j is -1 now.
+
+                //it goes around like a snake, which means
+                //that i can connect the most recent 3 vertices to a face
             }
+
+            //color the plot
+            let axesMat = new THREE.MeshBasicMaterial({
+                color: 0xff6600,
+                wireframe: false,
+                side: THREE.DoubleSide
+                });
+    
+            this.plotmesh = new THREE.Mesh(geom, axesMat)
+            this.scene.add(this.plotmesh);
         }
         else
         {
@@ -311,9 +407,11 @@ export class Plot
         let far = 10
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
         camera.position.set(2,2,2)
-        camera.lookAt(new THREE.Vector3(0,0,0))
+        camera.lookAt(new THREE.Vector3(1,1,1))
         
         let controls = new OrbitControls(camera, this.renderer.domElement)
+        controls.enableKeys = true
+        controls.target.set(0.5,0.5,0.5)
         controls.addEventListener("change", ()=>this.render())
         controls.enableDamping = true
         controls.dampingFactor = 0.25

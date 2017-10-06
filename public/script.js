@@ -5,7 +5,7 @@ document.getElementById("formulaForm").addEventListener("submit",function(e)
 {
     e.preventDefault()
     var formula = document.getElementById("formulaText").value
-    plot.plotFormula(formula,true)
+    plot.plotFormula(formula)
 })
 
 
