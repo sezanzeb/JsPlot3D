@@ -23,12 +23,13 @@ export class Plot
         this.zLen = 1
         this.res = 40 //this.resolution of the mesh
         
-        //some plotdata specific letiables
+        //some plotdata specific letiables. I want setters and getter for all those at some point
         this.dataframe
         this.formula
         this.stopRecursion
         this.calculatedPoints
         this.resetCalculation() //configures the letiables
+        this.datapointImage = "datapoint.png"
 
         //3d objects
         this.plotmesh
@@ -44,22 +45,17 @@ export class Plot
         container.appendChild(this.renderer.domElement)
 
         this.scene = new THREE.Scene()
-
-        // cube geometry (200 x 200 x 200);
-        let geometry = new THREE.CubeGeometry(0.1, 0.1, 0.1)
-        let material = new THREE.MeshLambertMaterial( { color: 0x660000 } )
-        let cubeMesh = new THREE.Mesh( geometry, material)
-        this.scene.add( cubeMesh )
         
         this.createAxes(axesClr)
         this.createLight()
-        this.camera = this.createCamera(width, height)
+        this.createArcCamera(width, height)
     }
+    
 
 
-    render(gl, width, height) {
-        console.log("test")
-        renderer.render(this.scene, this.camera)
+    render()
+    {
+        this.renderer.render(this.scene, this.camera)
     }
 
 
@@ -253,59 +249,35 @@ export class Plot
                     if(y == undefined)
                         y = 0
                     //THREETODO plot y into the plane
+
+                    // cube geometry (200 x 200 x 200);
+                    let geometry = new THREE.CubeGeometry(0.1, 0.1, 0.1)
+                    let material = new THREE.MeshLambertMaterial( { color: 0x660000 } )
+                    let cubeMesh = new THREE.Mesh( geometry, material)
+                    cubeMesh.position = new THREE.Vector3(x,y,z)
+                    this.scene.add( cubeMesh )
                 }
             }
         }
         else
         {
-            //ParticleSystem is a group of Disc Meshes
-            let SPS = new THREE.SolidParticleSystem("SPS", this.scene)
-            //this is how a single datapoint looks.
-            let datapoint = THREE.MeshBuilder.CreateDisc("dataPoint"+i,{radius:0.01,tessellation:10}, this.scene)
-            //create as many Discs as datapoints are available
-            SPS.addShape(datapoint, df.length)
-            datapoint.dispose()
+            let geometry = new THREE.Geometry()
+            let sprite = new THREE.TextureLoader().load(this.datapointImage)
 
-
-            //in the following function, move the particles according to the dataframe info
-            let i = 0
-            SPS.updateParticle = function(particle)
+            for(let  i = 0; i < df.length; i ++)
             {
-                //find out which x, y and z this datapoint has and normalize those parameters to fit into xLen and zLen
-                //parseInt cuts away the comma. dividing it by the maximum will normalize it
-                let dpx1 = df[i][x1col]/x1maxDf
-                let dpx2 = df[i][x2col]/x2maxDf
-                let dpx3 = df[i][x3col]/x3maxDf
-                particle.position = new THREE.Vector3(dpx1,dpx2,dpx3)
-                i ++
+                let vertex = new THREE.Vector3()
+                vertex.x = df[i][x1col]/x1maxDf
+                vertex.y = df[i][x2col]/x2maxDf
+                vertex.z = df[i][x3col]/x3maxDf
+                geometry.vertices.push(vertex)
             }
 
-
-            //create a mesh from all the particles
-            this.plotmesh = SPS.buildMesh()
-
-            //now, call SPS.updateParticle to move them to their position
-            SPS.initParticles()
-            SPS.setParticles()
-
-            //datapoint always looks towards the camera
-            SPS.billboard = true
-            SPS.computeParticleRotation = false
-            SPS.computeParticleColor = false
-            SPS.computeParticleTexture = false
-            SPS.isAlwaysVisible = true
-
-            this.scene.registerBeforeRender(function() {
-                i = 0
-                SPS.setParticles()
-            })
-
-
-            let material = new THREE.StandardMaterial("material1", this.scene)
-            material.emissiveColor = new THREE.Color3(0,0.8,0.5)
-            material.diffuseColor = new THREE.Color3(0,0,0)
-            material.backFaceCulling = true
-            this.plotmesh.material = material
+            let material = new THREE.PointsMaterial({size: 5, sizeAttenuation: false, map: sprite, alphaTest: 0.5, transparent: true })
+            material.color.setRGB(0.2,0.8,0.6)
+            let particles = new THREE.Points(geometry, material)
+            this.plotmesh = particles
+            this.scene.add(particles)
         }
     }
 
@@ -314,22 +286,24 @@ export class Plot
     /**
      * Creates the camera
      */
-    createCamera(width, height)
+    createArcCamera(width, height)
     {
         let viewAngle = 80
         let aspect = width / height
         let near = 1
         let far = 10
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        camera.position.set(-2,-2,-2)
+        camera.position.set(2,2,2)
         camera.lookAt(new THREE.Vector3(0,0,0))
         
         let controls = new OrbitControls(camera, this.renderer.domElement)
+        controls.addEventListener("change", ()=>this.render())
         controls.enableDamping = true
         controls.dampingFactor = 0.25
         controls.enableZoom = true
+        controls.rotateSpeed = 0.3
 
-        return camera
+        this.camera = camera
     }
 
 
