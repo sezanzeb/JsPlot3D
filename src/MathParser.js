@@ -1,3 +1,4 @@
+//converts mathematical syntax to javascript. has to be imported as "MathParser" at the moment so that evals know where to find MathParser. expressions.
 
 /**
  * thanks to https://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
@@ -63,9 +64,9 @@ export function parse(formula)
 {
     //regex for numbers of x1 and x2: (x1|x2|\d+(\.\d+){0,1})
     
-
+    //for recursive calls, make sure f can actually be found by the parser
     formula = formula.replace(/f\(/g,"this.f(")
-    formula = formula.replace(/this\.this\./g,"this.")
+    formula = formula.replace(/this\.this\./g,"this.") //in case there are two this. terms now
 
     //remove whitespaces for easier regex replaces
     formula = formula.replace(/\s+/g,"")
@@ -77,7 +78,7 @@ export function parse(formula)
     //support ln()
     formula = formula.replace(/ln\(/g,"MathParser.ln(")
 
-    //support powers (WHAAT browsers support this? Testet with firefox and chromium-browser)
+    //support powers (to my susprise, current browsers support this (ES7 feature). Testet with firefox and chromium-browser)
     formula = formula.replace(/\^/g,"**")
     
     //support expressions without Math. as suffix.
@@ -87,9 +88,11 @@ export function parse(formula)
     //factorial
     while(true)
     {
+        //split the formula into the part left of the factorial and the part to the right
         let formulafac = formula.split(/!(.*)/g)
         //console.log("in: "+formula)
         //console.log(formulafac)
+
         if(formula.indexOf("!") != -1) //if threre is a factorial
         {
             //  ( a ( b ( c ) ) ! foobar
@@ -97,8 +100,8 @@ export function parse(formula)
             //          left    | right
 
 
-            //left, start at the end of the string:
-            let left = 0
+            let left = 0 //counts brackets to the left
+            // start at the end of the string:
             let j = formulafac[0].length-1
             if(formulafac[0][j] == ")") //if there is a bracket
                 do //find the opening bracket for this closing bracket
@@ -120,7 +123,7 @@ export function parse(formula)
 
             //check if there is an expression to the left
             //f(foo)^2 or Math.sin(bar)^2
-            //the regex max also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
+            //the regex may also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
             if(/[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
             {
                 //console.log("found expression")
