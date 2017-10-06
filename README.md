@@ -106,6 +106,7 @@ You have to upload the .csv file **afterwards** you typed in the configuration a
 ## Todo
 
 - try to do the same in three.js and see what is better suited
+- wrap the MathParser into a class
 - csvplot: interpolate the datapoints for 3D Plane based plots
 - csvplot: for missing datapoints in the plane, remove the vertex
 - heatmapcolor it according to .csv column or height (for functions)
