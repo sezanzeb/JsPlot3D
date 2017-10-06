@@ -1,4 +1,5 @@
-const BABYLON = require("babylonjs")
+const THREE = require("three")
+const OrbitControls = require('three-orbit-controls')(THREE)
 import * as MathParser from './MathParser.js'
 
 export class Plot
@@ -13,7 +14,7 @@ export class Plot
      * @param backgroundClr     background color of the plot. Default: white
      * @param axesClr           color of the axes. Default: black
      */
-    constructor(canvas, backgroundClr="#ffffff", axesClr="#000000")
+    constructor(container, backgroundClr="#ffffff", axesClr="#000000")
     {
         //config
         //boundaries of the plot data
@@ -22,36 +23,48 @@ export class Plot
         this.zLen = 1
         this.res = 40 //this.resolution of the mesh
         
-        //some plotdata specific variables
+        //some plotdata specific letiables
         this.dataframe
         this.formula
         this.stopRecursion
         this.calculatedPoints
-        this.resetCalculation() //configures the variables
+        this.resetCalculation() //configures the letiables
 
         //3d objects
         this.plotmesh
 
-        //babylon3d setup
-        this.canvas = canvas
-        let engine = new BABYLON.Engine(canvas,true)
-        this.scene = new BABYLON.Scene(engine)
-        //0.2,0.25,0.3
-        this.scene.clearColor = new BABYLON.Color3.FromHexString(backgroundClr)
+        //three.js setup
+        this.container = container
+        let height = container.offsetHeight
+        let width = container.offsetWidth
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true })
+        this.renderer.setSize(width,height)
+        this.renderer.setClearColor(backgroundClr)
+        container.appendChild(this.renderer.domElement)
+
+        this.scene = new THREE.Scene()
+
+        // cube geometry (200 x 200 x 200);
+        let geometry = new THREE.CubeGeometry(0.1, 0.1, 0.1)
+        let material = new THREE.MeshLambertMaterial( { color: 0x660000 } )
+        let cubeMesh = new THREE.Mesh( geometry, material)
+        this.scene.add( cubeMesh )
+        
         this.createAxes(axesClr)
         this.createLight()
-        this.createArcCamera(
-            new BABYLON.Vector3(this.xLen/2,this.yLen/2,this.zLen/2),
-            BABYLON.Tools.ToRadians(45),
-            BABYLON.Tools.ToRadians(70),
-            this.xLen+this.yLen+this.zLen)
-        engine.runRenderLoop(()=>this.scene.render())
+        this.camera = this.createCamera(width, height)
     }
 
 
+    render(gl, width, height) {
+        console.log("test")
+        renderer.render(this.scene, this.camera)
+    }
+
 
     /**
-     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started
+     * reinitializes the letiables that are needed for calculating plots, so that a new plot can be started
      */
     resetCalculation()
     {
@@ -87,29 +100,16 @@ export class Plot
             let x = 0
             let z = 0
 
-            //this creates a path for CreateRibbon. Vertices y/x3 value is going to be calculated according to the formula
-            //it's basically a subdivided plane
-            let path = new Array(this.xLen)
             for(let i = 0; i <= this.xLen*this.res; i++)
             {
-                path[i] = new Array(this.zLen)
                 for(let j = 0; j <= this.zLen*this.res; j++)
                 {
                     x = i/this.res
                     z = j/this.res
                     y = this.f(x,z)
-                    path[i][j] = new BABYLON.Vector3(x,y,z)
-                    path[i][j] = new BABYLON.Vector3(x,y,z)
+                    //THREETODO plot y into the plane
                 }
             }
-
-            //creates faces between paths 0 and 1, 1 and 2, 2 and 3, etc...
-            this.plotmesh = BABYLON.Mesh.CreateRibbon("Plot", path, false, false, null, this.scene)
-            let material = new BABYLON.StandardMaterial("material1", this.scene)
-            material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
-            material.diffuseColor = new BABYLON.Color3(1,0,0)
-            material.backFaceCulling = false
-            this.plotmesh.material = material
         }
         else
         {
@@ -241,10 +241,8 @@ export class Plot
                 //TODO interpolate
             }
     
-            let path = new Array(this.xLen*this.res)
             for(let i = 0; i < this.xLen*this.res; i++)
             {
-                path[i] = new Array(this.zLen*this.res)
                 for(let j = 0; j < this.zLen*this.res; j++)
                 {
                     x = i/this.res
@@ -254,25 +252,16 @@ export class Plot
                     //not every point might be defined inside the dataframe
                     if(y == undefined)
                         y = 0
-                    path[i][j] = new BABYLON.Vector3(x,y,z)
-                    path[i][j] = new BABYLON.Vector3(x,y,z)
+                    //THREETODO plot y into the plane
                 }
             }
-
-            //creates faces between paths 0 and 1, 1 and 2, 2 and 3, etc...
-            this.plotmesh = BABYLON.Mesh.CreateRibbon("Plot", path, false, false, null, this.scene)
-            let material = new BABYLON.StandardMaterial("material1", this.scene)
-            material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
-            material.diffuseColor = new BABYLON.Color3(1,0,0)
-            material.backFaceCulling = false
-            this.plotmesh.material = material
         }
         else
         {
             //ParticleSystem is a group of Disc Meshes
-            let SPS = new BABYLON.SolidParticleSystem("SPS", this.scene)
+            let SPS = new THREE.SolidParticleSystem("SPS", this.scene)
             //this is how a single datapoint looks.
-            let datapoint = BABYLON.MeshBuilder.CreateDisc("dataPoint"+i,{radius:0.01,tessellation:10}, this.scene)
+            let datapoint = THREE.MeshBuilder.CreateDisc("dataPoint"+i,{radius:0.01,tessellation:10}, this.scene)
             //create as many Discs as datapoints are available
             SPS.addShape(datapoint, df.length)
             datapoint.dispose()
@@ -287,7 +276,7 @@ export class Plot
                 let dpx1 = df[i][x1col]/x1maxDf
                 let dpx2 = df[i][x2col]/x2maxDf
                 let dpx3 = df[i][x3col]/x3maxDf
-                particle.position = new BABYLON.Vector3(dpx1,dpx2,dpx3)
+                particle.position = new THREE.Vector3(dpx1,dpx2,dpx3)
                 i ++
             }
 
@@ -312,9 +301,9 @@ export class Plot
             })
 
 
-            let material = new BABYLON.StandardMaterial("material1", this.scene)
-            material.emissiveColor = new BABYLON.Color3(0,0.8,0.5)
-            material.diffuseColor = new BABYLON.Color3(0,0,0)
+            let material = new THREE.StandardMaterial("material1", this.scene)
+            material.emissiveColor = new THREE.Color3(0,0.8,0.5)
+            material.diffuseColor = new THREE.Color3(0,0,0)
             material.backFaceCulling = true
             this.plotmesh.material = material
         }
@@ -323,30 +312,24 @@ export class Plot
 
 
     /**
-     * Creates an ArcCamera
-     *
-     * @param target    Vector3 to look at
-     * @param xAngle    Radians of xAngle
-     * @param yAngle    Radians of yAngle
-     * @param distance  Distance of the camera to target
+     * Creates the camera
      */
-    createArcCamera(target,xAngle,yAngle,distance)
+    createCamera(width, height)
     {
-        let camera = new BABYLON.ArcRotateCamera("arcCam",
-            xAngle, yAngle, distance, BABYLON.Vector3.Zero(), this.scene)
-        camera.setTarget(target)
+        let viewAngle = 80
+        let aspect = width / height
+        let near = 1
+        let far = 10
+        let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
+        camera.position.set(-2,-2,-2)
+        camera.lookAt(new THREE.Vector3(0,0,0))
+        
+        let controls = new OrbitControls(camera, this.renderer.domElement)
+        controls.enableDamping = true
+        controls.dampingFactor = 0.25
+        controls.enableZoom = true
 
-        //controls
-        camera.attachControl(this.canvas,true)
-        camera.keysUp.push(87)
-        camera.keysDown.push(83)
-        camera.keysLeft.push(65)
-        camera.keysRight.push(68)
-
-        camera.lowerRadiusLimit = distance/2
-        camera.upperRadiusLimit = distance
-
-        camera.wheelPrecision = 100
+        return camera
     }
 
 
@@ -356,8 +339,10 @@ export class Plot
      */
     createLight()
     {
-        let light = new BABYLON.PointLight("light1", new BABYLON.Vector3(0, 10, 0), this.scene)
-        light.specular = new BABYLON.Color3(0,0,0)
+        // set a directional light
+        let directionalLight = new THREE.DirectionalLight( 0xffffff, 5 )
+        directionalLight.position.z = 3;
+        this.scene.add( directionalLight )
     }
 
 
@@ -380,48 +365,33 @@ export class Plot
      */
     createAxes(color="#000000")
     {
-        //recreate
-        if(this.xAxis != undefined) {
-            this.xAxis.dispose()
-            this.yAxis.dispose()
-            this.zAxis.dispose()
-        }
+        //THREETODO displose axes is they have been are already created
 
-        //create paths for the edges of the axis
-        let xPath = new Array(2)
-        let yPath = new Array(2)
-        let zPath = new Array(2)
+        let geom = new THREE.Geometry()
 
-        //in createribbon, the path xPath[0] would connect to xPath[1]
-        //this happens to be able to create faces
-        //I only need edges, so only two vertices defined as the path in xPath[0]
+        let cent = new THREE.Vector3(0,0,0)
+        let xend = new THREE.Vector3(this.xLen,0,0)
+        let yend = new THREE.Vector3(0,this.yLen,0)
+        let zend = new THREE.Vector3(0,0,this.zLen)
 
-        xPath = new Array(1)
-        xPath[0] = new Array(2)
-        xPath[0][0] = new BABYLON.Vector3(0,0,0)
-        xPath[0][1] = new BABYLON.Vector3(this.xLen,0,0)
-
-        yPath = new Array(1)
-        yPath[0] = new Array(2)
-        yPath[0][0] = new BABYLON.Vector3(0,0,0)
-        yPath[0][1] = new BABYLON.Vector3(0,this.yLen,0)
-
-        zPath = new Array(1)
-        zPath[0] = new Array(2)
-        zPath[0][0] = new BABYLON.Vector3(0,0,0)
-        zPath[0][1] = new BABYLON.Vector3(0,0,this.zLen)
-
-        this.xAxis = BABYLON.Mesh.CreateRibbon("xAxis", xPath, this.scene)
-        this.yAxis = BABYLON.Mesh.CreateRibbon("yAxis", yPath, this.scene)
-        this.zAxis = BABYLON.Mesh.CreateRibbon("zAxis", zPath, this.scene)
+        geom.vertices.push(cent) //0
+        geom.vertices.push(xend) //1
+        geom.vertices.push(yend) //2
+        geom.vertices.push(zend) //3
+        geom.faces.push(new THREE.Face3(0,1,2))
+        geom.faces.push(new THREE.Face3(1,2,3))
 
         //wireframe and color those paths
-        let axesMat = new BABYLON.StandardMaterial("material2", this.scene)
-        axesMat.wireframe = true
-        axesMat.emissiveColor = new BABYLON.Color3.FromHexString(color)
-        this.xAxis.material = axesMat
-        this.yAxis.material = axesMat
-        this.zAxis.material = axesMat
+        let axesMat = new THREE.MeshBasicMaterial( {
+            color: color,
+            wireframe: false
+          } );
+
+        let axes = new THREE.Mesh(geom, axesMat)
+
+        let object = new THREE.AxisHelper( 1 );
+        object.position.set( 0, 0, 0 );
+        this.scene.add( object );
     }
 
 

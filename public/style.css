@@ -13,7 +13,7 @@ body
     width:700px;
 }
 
-#babyloncanvas
+#threecanvas
 {
     width:700px;
     height:600px;
@@ -22,7 +22,7 @@ body
     border-radius:2px;
 }
 
-#babyloncanvas:focus {
+#threecanvas:focus {
     outline: none;
 }
 

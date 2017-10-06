@@ -1,5 +1,5 @@
 
-var plot = new JSPLOT3D.Plot(document.getElementById("babyloncanvas"),"#33404c","#ffffff")
+var plot = new JSPLOT3D.Plot(document.getElementById("threecanvas"),"#33404c","#ffffff")
 
 document.getElementById("formulaForm").addEventListener("submit",function(e)
 {
