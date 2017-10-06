@@ -122,7 +122,7 @@ export function parse(formula)
 
 
             //check if there is an expression to the left
-            //f(foo)^2 or Math.sin(bar)^2
+            //f(foo)! or Math.sin(bar)!
             //the regex may also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
             if(/[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
             {
