@@ -18,10 +18,12 @@ for(let i = 1;i < lines; i++)
         "RGB("+i/lines+","+i/lines+","+i/lines+")"
 }
 
-//between -0.1 and 0.1
 function rand()
 {
-    return Math.pow(Math.random()-0.5,3)
+    let a = Math.pow(Math.random()-0.5,3)
+    let b = Math.pow(Math.random()-0.5,5)*7
+    let c = Math.pow(Math.random()-0.5,7)*50
+    return a + b + c
 }
 
 fs.writeFileSync("./example.csv",csv.join("\n"))

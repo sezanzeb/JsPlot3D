@@ -59,9 +59,14 @@ small p
     text-align: center;
 }
 
-#sep
+#sep, #submitcsv
 {
     margin-left: 6px;
     width:100px;
     text-align: center;
+}
+
+button
+{
+    text-decoration:underline;
 }

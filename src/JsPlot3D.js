@@ -70,44 +70,70 @@ export class Plot
      * 
      * @param s       string of formula
      */
-    plotFormula(s)
+    plotFormula(s, scatterplot=false)
     {
         if(s == undefined)
             throw("formula is missing in the parameter of plotFormula. Example: plotFormula(\"sin(x1)\")")
+            
         this.resetCalculation()
             this.formula = MathParser.parse(s)
 
-
-        if(this.plotmesh != undefined)
-        this.plotmesh.dispose()
-
-        //create a subdivided plane
-        let y = 0
-        let x = 0
-        let z = 0
-
-        let path = new Array(this.xLen)
-        for(let i = 0; i <= this.xLen*this.res; i++)
+        if(!scatterplot)
         {
-            path[i] = new Array(this.zLen)
-            for(let j = 0; j <= this.zLen*this.res; j++)
+            if(this.plotmesh != undefined)
+            this.plotmesh.dispose()
+
+            let y = 0
+            let x = 0
+            let z = 0
+
+            //this creates a path for CreateRibbon. Vertices y/x3 value is going to be calculated according to the formula
+            //it's basically a subdivided plane
+            let path = new Array(this.xLen)
+            for(let i = 0; i <= this.xLen*this.res; i++)
             {
-                x = i/this.res
-                z = j/this.res
-                y = this.f(x,z)
-                path[i][j] = new BABYLON.Vector3(x,y,z)
-                path[i][j] = new BABYLON.Vector3(x,y,z)
+                path[i] = new Array(this.zLen)
+                for(let j = 0; j <= this.zLen*this.res; j++)
+                {
+                    x = i/this.res
+                    z = j/this.res
+                    y = this.f(x,z)
+                    path[i][j] = new BABYLON.Vector3(x,y,z)
+                    path[i][j] = new BABYLON.Vector3(x,y,z)
+                }
             }
+
+            //creates faces between paths 0 and 1, 1 and 2, 2 and 3, etc...
+            this.plotmesh = BABYLON.Mesh.CreateRibbon("Plot", path, false, false, null, this.scene)
+            let material = new BABYLON.StandardMaterial("material1", this.scene)
+            material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
+            material.diffuseColor = new BABYLON.Color3(1,0,0)
+            material.backFaceCulling = false
+            this.plotmesh.material = material
         }
+        else
+        {
+            //if scatterplot, create a dataframe and send it to plotDataFrame
+            let df = new Array(this.xLen*this.res * this.yLen*this.res)
 
+            let y = 0
+            let x = 0
+            let z = 0
+            let i = 0
 
-        //creates faces between paths 0 and 1, 1 and 2, 2 and 3, etc...
-        this.plotmesh = BABYLON.Mesh.CreateRibbon("Plot", path, false, false, null, this.scene)
-        let material = new BABYLON.StandardMaterial("material1", this.scene)
-        material.emissiveColor = new BABYLON.Color3(0.2,0.5,0)
-        material.diffuseColor = new BABYLON.Color3(1,0,0)
-        material.backFaceCulling = false
-        this.plotmesh.material = material
+            for(let x = 0; x <= this.xLen*this.res; x++)
+            {
+                for(let z = 0; z <= this.yLen*this.res; z++)
+                {
+                    y = this.f(x/this.res,z/this.res)
+                    df[i] = [x/this.res,y,z/this.res]
+                    i++
+                }
+            }
+
+            plot.plotDataFrame(df, 0, 1, 2, true, false)
+
+        }
     }
     
     
@@ -122,7 +148,7 @@ export class Plot
      * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
      */
-    plotCsvString(sCsv,x1col,x2col,x3col,separator = ",",header = false,scatterplot=true)
+    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, scatterplot=true)
     {
         //transform the sCsv string to a dataframe
         let data = sCsv.split("\n")
@@ -151,9 +177,8 @@ export class Plot
      * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
      */
-    plotDataFrame(df,x1col,x2col,x3col,scatterplot=true)
+    plotDataFrame(df, x1col, x2col, x3col, scatterplot=true, normalize=true)
     {
-        console.log(x1col+" "+x2col+" "+x3col)
         //TODO check if cols are available in the dataframe, if not, throw errors and stop
         //TODO check type of cols, if numbers or not
 
@@ -161,34 +186,28 @@ export class Plot
         if(this.plotmesh != undefined)
             this.plotmesh.dispose()
 
-        //create a subdivided plane
-        let y = 0
-        let x = 0
-        let z = 0
 
-        /*x1col = 0
-        x2col = 1
-        x3col = 2*/
-
-        //parameters extracted from the dataframe, needed for normalisation
         let x1maxDf = 1
         let x2maxDf = 1
         let x3maxDf = 1
 
-        //determine max for y-normalisation
-        for(let i = 0; i < df.length; i++)
-            if(Math.abs(df[i][x1col]) > x1maxDf)
-                x1maxDf = Math.abs(df[i][x1col])
+        if(normalize)
+        {
+            //not only normalize y, but also x and z. That means all y values need to get into that xLen * zLen square
+            //determine max for y-normalisation
+            for(let i = 0; i < df.length; i++)
+                if(Math.abs(df[i][x1col]) > x1maxDf)
+                    x1maxDf = Math.abs(df[i][x1col])
 
 
-        for(let i = 0; i < df.length; i++)
-            if(Math.abs(df[i][x2col]) > x2maxDf)
-                x2maxDf = Math.abs(df[i][x2col])
+            for(let i = 0; i < df.length; i++)
+                if(Math.abs(df[i][x2col]) > x2maxDf)
+                    x2maxDf = Math.abs(df[i][x2col])
 
-        for(let i = 0; i < df.length; i++)
-            if(Math.abs(df[i][x3col]) > x3maxDf)
-                x3maxDf = Math.abs(df[i][x3col])
-
+            for(let i = 0; i < df.length; i++)
+                if(Math.abs(df[i][x3col]) > x3maxDf)
+                    x3maxDf = Math.abs(df[i][x3col])
+        }
 
         //create a 2d xLen*res zLen*res array that contains the datapoints
         let zRes = this.zLen*this.res
@@ -206,6 +225,10 @@ export class Plot
             }
     
     
+            //from the data in the dataframe and the selected columns
+            //create a 2d xLen*res zLen*res array that contains the datapoints
+            //this way I can even interpolate
+            //then create the path from that array
             //take a datapoint (which consists of 3 dimensions) and plot that point into the 2D array
             for(let i = 0; i < df.length; i++)
             {
@@ -218,14 +241,6 @@ export class Plot
                 //TODO interpolate
             }
     
-    
-            //TODO not only normalize y, but also x and z. That means all y values need to get into that xLen * zLen square
-    
-            //TODO from the data in the dataframe and the selected columns
-            //create a 2d xLen*res zLen*res array that contains the datapoints
-            //this way I can even interpolate
-            //then create the path from that array
-
             let path = new Array(this.xLen*this.res)
             for(let i = 0; i < this.xLen*this.res; i++)
             {
@@ -254,13 +269,16 @@ export class Plot
         }
         else
         {
-
+            //ParticleSystem is a group of Disc Meshes
             let SPS = new BABYLON.SolidParticleSystem("SPS", this.scene)
+            //this is how a single datapoint looks.
             let datapoint = BABYLON.MeshBuilder.CreateDisc("dataPoint"+i,{radius:0.01,tessellation:10}, this.scene)
+            //create as many Discs as datapoints are available
             SPS.addShape(datapoint, df.length)
             datapoint.dispose()
 
 
+            //in the following function, move the particles according to the dataframe info
             let i = 0
             SPS.updateParticle = function(particle)
             {
@@ -273,11 +291,15 @@ export class Plot
                 i ++
             }
 
+
+            //create a mesh from all the particles
             this.plotmesh = SPS.buildMesh()
 
+            //now, call SPS.updateParticle to move them to their position
             SPS.initParticles()
             SPS.setParticles()
 
+            //datapoint always looks towards the camera
             SPS.billboard = true
             SPS.computeParticleRotation = false
             SPS.computeParticleColor = false
@@ -289,25 +311,11 @@ export class Plot
                 SPS.setParticles()
             })
 
-            /*
-            //take a datapoint (which consists of 3 dimensions) and create a dot for it
-            for(let i = 0; i < df.length; i++)
-            {
-                //find out which x, y and z this datapoint has and normalize those parameters to fit into xLen and zLen
-                //parseInt cuts away the comma. dividing it by the maximum will normalize it
-                let dpx1 = df[i][x1col]/x1maxDf
-                let dpx2 = df[i][x2col]/x2maxDf
-                let dpx3 = df[i][x3col]/x3maxDf
-
-                datapoint.material = material
-                datapoint.position = new BABYLON.Vector3(dpx1,dpx2,dpx3)
-            }*/
-
 
             let material = new BABYLON.StandardMaterial("material1", this.scene)
             material.emissiveColor = new BABYLON.Color3(0,0.8,0.5)
             material.diffuseColor = new BABYLON.Color3(0,0,0)
-            material.backFaceCulling = false
+            material.backFaceCulling = true
             this.plotmesh.material = material
         }
     }
@@ -353,22 +361,40 @@ export class Plot
     }
 
 
+    
+    /**
+     * A synonym for createAxes(color). Creates new axes with the defined color
+     * 
+     * @param color     hex string of the axes color
+     */
+    setAxesColor(color="#000000") {
+        this.createAxes(color)
+    }
+
+
 
     /**
      * creates the axes that point into the three x, y and z directions as wireframes
      * 
      * @param color     hex string of the axes color
      */
-    createAxes(color)
+    createAxes(color="#000000")
     {
-        let min = -1, max = 1
-        let rx = Math.random() * (max-min) - min
-        let ry = Math.random() * (max-min) - min
-        let rz = Math.random() * (max-min) - min
+        //recreate
+        if(this.xAxis != undefined) {
+            this.xAxis.dispose()
+            this.yAxis.dispose()
+            this.zAxis.dispose()
+        }
 
+        //create paths for the edges of the axis
         let xPath = new Array(2)
         let yPath = new Array(2)
         let zPath = new Array(2)
+
+        //in createribbon, the path xPath[0] would connect to xPath[1]
+        //this happens to be able to create faces
+        //I only need edges, so only two vertices defined as the path in xPath[0]
 
         xPath = new Array(1)
         xPath[0] = new Array(2)
@@ -385,17 +411,17 @@ export class Plot
         zPath[0][0] = new BABYLON.Vector3(0,0,0)
         zPath[0][1] = new BABYLON.Vector3(0,0,this.zLen)
 
-        let xAxis = BABYLON.Mesh.CreateRibbon("xAxis", xPath, this.scene)
-        let yAxis = BABYLON.Mesh.CreateRibbon("yAxis", yPath, this.scene)
-        let zAxis = BABYLON.Mesh.CreateRibbon("zAxis", zPath, this.scene)
+        this.xAxis = BABYLON.Mesh.CreateRibbon("xAxis", xPath, this.scene)
+        this.yAxis = BABYLON.Mesh.CreateRibbon("yAxis", yPath, this.scene)
+        this.zAxis = BABYLON.Mesh.CreateRibbon("zAxis", zPath, this.scene)
 
+        //wireframe and color those paths
         let axesMat = new BABYLON.StandardMaterial("material2", this.scene)
         axesMat.wireframe = true
         axesMat.emissiveColor = new BABYLON.Color3.FromHexString(color)
-
-        xAxis.material = axesMat
-        yAxis.material = axesMat
-        zAxis.material = axesMat
+        this.xAxis.material = axesMat
+        this.yAxis.material = axesMat
+        this.zAxis.material = axesMat
     }
 
 
@@ -422,6 +448,9 @@ export class Plot
             
             this.calculatedPoints[parseInt(x1*this.res)][parseInt(x2*this.res)] = val
         }
+
+        if(val == undefined)
+            return 0
 
         return val
     }
