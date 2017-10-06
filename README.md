@@ -22,6 +22,11 @@ It is written in ES6 syntax and compiled using webpack.
 
 ## How to Use
 
+first, you need to build. In a console, cd to the project root and use
+
+    npm install
+    npm start
+    
 **Plotting Formulas**
 
 Save the following to a .html file and open it in your browser.
@@ -72,6 +77,11 @@ Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your nee
 
 
 ## Live Example
+
+first, you need to build. In a console, cd to the project root and use
+
+    npm install
+    npm start
 
 open public/index.html in your browser for a live example.
 
