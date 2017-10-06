@@ -27,6 +27,8 @@ first, you need to build. In a console, cd to the project root and use
     npm install
     npm start
     
+3DPlotBundle.js will then be created in public/ automatically
+    
 **Plotting Formulas**
 
 Save the following to a .html file and open it in your browser.
