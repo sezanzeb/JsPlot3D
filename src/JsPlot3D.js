@@ -49,6 +49,8 @@ export class Plot
         this.createAxes(axesClr)
         this.createLight()
         this.createArcCamera(width, height)
+
+        this.render()
     }
     
 
@@ -90,7 +92,7 @@ export class Plot
         if(!scatterplot)
         {
             if(this.plotmesh != undefined)
-            this.plotmesh.dispose()
+                this.scene.remove(this.plotmesh)
 
             let y = 0
             let x = 0
@@ -130,6 +132,9 @@ export class Plot
             plot.plotDataFrame(df, 0, 1, 2, true, false)
 
         }
+
+        //TODO is there s smarter way to do it?
+        window.setTimeout(()=>this.render(),10)
     }
     
     
@@ -180,7 +185,7 @@ export class Plot
 
         this.resetCalculation()
         if(this.plotmesh != undefined)
-            this.plotmesh.dispose()
+            this.scene.remove(this.plotmesh)
 
 
         let x1maxDf = 1
@@ -252,10 +257,10 @@ export class Plot
 
                     // cube geometry (200 x 200 x 200);
                     let geometry = new THREE.CubeGeometry(0.1, 0.1, 0.1)
-                    let material = new THREE.MeshLambertMaterial( { color: 0x660000 } )
-                    let cubeMesh = new THREE.Mesh( geometry, material)
+                    let material = new THREE.MeshLambertMaterial({ color: 0x660000 })
+                    let cubeMesh = new THREE.Mesh(geometry, material)
                     cubeMesh.position = new THREE.Vector3(x,y,z)
-                    this.scene.add( cubeMesh )
+                    this.scene.add(cubeMesh)
                 }
             }
         }
@@ -263,6 +268,9 @@ export class Plot
         {
             let geometry = new THREE.Geometry()
             let sprite = new THREE.TextureLoader().load(this.datapointImage)
+            //https://github.com/mrdoob/three.js/issues/1625
+            sprite.magFilter = THREE.LinearFilter
+            sprite.minFilter = THREE.LinearFilter
 
             for(let  i = 0; i < df.length; i ++)
             {
@@ -273,12 +281,21 @@ export class Plot
                 geometry.vertices.push(vertex)
             }
 
-            let material = new THREE.PointsMaterial({size: 5, sizeAttenuation: false, map: sprite, alphaTest: 0.5, transparent: true })
-            material.color.setRGB(0.2,0.8,0.6)
+            //https://github.com/mrdoob/three.js/issues/1625
+            //alphatest = 1 causes errors
+            //alphatest = 0.9 edgy picture
+            //alphatest = 0.1 black edges on the sprite
+            //alphatest = 0 not transparent infront of other sprites anymore
+            //sizeAttenuation: false, sprites don't change size in distance and size is in px
+            let material = new THREE.PointsMaterial({size: 0.02, map: sprite, alphaTest: 0.7, transparent: true })
+            material.color.setRGB(0.2,0.7,0.5)
             let particles = new THREE.Points(geometry, material)
             this.plotmesh = particles
             this.scene.add(particles)
         }
+
+        //TODO is there s smarter way to do it?
+        window.setTimeout(()=>this.render(),10)
     }
 
 
@@ -290,7 +307,7 @@ export class Plot
     {
         let viewAngle = 80
         let aspect = width / height
-        let near = 1
+        let near = 0.1
         let far = 10
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
         camera.position.set(2,2,2)
@@ -314,9 +331,9 @@ export class Plot
     createLight()
     {
         // set a directional light
-        let directionalLight = new THREE.DirectionalLight( 0xffffff, 5 )
+        let directionalLight = new THREE.DirectionalLight(0xffffff, 5)
         directionalLight.position.z = 3;
-        this.scene.add( directionalLight )
+        this.scene.add(directionalLight)
     }
 
 
@@ -352,20 +369,19 @@ export class Plot
         geom.vertices.push(xend) //1
         geom.vertices.push(yend) //2
         geom.vertices.push(zend) //3
-        geom.faces.push(new THREE.Face3(0,1,2))
-        geom.faces.push(new THREE.Face3(1,2,3))
+        geom.faces.push(new THREE.Face3(0,0,1))
+        geom.faces.push(new THREE.Face3(0,0,2))
+        geom.faces.push(new THREE.Face3(0,0,3))
 
         //wireframe and color those paths
-        let axesMat = new THREE.MeshBasicMaterial( {
+        let axesMat = new THREE.MeshBasicMaterial({
             color: color,
-            wireframe: false
-          } );
+            wireframe: true,
+            side: THREE.DoubleSide
+          });
 
         let axes = new THREE.Mesh(geom, axesMat)
-
-        let object = new THREE.AxisHelper( 1 );
-        object.position.set( 0, 0, 0 );
-        this.scene.add( object );
+        this.scene.add(axes);
     }
 
 
