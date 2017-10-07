@@ -1,6 +1,9 @@
+//three.js
 const THREE = require("three")
 const OrbitControls = require('three-orbit-controls')(THREE)
-import * as MathParser from './MathParser.js'
+
+//own modules
+import MathParser from "./MathParser.js"
 
 export class Plot
 {
@@ -21,14 +24,18 @@ export class Plot
         this.xLen = 1
         this.yLen = 1
         this.zLen = 1
-        this.res = 20 //this.resolution of the mesh
+        this.xRes = 40
+        this.zRes = 40
+        this.xVerticesCount = this.xLen*this.xRes+1
+        this.zVerticesCount = this.zLen*this.zRes+1
         
         //some plotdata specific letiables. I want setters and getter for all those at some point
         this.dataframe
         this.formula
+        this.MathParser = new MathParser()
         this.stopRecursion
         this.calculatedPoints
-        this.resetCalculation() //configures the letiables
+        this.resetCalculation() //configures the variables
         this.datapointImage = "datapoint.png"
 
         //3d objects
@@ -70,9 +77,9 @@ export class Plot
      */
     resetCalculation()
     {
-        this.calculatedPoints = new Array(this.xLen*this.res+1)
+        this.calculatedPoints = new Array(this.xVerticesCount)
         for(let i = 0;i < this.calculatedPoints.length; i++)
-            this.calculatedPoints[i] = new Array(this.zLen*this.res+1)
+            this.calculatedPoints[i] = new Array(this.zVerticesCount)
 
         this.formula = ""
         this.stopRecursion = false
@@ -96,148 +103,73 @@ export class Plot
             this.scene.remove(this.plotmesh)
 
         this.resetCalculation()
-            this.formula = MathParser.parse(s)
+        this.formula = this.MathParser.parse(s)
 
         if(!scatterplot)
         {
             if(this.plotmesh != undefined)
                 this.scene.remove(this.plotmesh)
 
-            let y = 0
-            let x = 0
-            let z = 0
 
             let geom = new THREE.Geometry()
-            let vIndex = 0
-            let j = 0
 
             //memorizes the indices that have been in the previous line
-            let indicesMemory = new Array(this.zLen*this.res)
-            let indicesMemoryNew = new Array(this.zLen*this.res)
+            let indicesMemory = new Array(this.zLen*this.zRes)
+            let indicesMemoryNew = new Array(this.zLen*this.zRes)
 
-            //add vertices
-            let buildPlot = function(i, j, vIndex, indicesMemory, dir)
-            {
-                x = i/this.res
-                z = j/this.res
-                y = this.f(x,z)
-                
-                //push a new vertex
-                geom.vertices.push(new THREE.Vector3(x,y,z))
+            //hiding faces:
+            //https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
 
-                //afterwards build a face using that vertex
-                //
-                //     0 +----+----+----+----+ 4
-                //                 b    a    |
-                //     9 +----+----+----+----+ 5
-                //       |
-                //    10 +----+----+----+->  + 14
-                //                 e    d
-                //
-                // line nr (x). is i, col nr (z). is j
-                //
-                // e is the current vertex.
-                // take the vertex that is on the other side, that means b
-                // take the previous vertex, which is d
-                // finished, three vertex make one face
-                //
-                // do this once it's one vertex away from the side, which means:
-                // j < zLen*zRes && j >= 0
-                //
-                // all i have to get now is the index of b, d and e
-                //
-                // and then do another face with b a and d
 
-                //TODO this still doesn't work ffs
+            //create plane, divided into segments
+            let plane = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
+            //move it
+            plane.rotateX(Math.PI/2)
+            plane.translate(this.xLen/2,0,this.zLen/2)
 
-                let v = vIndex
-                if(i > 0 && j >= 0 && j < this.zLen*this.res-1)
+            //modifying vertex positions:
+            //https://github.com/mrdoob/three.js/issues/972
+            let y = 0
+            let vIndex = 0
+            for(let x = 0; x < this.xVerticesCount; x++)
+                for(let z = 0; z < this.zVerticesCount; z++)
                 {
-                    //read from indicesMemory, which is supposed to be b
-                    let e = v
-                    let d = v+dir
-                    let b = indicesMemory[j]
-                    let face = new THREE.Face3(e,d,b) //I need this object to color the vertex afterwards
-                    geom.faces.push(face)
-                    
-                    //now face the triangle that is missing
-                    let a = indicesMemory[j+1]
-                    let face2 = new THREE.Face3(b,a,d)
-                    geom.faces.push(face2)
-
-                    //console.log("hsl("+Math.abs(Math.min(1,Math.max(y,0)))+",100%,100%)")
-                }
-                //write to indicesMemoryNew
-                indicesMemoryNew[j] = vIndex
-
-            }.bind(this)
-
-            
-            //go over the x-z plane like a snake
-            //     +----+----+----+----+
-            //                         |
-            //     +----+----+----+----+
-            //     |
-            //     +----+----+----+----+
-            for(let i = 0; i <= this.xLen*this.res; i++)
-            {
-                //from 0 to max
-                for(; j < this.zLen*this.res; j++)
-                {
-                    buildPlot(i, j, vIndex, indicesMemory, 1)
+                    y = this.f(x/this.xRes,z/this.xRes)
+                    plane.vertices[vIndex].y = y
                     vIndex ++
                 }
-                j -- //j is 1 too large now
+            plane.computeFaceNormals()
+            plane.computeVertexNormals()
+            plane.__dirtyNormals = true
 
-                //check if end reached
-                i ++ //nextline
-                if(!(i <= this.xLen*this.res))
-                    break
-
-                //swap the indicesMemory
-                indicesMemory = indicesMemoryNew.slice()
-
-                //from max to 0
-                for(; j >= 0; j--)
-                {
-                    buildPlot(i, j, vIndex, indicesMemory, -1)
-                    vIndex ++
-                }
-                j ++ //j is -1 now.
-                
-                //swap the indicesMemory
-                indicesMemory = indicesMemoryNew.slice()
-
-                //it goes around like a snake, which means
-                //that i can connect the most recent 3 vertices to a face
-            }
-
-            //color the plot
+            //color the plane
             let plotmat = new THREE.MeshBasicMaterial({
                 color: 0xff6600,
-                //wireframe: false,
+                //wireframe: true,
                 side: THREE.DoubleSide
                 })
+
+            //modify this.plotmesh
     
-            this.plotmesh = new THREE.Mesh(geom, plotmat)
-            this.scene.add(this.plotmesh);
+            this.plotmesh = new THREE.Mesh(plane, plotmat)
+            this.scene.add(this.plotmesh)
         }
         else
         {
             //if scatterplot, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.xLen*this.res * this.yLen*this.res)
+            let df = new Array(this.xLen*this.xRes * this.zLen*this.zRes)
 
             let y = 0
             let x = 0
             let z = 0
             let i = 0
 
-            for(let x = 0; x <= this.xLen*this.res; x++)
+            for(let x = 0; x <= this.xLen*this.xRes; x++)
             {
-                for(let z = 0; z <= this.yLen*this.res; z++)
+                for(let z = 0; z <= this.zLen*this.zRes; z++)
                 {
-                    y = this.f(x/this.res,z/this.res)
-                    df[i] = [x/this.res,y,z/this.res]
+                    y = this.f(x/this.xRes,z/this.zRes)
+                    df[i] = [x/this.xRes,y,z/this.zRes]
                     i++
                 }
             }
@@ -280,8 +212,6 @@ export class Plot
      */
     plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=false, scatterplot=true, normalize=true)
     {
-        if(typeOf(colorCol) == 'object')
-
         
         //transform the sCsv string to a dataframe
         let data = sCsv.split("\n")
@@ -346,8 +276,8 @@ export class Plot
         }
 
         //create a 2d xLen*res zLen*res array that contains the datapoints
-        let zRes = this.zLen*this.res
-        let xRes = this.xLen*this.res
+        let zRes = this.zLen*this.zRes
+        let xRes = this.xLen*this.xRes
 
 
         if(!scatterplot)
@@ -377,12 +307,12 @@ export class Plot
                 //TODO interpolate
             }
     
-            for(let i = 0; i < this.xLen*this.res; i++)
+            for(let i = 0; i < this.xLen*this.xRes; i++)
             {
-                for(let j = 0; j < this.zLen*this.res; j++)
+                for(let j = 0; j < this.zLen*this.zRes; j++)
                 {
-                    x = i/this.res
-                    z = j/this.res
+                    x = i/this.xRes
+                    z = j/this.zRes
                     //y = df[i][x3col]
                     y = plotMeshRawData[i][j]
                     //not every point might be defined inside the dataframe
@@ -442,8 +372,7 @@ export class Plot
         let near = 0.1
         let far = 10
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        camera.position.set(2,2,2)
-        camera.lookAt(new THREE.Vector3(1,1,1))
+        camera.position.set(0.5,0.5,2)
         
         let controls = new OrbitControls(camera, this.renderer.domElement)
         controls.enableKeys = true
@@ -454,6 +383,7 @@ export class Plot
         controls.enableZoom = true
         controls.rotateSpeed = 0.3
 
+        camera.lookAt(new THREE.Vector3(0.5,0.5,0.5))
         this.camera = camera
     }
 
@@ -533,14 +463,17 @@ export class Plot
 
         //checking for a point if it has been calculated already increases the performance and
         //reduces the number of recursions. It will reduce the precision though
-        let val = this.calculatedPoints[parseInt(x1*this.res)][parseInt(x2*this.res)]
+
+        let val = this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x2*this.zRes)]
 
         if(val == undefined) //has this point has already been calculated before?
         {
             if(!this.stopRecursion)
-                val = eval(this.formula)
+                //bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
+                //another solution would be probably if I would just hand the variables over to MathParser
+                val = this.MathParser.eval2(this.formula, x1, x2, this.f.bind(this))
             
-            this.calculatedPoints[parseInt(x1*this.res)][parseInt(x2*this.res)] = val
+            this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x2*this.zRes)] = val
         }
 
         if(val == undefined)

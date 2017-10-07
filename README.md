@@ -117,6 +117,7 @@ You have to upload the .csv file **afterwards** you typed in the configuration a
 - increase redrawing performance, e.g. by not recreating the basic mesh everytime but rather manipulating the vertices (important for animations by doing timed redraws)
 - add axis title and numbers
 - on submit csvform plot the scatterplot
+- made a scatterplot using: https://www.kaggle.com/dalpozz/creditcardfraud/data and it needs to plot faster. If it can't get faster then plot the dataframe over the course of a few intervals so that the interface does not freeze. Maybe I can recycle old particles somehow instead of deleting them and creating the complete plot from scratch
 
 **maybe:**
 - for recursive formulas, use scatterplot and plot a datapoint everytime f(x1,x2) gets called. Datapoints, that have been calculated already at some point, are already cached (helps to stop recursion overflows and increases performance)
