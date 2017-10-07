@@ -9,7 +9,7 @@ export class Plot
      * Creates a Plot instance, so that a single canvas can be rendered. After calling this constructor, rendering can
      * be done using plotFormula(s), plotCsvString(s) or plotDataFrame(df)
      * 
-     * @param canvas            html canvas DOM element. e.g.: <canvas id="foobar" style="width:500px; height:500px;"></canvas>, which is then selected using
+     * @param {element} canvas            html canvas DOM element. e.g.: <canvas id="foobar" style="width:500px; height:500px;"></canvas>, which is then selected using
      *                          Plot(document.getElementById("foobar"))
      * @param backgroundClr     background color of the plot. Default: white
      * @param axesClr           color of the axes. Default: black
@@ -21,7 +21,7 @@ export class Plot
         this.xLen = 1
         this.yLen = 1
         this.zLen = 1
-        this.res = 40 //this.resolution of the mesh
+        this.res = 20 //this.resolution of the mesh
         
         //some plotdata specific letiables. I want setters and getter for all those at some point
         this.dataframe
@@ -55,10 +55,14 @@ export class Plot
     
 
 
+    /**
+     * updates what is visible on the screen. This needs to be called after a short delay of a few ms after the plot was updated
+     */
     render()
     {
         this.renderer.render(this.scene, this.camera)
     }
+
 
 
     /**
@@ -79,7 +83,9 @@ export class Plot
     /**
      * plots a formula on the canvas element which was defined in the constructor of Plot()
      * 
-     * @param s       string of formula
+     * @param {string}  s           string of formula
+     * @param {boolean} scatterplot - true if this function should plot values as datapoints into the 3D space
+     *                              - false if it should be a connected mesh (default)
      */
     plotFormula(s, scatterplot=false)
     {
@@ -116,15 +122,16 @@ export class Plot
                 z = j/this.res
                 y = this.f(x,z)
                 
+                //push a new vertex
                 geom.vertices.push(new THREE.Vector3(x,y,z))
 
-                //build a face
+                //afterwards build a face using that vertex
                 //
                 //     0 +----+----+----+----+ 4
                 //                 b    a    |
                 //     9 +----+----+----+----+ 5
                 //       |
-                //    10 +----+----+----+----+ 14
+                //    10 +----+----+----+->  + 14
                 //                 e    d
                 //
                 // line nr (x). is i, col nr (z). is j
@@ -141,17 +148,24 @@ export class Plot
                 //
                 // and then do another face with b a and d
 
+                //TODO this still doesn't work ffs
+
+                let v = vIndex
                 if(i > 0 && j >= 0 && j < this.zLen*this.res-1)
                 {
                     //read from indicesMemory, which is supposed to be b
-                    let e = vIndex
-                    let d = vIndex+dir
+                    let e = v
+                    let d = v+dir
                     let b = indicesMemory[j]
-                    geom.faces.push(new THREE.Face3(e,d,b))
+                    let face = new THREE.Face3(e,d,b) //I need this object to color the vertex afterwards
+                    geom.faces.push(face)
                     
                     //now face the triangle that is missing
                     let a = indicesMemory[j+1]
-                    geom.faces.push(new THREE.Face3(b,a,d))
+                    let face2 = new THREE.Face3(b,a,d)
+                    geom.faces.push(face2)
+
+                    //console.log("hsl("+Math.abs(Math.min(1,Math.max(y,0)))+",100%,100%)")
                 }
                 //write to indicesMemoryNew
                 indicesMemoryNew[j] = vIndex
@@ -190,19 +204,22 @@ export class Plot
                     vIndex ++
                 }
                 j ++ //j is -1 now.
+                
+                //swap the indicesMemory
+                indicesMemory = indicesMemoryNew.slice()
 
                 //it goes around like a snake, which means
                 //that i can connect the most recent 3 vertices to a face
             }
 
             //color the plot
-            let axesMat = new THREE.MeshBasicMaterial({
+            let plotmat = new THREE.MeshBasicMaterial({
                 color: 0xff6600,
-                wireframe: false,
+                //wireframe: false,
                 side: THREE.DoubleSide
-                });
+                })
     
-            this.plotmesh = new THREE.Mesh(geom, axesMat)
+            this.plotmesh = new THREE.Mesh(geom, plotmat)
             this.scene.add(this.plotmesh);
         }
         else
@@ -238,15 +255,34 @@ export class Plot
     /**
      * plots a .csv file on the canvas element which was defined in the constructor of Plot()
      *
-     * @param sCsv      string of the .csv file, e.g. "a;b;c\n1;2;3\n2;3;4"
-     * @param separator separator used in the .csv file. e.g.: 1,2,3 or 1;2;3
-     * @param x3col     column index used for plotting the x3 axis (y)
-     * @param header    a boolean value whether or not there are headers in the first row. default: false
-     * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
-     * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
+     * @param {string}  sCsv        string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
+     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
+     * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
+     * @param {number}  x3col       column index used for plotting the x3 axis (y)
+     * @param {string}  separator   separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
+     *                              - default: ","
+     * @param {boolean} header      a boolean value whether or not there are headers in the first row of the csv file.
+     *                              - default: false
+     * 
+     * @param {any}     colorCol    false, if no coloration should be applied. Otherwise the index of the csv column that contains color information. (0, 1, 2 etc.)
+     *                              - default: false
+     * 
+     *                              formats of the column within the .csv file allowed:
+     *                              - numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically
+     *                              - Integers that are used as class for labeled data would result in various different hues in the same way
+     *                              - hex strings ("#f8e2b9")
+     *                              - "rgb(...)" strings
+     *                              - "hsl(...)" strings
+     * 
+     * @param {boolean} scatterplot - true if the datapoints should be dots inside the 3D space (Default)
+     *                              - false if it should be a connected mesh
+     * @param {boolean} normalize   if false, data will not be normalized. Datapoints with high values will be very far away then
      */
-    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, scatterplot=true)
+    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=false, scatterplot=true, normalize=true)
     {
+        if(typeOf(colorCol) == 'object')
+
+        
         //transform the sCsv string to a dataframe
         let data = sCsv.split("\n")
 
@@ -261,7 +297,7 @@ export class Plot
             data.pop() //because there will be one undefined value in the array
 
         //plot the dataframe
-        plot.plotDataFrame(data,x1col,x2col,x3col,scatterplot)
+        plot.plotDataFrame(data,x1col,x2col,x3col, colorCol, scatterplot)
     }
     
     
@@ -269,12 +305,15 @@ export class Plot
     /**
      * plots a dataframe on the canvas element which was defined in the constructor of Plot()
      *
-     * @param df        int[][] of datapoints. [column][row]
-     * @param x3col     column index used for plotting the x3 axis (y)
-     * @param x1col     column index used for transforming the x1 axis (x). default: -1 (use index)
-     * @param x2col     column index used for transforming the x2 axis (z). default: -1 (use index)
+     * @param {number[][]}  df           int[][] of datapoints. [column][row]
+     * @param {number}      x1col        column index used for transforming the x1 axis (x). default: -1 (use index)
+     * @param {number}      x2col        column index used for transforming the x2 axis (z). default: -1 (use index)
+     * @param {number}      x3col        column index used for plotting the x3 axis (y)
+     * @param {any}         colorCol     TODO see plotCsvString javadoc
+     * @param {boolean}     scatterplot  true if this function should plot dots as datapoints into the 3D space. Default true
+     * @param {boolean}     normalize    if false, data will not be normalized. Datapoints with high values will be very far away then
      */
-    plotDataFrame(df, x1col, x2col, x3col, scatterplot=true, normalize=true)
+    plotDataFrame(df, x1col, x2col, x3col, colorCol=false, scatterplot=true, normalize=true)
     {
         //TODO check if cols are available in the dataframe, if not, throw errors and stop
         //TODO check type of cols, if numbers or not
@@ -351,12 +390,6 @@ export class Plot
                         y = 0
                     //THREETODO plot y into the plane
 
-                    // cube geometry (200 x 200 x 200);
-                    let geometry = new THREE.CubeGeometry(0.1, 0.1, 0.1)
-                    let material = new THREE.MeshLambertMaterial({ color: 0x660000 })
-                    let cubeMesh = new THREE.Mesh(geometry, material)
-                    cubeMesh.position = new THREE.Vector3(x,y,z)
-                    this.scene.add(cubeMesh)
                 }
             }
         }
@@ -398,6 +431,9 @@ export class Plot
 
     /**
      * Creates the camera
+     * 
+     * @param {number} width screen width
+     * @param {number} height screen height
      */
     createArcCamera(width, height)
     {
@@ -437,9 +473,9 @@ export class Plot
 
     
     /**
-     * A synonym for createAxes(color). Creates new axes with the defined color
+     * Actually a synonym for createAxes(color). Creates new axes with the defined color
      * 
-     * @param color     hex string of the axes color
+     * @param {String} color     hex string of the axes color
      */
     setAxesColor(color="#000000") {
         this.createAxes(color)
@@ -450,7 +486,7 @@ export class Plot
     /**
      * creates the axes that point into the three x, y and z directions as wireframes
      * 
-     * @param color     hex string of the axes color
+     * @param {string} color     hex string of the axes color
      */
     createAxes(color="#000000")
     {
@@ -487,8 +523,8 @@ export class Plot
     /**
      * function that is used when calculating the x3 values f(x1, x2)
      * 
-     * @param x1        x1 value in the coordinate system
-     * @param x2        x2 value in the coordinate system
+     * @param {number} x1        x1 value in the coordinate system
+     * @param {number} x2        x2 value in the coordinate system
      */
     f(x1, x2)
     {
