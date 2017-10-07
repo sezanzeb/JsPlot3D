@@ -131,8 +131,8 @@ export class Plot
             //https://github.com/mrdoob/three.js/issues/972
             let y = 0
             let vIndex = 0
-            for(let x = 0; x < this.xVerticesCount; x++)
-                for(let z = 0; z < this.zVerticesCount; z++)
+            for(let z = this.zVerticesCount-1; z >= 0; z--)
+                for(let x = 0; x < this.xVerticesCount; x++)
                 {
                     y = this.f(x/this.xRes,z/this.xRes)
                     plane.vertices[vIndex].y = y
@@ -164,9 +164,9 @@ export class Plot
             let z = 0
             let i = 0
 
-            for(let x = 0; x <= this.xLen*this.xRes; x++)
+            for(let x = 0; x <= this.xVerticesCount; x++)
             {
-                for(let z = 0; z <= this.zLen*this.zRes; z++)
+                for(let z = 0; z <= this.zVerticesCount; z++)
                 {
                     y = this.f(x/this.xRes,z/this.zRes)
                     df[i] = [x/this.xRes,y,z/this.zRes]
@@ -196,8 +196,10 @@ export class Plot
      * @param {boolean} header      a boolean value whether or not there are headers in the first row of the csv file.
      *                              - default: false
      * 
-     * @param {any}     colorCol    false, if no coloration should be applied. Otherwise the index of the csv column that contains color information. (0, 1, 2 etc.)
-     *                              - default: false
+     * @param {number} colorCol    TODO not yet implemented    
+     * 
+     *                              -1, if no coloration should be applied. Otherwise the index of the csv column that contains color information. (0, 1, 2 etc.)
+     *                              - default: -1
      * 
      *                              formats of the column within the .csv file allowed:
      *                              - numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically
@@ -210,7 +212,7 @@ export class Plot
      *                              - false if it should be a connected mesh
      * @param {boolean} normalize   if false, data will not be normalized. Datapoints with high values will be very far away then
      */
-    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=false, scatterplot=true, normalize=true)
+    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=-1, scatterplot=true, normalize=true)
     {
         
         //transform the sCsv string to a dataframe
@@ -476,8 +478,8 @@ export class Plot
             this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x2*this.zRes)] = val
         }
 
-        if(val == undefined)
-            return 0
+        //val might return NaN for Math.sqrt(-1)
+        //that's fine. Handle this case in the loops that plot the function
 
         return val
     }
