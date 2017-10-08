@@ -24,10 +24,6 @@ export class Plot
     {
         if(typeof(container) != "object")
             return console.error("first param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
-
-        //config
-        //boundaries and dimensions of the plot data
-        this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:40,zRes:40})
         
         //some plotdata specific variables. I want setters and getter for all those at some point
         this.MathParser = new MathParser()
@@ -41,12 +37,16 @@ export class Plot
 
         this.scene = new THREE.Scene()
         
-        this.createAxes(axesClr)
+        //config
+        //boundaries and dimensions of the plot data
+        this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:40,zRes:40})
+
         this.createLight()
+        this.createAxes(axesClr)
         this.createArcCamera()
         this.render()
 
-        this.enableBenchmarking()
+        //this.enableBenchmarking()
     }
     
 
@@ -65,34 +65,45 @@ export class Plot
         if(typeof(scatterplot) != "boolean")
             return console.error("first param of plotFormula (scatterplot) should be boolean")
 
-
-        if(this.plotmesh != undefined)
-            this.scene.remove(this.plotmesh)
-
         this.resetCalculation()
         this.parsedFormula = this.MathParser.parse(originalFormula)
+        
+
 
         if(!scatterplot)
         {
-            if(this.plotmesh != undefined)
+            //might need to recreate the geometry and the matieral
+            if(this.plotmesh == undefined || this.plotmesh.geometry.type != "PlaneGeometry")
+            {
+                if(this.plotmesh != undefined)
                 this.scene.remove(this.plotmesh)
 
+                //create plane, divided into segments
+                let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
+                //move it
+                planegeometry.rotateX(Math.PI/2)
+                planegeometry.translate(this.xLen/2,0,this.zLen/2)
 
-            let geom = new THREE.Geometry()
+                planegeometry.computeFaceNormals()
+                planegeometry.computeVertexNormals()
+                planegeometry.__dirtyNormals = true
 
-            //memorizes the indices that have been in the previous line
-            let indicesMemory = new Array(this.zLen*this.zRes)
-            let indicesMemoryNew = new Array(this.zLen*this.zRes)
+                //color the plane
+                let plotmat = new THREE.MeshStandardMaterial({
+                    color: 0xff3b00,
+                    emissive: 0x2f7b8c,
+                    roughness: 0.8,
+                    //wireframe: true,
+                    side: THREE.DoubleSide
+                    })
 
-            //hiding faces:
+                this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
+                this.scene.add(this.plotmesh)
+            }
+            //if not, go ahead and manipulate the vertices
+
+            //TODO hiding faces if typeof y is not number:
             //https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
-
-
-            //create plane, divided into segments
-            let plane = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
-            //move it
-            plane.rotateX(Math.PI/2)
-            plane.translate(this.xLen/2,0,this.zLen/2)
 
             //modifying vertex positions:
             //https://github.com/mrdoob/three.js/issues/972
@@ -102,24 +113,11 @@ export class Plot
                 for(let x = 0; x < this.xVerticesCount; x++)
                 {
                     y = this.f(x/this.xRes,z/this.xRes)
-                    plane.vertices[vIndex].y = y
+                    this.plotmesh.geometry.vertices[vIndex].y = y
                     vIndex ++
                 }
-            plane.computeFaceNormals()
-            plane.computeVertexNormals()
-            plane.__dirtyNormals = true
-
-            //color the plane
-            let plotmat = new THREE.MeshBasicMaterial({
-                color: 0xff6600,
-                //wireframe: true,
-                side: THREE.DoubleSide
-                })
-
-            //modify this.plotmesh
-    
-            this.plotmesh = new THREE.Mesh(plane, plotmat)
-            this.scene.add(this.plotmesh)
+                
+            this.plotmesh.geometry.verticesNeedUpdate = true
         }
         else
         {
@@ -320,7 +318,7 @@ export class Plot
             //alphatest = 0 not transparent infront of other sprites anymore
             //sizeAttenuation: false, sprites don't change size in distance and size is in px
             let material = new THREE.PointsMaterial({size: 0.02, map: sprite, alphaTest: 0.7, transparent: true })
-            material.color.setRGB(0.2,0.7,0.5)
+            material.color.set(0x2faca3)
             let particles = new THREE.Points(geometry, material)
             this.plotmesh = particles
             this.scene.add(particles)
@@ -445,6 +443,9 @@ export class Plot
             
         this.xVerticesCount = this.xLen*this.xRes+1
         this.zVerticesCount = this.zLen*this.zRes+1
+
+        //vertices counts changed, so the mesh has to be recreated
+        this.plotmesh = undefined //will trigger recreation once plot gets called
     }
 
 
@@ -589,9 +590,12 @@ export class Plot
     createLight()
     {
         // set a directional light
-        let directionalLight = new THREE.DirectionalLight(0xffffff, 5)
-        directionalLight.position.z = 3;
-        this.scene.add(directionalLight)
+        let directionalLight1 = new THREE.DirectionalLight(0xff6600, 5)
+        directionalLight1.position.y = 30;
+        this.scene.add(directionalLight1)
+        let directionalLight2 = new THREE.DirectionalLight(0x0033ff, 5)
+        directionalLight2.position.y = -30;
+        this.scene.add(directionalLight2)
     }
 
     

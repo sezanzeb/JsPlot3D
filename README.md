@@ -35,17 +35,17 @@ Save the following to a .html file and open it in your browser.
 
 This example is animated because of the interval.
 
-    <canvas id="canvas" style="width:500px; height:500px;"></canvas>
+    <div id="JsPlot3DContainer" style="width:100%; height:90vh;"></div>
     <script type="text/javascript" src="3DPlotBundle.js"></script>
     <script>
-        var plot = new JSPLOT3D.Plot(document.getElementById("canvas"))
+        var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"))
         plot.res = 10
         plot.plotFormula("sin(2*x1)*sin(2*x2)")
         var i = 0;
         window.setInterval(function() {
             plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)")
             i += 0.01
-        },41.667)
+        },16.6667)
     </script>
 
 **Plotting .csv Files**
@@ -106,8 +106,7 @@ You have to upload the .csv file **afterwards** you typed in the configuration a
 
 ## Todo
 
-- try to do the same in three.js and see what is better suited
-- wrap the MathParser into a class
+- csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire and use a wireframe material. For this discard the scatterplot=true parameter and store the mode inside the object. Upon calling one of the plot functions read that mode variable and act accordingly. there would be setters and getters for the mode variable in that case (setModeScatterplot(), setModeMeshplot() and setModeWireplot()). Default is scatterplot or something
 - csvplot: interpolate the datapoints for 3D Plane based plots
 - csvplot: for missing datapoints in the plane, remove the vertex
 - heatmapcolor it according to .csv column or height (for functions)
