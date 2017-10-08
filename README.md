@@ -104,7 +104,7 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 
 ## Todo
 
-- csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire and use a wireframe material. For this discard the scatterplot=true parameter and store the mode inside the object. Upon calling one of the plot functions read that mode variable and act accordingly. there would be setters and getters for the mode variable in that case (setModeScatterplot(), setModeMeshplot() and setModeWireplot()). Default is scatterplot or something
+- csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire and use a wireframe material. For this, remove the scatterplot=true parameter, but rather store the mode inside the Plot object. Upon calling one of the Plot.Plot... functions read that mode variable and act accordingly. there would be setters and getters for the mode variable in that case (setModeScatterplot(), setModeMeshplot() and setModeWireplot()). Default would be scatterplot
 - csvplot: interpolate the datapoints for 3D Plane based plots
 - csvplot: for missing datapoints in the plane, remove the vertex
 - heatmapcolor it according to .csv column or height (for functions)

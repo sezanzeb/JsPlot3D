@@ -171,9 +171,10 @@ export class Plot
      *                              formats of the column within the .csv file allowed:
      *                              - numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically
      *                              - Integers that are used as class for labeled data would result in various different hues in the same way
-     *                              - hex strings ("#f8e2b9")
-     *                              - "rgb(...)" strings
-     *                              - "hsl(...)" strings
+     *                              - hex strings ("#f8e2b9") (not yet implemented)
+     *                              - "rgb(...)" strings (not yet implemented)
+     *                              - "hsl(...)" strings (not yet implemented)
+     *                              - strings as labels
      * 
      * @param {boolean} scatterplot - true if the datapoints should be dots inside the 3D space (Default)
      *                              - false if it should be a connected mesh
@@ -206,7 +207,7 @@ export class Plot
 
             //transform the sCsv string to a dataframe
             let data = sCsv.split("\n")
-            data = data.slice(data.length-data.length*fraction) //slice() will parseInt the parameter
+            data = data.slice(data.length-data.length*fraction)
             let headerRow = ""
 
             let i = 0
@@ -269,9 +270,47 @@ export class Plot
         let x2maxDf = 1
         let x3maxDf = 1
 
+        let numberOfLabels = 0
+        //let numberOfLabels = df.length
+        //the color gets divided by (1-1/numberOfLabels) so that red does not appear twice.
+        //e.g. 3 labels would be red, turqoise, red. if numberOfLabels would get initialized with 0, that formula would diverge to -inf
+        //1 would make that term zero, so that the color would diverge to inf. a high number converges that term to 1, so the color won't be touched
+
+        //take care that all the labels are numbers
+        let map = {}
+        if(isNaN(parseInt(df[0][colorCol])))
+        {
+            let label = ""
+            for(let i = 0; i < df.length; i++)
+            {
+                label = df[i][colorCol]
+                if(map[label] == undefined) //is this label still unknown?
+                {
+                    map[label] = numberOfLabels //map it to a unique number
+                    numberOfLabels ++ //make suer the next label gets a different number
+                }
+                df[i][colorCol] = map[label] //assign the number from the hashmap to the according label
+            }
+        }
+        else
+        {
+            //otherwise count the number of labels, that apparently are either 0.1, 0.1234346, 0.284977298, etc. or 1, 2, 3, 4, ... or similar
+            let label = 0
+            for(let i = 0; i < df.length; i++)
+            {
+                label = df[i][colorCol]
+                if(map[label] == undefined) //is this label still unknown?
+                {
+                    map[label] = numberOfLabels //map it to a unique number
+                    numberOfLabels ++ //make sure the next label gets a different number
+                }
+                //the only difference to the code above is, this here does not overwrite the dataframe
+            }
+        }
+
         //highest and lowest color value
-        let clrMax = 1
-        let clrMin = 0
+        let clrMax = df[0][colorCol]
+        let clrMin = df[0][colorCol]
 
         //normalize, so that the farthest away point is still within the xLen yLen zLen frame
         //TODO logarithmic normalizing
@@ -323,7 +362,9 @@ export class Plot
                 vertex.y = df[i][x2col]/x2maxDf
                 vertex.z = df[i][x3col]/x3maxDf
                 geometry.vertices.push(vertex)
-                geometry.colors.push(new THREE.Color(0).setHSL((df[i][colorCol]-clrMin)/(clrMax-clrMin),1,0.5))
+                let normalizedcolor = (df[i][colorCol]-clrMin)/(clrMax-clrMin)/(1-1/numberOfLabels) //normalize and prevent turning red again at the other end
+                let shiftedcolor = (normalizedcolor-0.07)%1 //shift the hue for more interesting colors
+                geometry.colors.push(new THREE.Color(0).setHSL(shiftedcolor,0.95,0.55))
             }
 
             //https://github.com/mrdoob/three.js/issues/1625
