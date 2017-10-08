@@ -72,7 +72,7 @@ export class Plot
         {
             //might need to recreate the geometry and the matieral
             //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
-            if(this.plotmesh == undefined || this.plotmesh.geometry.type != "PlaneGeometry")
+            if(this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry")
             {
                 if(this.plotmesh != undefined)
                     this.scene.remove(this.plotmesh)
@@ -181,7 +181,7 @@ export class Plot
      *                              - "hsl(...)" strings (not yet implemented)
      *                              - strings as labels
      * 
-     * @param {boolean} scatterplot - true if the datapoints should be dots inside the 3D space (Default)
+     * @param {boolean} scatterplot (not yet working) - true if the datapoints should be dots inside the 3D space (Default)
      *                              - false if it should be a connected mesh
      * @param {boolean} normalize   if false, data will not be normalized. Datapoints with high values will be very far away then
      * @param {string}  title       title of the data
@@ -256,7 +256,7 @@ export class Plot
      * @param {number}      x2col        column index used for transforming the x2 axis (z). default: -1 (use index)
      * @param {number}      x3col        column index used for plotting the x3 axis (y)
      * @param {any}         colorCol     TODO see plotCsvString javadoc
-     * @param {boolean}     scatterplot  true if this function should plot dots as datapoints into the 3D space. Default true
+     * @param {boolean}     scatterplot  (not yet working) true if this function should plot dots as datapoints into the 3D space. Default true
      * @param {boolean}     normalize    if false, data will not be normalized. Datapoints with high values will be very far away then
      * @param {number}      fraction     between 0 and 1, how much of the dataset should be plotted.
      */
@@ -268,7 +268,10 @@ export class Plot
 
         this.resetCalculation()
         if(this.plotmesh != undefined)
+        {
             this.scene.remove(this.plotmesh)
+            this.plotmesh = undefined
+        }
 
         //max in terms of "how far away is the farthest away point"
         let x1maxDf = 1
@@ -393,47 +396,8 @@ export class Plot
         }
         else
         {
-            //plot it as a 3D-Mesh with mountains and valleys
-
-            //create a 2d xLen*res zLen*res array that contains the datapoints
-            let plotMeshRawData = new Array(this.xVerticesCount)
-            for(let x = 0; x < xRes; x++)
-                //this is a 2D array that has the same shape as the geometric shape of this.plotmesh basically
-                plotMeshRawData[x] = new Array(this.zVerticesCount)
-    
-    
-            //from the data in the dataframe and the selected columns
-            //create a 2d xLen*res zLen*res array that contains the datapoints
-            //this way I can even interpolate
-            //then create the path from that array
-            //take a datapoint (which consists of 3 dimensions) and plot that point into the 2D array
-            for(let i = 0; i < df.length; i++)
-            {
-                //find out which x, y and z this datapoint has and normalize those parameters to fit into xLen and zLen
-                //parseInt cuts away the comma. dividing it by the maximum will normalize it
-                let dpx1 = parseInt(df[i][x1col]/x1maxDf*xRes)
-                let dpx2 = parseInt(df[i][x2col]/x2maxDf*zRes)
-                let dpx3 = df[i][x3col]/x3maxDf
-                plotMeshRawData[dpx1][dpx2] = dpx3
-                //TODO interpolate
-            }
-    
-            for(let i = 0; i < this.xLen*this.xRes; i++)
-            {
-                for(let j = 0; j < this.zLen*this.zRes; j++)
-                {
-                    x = i/this.xRes
-                    z = j/this.zRes
-                    //y = df[i][x3col]
-                    y = plotMeshRawData[i][j]
-                    //not every point might be defined inside the dataframe
-                    if(y == undefined)
-                        y = 0
-                    //THREETODO plot y into the plane
-
-                }
-            }
-            this.benchmarkStamp("made a 3D-Mesh plot")
+            //TODO I'm going to implement this once the 3D Plot from PlotFormula works properly and gets colored properly
+            console.log("not yet implemented")
         }
 
         //TODO is there s smarter way to do it?
@@ -512,7 +476,8 @@ export class Plot
         this.zVerticesCount = this.zLen*this.zRes+1
 
         //vertices counts changed, so the mesh has to be recreated
-        this.plotmesh = undefined //will trigger recreation once plot gets called
+        this.scene.remove(this.plotmesh)
+        this.plotmesh = false //trigger recreation next time .Plot...() gets called
     }
 
 
