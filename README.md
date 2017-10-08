@@ -1,15 +1,10 @@
 # 3D-Plot-Js
 
-**Please note that this is not something stable**
-
-Plots functions and .csv files. Scatterplot is also supported. It will plot using babylon.js. Processing happens client side.
+Plots functions and .csv files. Scatterplot is also supported. It will plot using three.js. Processing happens client side.
 
 It is written in ES6 syntax and compiled using webpack.
 
-<p align="center">
-  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot.png"/>
-  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/planeplot.png"/>
-</p>
+default branch: "threejs"
 
 
 ## Building 3DPlotBundle.js
@@ -77,6 +72,7 @@ Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your nee
         })
     </script>
 
+
 ## Live Example
 
 first, you need to build. In a console, cd to the project root and use
@@ -100,7 +96,10 @@ It has to be in JavaScript syntax, but some common functions are also supported 
 
 Take "example.csv" in the root directory of this repository or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions. In the last input field that says "sep" type in the .csv separator. e.g. ; or ,
 
-You have to upload the .csv file **afterwards** you typed in the configuration at the moment.
+<p align="center">
+  <img width="47%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot.png"/>
+  <img width="47%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/planeplot.png"/>
+</p>
 
 
 ## Todo
@@ -123,7 +122,7 @@ You have to upload the .csv file **afterwards** you typed in the configuration a
 - for recursive formulas, offer some start value setter
 
 
-## Creating the doc from javadoc
+## Creating a doc from the javadoc
 
     npm install jsdoc -g
     #I had to reboot once afterswards to use the jsdoc command
