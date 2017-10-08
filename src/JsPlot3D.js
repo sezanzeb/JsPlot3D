@@ -1,9 +1,9 @@
-//three.js
 const THREE = require("three")
 const OrbitControls = require('three-orbit-controls')(THREE)
-
-//own modules
 import MathParser from "./MathParser.js"
+
+
+
 
 export class Plot
 {
@@ -11,14 +11,21 @@ export class Plot
     /**
      * Creates a Plot instance, so that a single canvas can be rendered. After calling this constructor, rendering can
      * be done using plotFormula(s), plotCsvString(s) or plotDataFrame(df)
+     * @constructor
      * 
-     * @param {element} canvas            html canvas DOM element. e.g.: <canvas id="foobar" style="width:500px; height:500px;"></canvas>, which is then selected using
-     *                          Plot(document.getElementById("foobar"))
-     * @param backgroundClr     background color of the plot. Default: white
-     * @param axesClr           color of the axes. Default: black
+     * @param {object} container     html div DOM element. e.g.: <div id="foobar" style="width:500px; height:500px;"></div>,
+     *                               which can then be selected using
+     *                               - Plot(document.getElementById("foobar"))
+     * @param {string} backgroundClr background color of the plot.
+     *                               - Default: "#ffffff"
+     * @param {string} axesClr       color of the axes.
+     *                               - Default: "#000000"
      */
     constructor(container, backgroundClr="#ffffff", axesClr="#000000")
     {
+        if(typeof(container) != "object")
+            return console.error("first param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
+
         //config
         //boundaries and dimensions of the plot data
         this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:40,zRes:40})
@@ -32,7 +39,6 @@ export class Plot
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
         this.renderer.setClearColor(backgroundClr)
         this.setContainer(container)
-        this.container.appendChild(this.renderer.domElement)
 
         this.scene = new THREE.Scene()
         
@@ -43,21 +49,25 @@ export class Plot
     }
     
 
+    
     /**
      * sets the container of this plot
-     * 
      * @param {object} container DOM-Element of the new container
      */
     setContainer(container)
     {
+        if(typeof(container) != "object")
+            return console.error("param of setContainer (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
+
         this.container = container
         this.renderer.setSize(container.offsetWidth,container.offsetHeight)
+        this.container.appendChild(this.renderer.domElement)
     }
     
 
+
     /**
      * gets the DOM container of this plot
-     * 
      * @return {object} the DOM-Element that contains the plot
      */
     getContainer()
@@ -66,17 +76,22 @@ export class Plot
     }
 
 
+
     /**
      * 
-     * @param {json} dimensions json object can contain the following:
-     *                          - xRes number of vertices for the x-axis 
-     *                          - zRes number of vertices for the z-axis
-     *                          - xLen length of the x-axis (to be divided into xRes vertices)
-     *                          - zLen length of the z-axis (to be divided into zRes vertices)
-     *                          TODO set offset of the plot
+     * @param {object} dimensions json object can contain the following:
+     *                            - xRes number of vertices for the x-axis  
+     *                            - zRes number of vertices for the z-axis
+     *                            - xLen length of the x-axis. This is for the frame for data normalisation and formula plotting
+     *                            - yLen length of the y-axis. This is for the frame for data normalisation and formula plotting
+     *                            - zLen length of the z-axis. This is for the frame for data normalisation and formula plotting
+     *                            TODO set offset of the plot
      */
     setDimensions(dimensions)
     {
+        if(typeof(dimensions) != "object")
+            return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen, zLen")
+
         if(dimensions.xRes != undefined)
             this.xRes = dimensions.xRes
         if(dimensions.zRes != undefined)
@@ -93,11 +108,11 @@ export class Plot
     }
 
 
+
     /**
      * returns a JSON object that contains the dimensions
      * TODO print also min and max x, y and z (offset of the plot)
-     * 
-     * @return {json} {xRes, yRes, zRes, xLen, zLen}
+     * @return {object} {xRes, zRes, xLen, yLen, zLen}
      */
     getDimensions()
     {
@@ -114,19 +129,18 @@ export class Plot
 
     /**
      * changes the datapoint image. You need to plot the data again after this function so that the change takes effect
-     * 
      * @param {string} url url of the image.
      */
     setDataPointImage(url)
     {
+        console.log("url: "+typeof(url))
         this.dataPointImage = url
     }
 
 
 
-    /**
-     * updates what is visible on the screen. This needs to be called after a short delay of a few ms after the plot was updated
-     */
+    /** 
+     * updates what is visible on the screen. This needs to be called after a short delay of a few ms after the plot was updated */
     render()
     {
         this.renderer.render(this.scene, this.camera)
@@ -134,9 +148,8 @@ export class Plot
 
 
 
-    /**
-     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started
-     */
+    /** 
+     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started */
     resetCalculation()
     {
         this.calculatedPoints = new Array(this.xVerticesCount)
@@ -149,8 +162,53 @@ export class Plot
 
 
 
+    /** 
+     * enables benchmarking. Results will be printed into the console.
+     * To disable it, use: disableBenchmarking(). To print a timestamp to the console, use  this.benchmarkStamp("foobar")
+     */
+    enableBenchmarking()
+    {
+        this.benchmark = {}
+        this.benchmark.enabled = true
+        this.benchmark.recentTime = -1 //tell  this.benchmarkStamp() to write the current time into recentResult
+    }
+
+
+
+    /** 
+     * disables benchmarking. To enable it, use: enableBenchmarking(). To print a timestamp to the console, use  this.benchmarkStamp("foobar")
+     */
+    disableBenchmarking()
+    {
+        this.benchmark = {}
+        this.benchmark.enabled = false
+    }
+
+
+
     /**
-     * plots a formula on the canvas element which was defined in the constructor of Plot()
+     * prints time and an identifier to the console, if enabled
+     * @param {string} identifier printed at the beginning of the line
+     */
+    benchmarkStamp(identifier)
+    {
+        if(this.benchmark == undefined)
+            return
+            
+        if(this.benchmark.recentTime == -1)
+            this.benchmark.recentTime = window.performance.now()
+
+        if(this.benchmark.enabled == true)
+        {
+            console.log(identifier+": "+(window.performance.now()-this.benchmark.recentTime)+"ms")
+            this.benchmark.recentTime = window.performance.now()
+        }
+    }
+
+
+
+    /**
+     * plots a formula into the container
      * 
      * @param {string}  originalFormula string of formula
      * @param {boolean} scatterplot     - true if this function should plot values as datapoints into the 3D space
@@ -158,6 +216,12 @@ export class Plot
      */
     plotFormula(originalFormula, scatterplot=false)
     {       
+        if(typeof(originalFormula) != "string")
+            return console.error("first param of plotFormula (originalFormula) should be string")
+        if(typeof(scatterplot) != "boolean")
+            return console.error("first param of plotFormula (scatterplot) should be boolean")
+
+
         if(this.plotmesh != undefined)
             this.scene.remove(this.plotmesh)
 
@@ -244,7 +308,7 @@ export class Plot
     
     
     /**
-     * plots a .csv file on the canvas element which was defined in the constructor of Plot()
+     * plots a .csv string into the container
      *
      * @param {string}  sCsv        string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
      * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
@@ -270,44 +334,88 @@ export class Plot
      * @param {boolean} scatterplot - true if the datapoints should be dots inside the 3D space (Default)
      *                              - false if it should be a connected mesh
      * @param {boolean} normalize   if false, data will not be normalized. Datapoints with high values will be very far away then
+     * @param {string}  title       title of the data
+     * @param {number}  fraction    between 0 and 1, how much of the dataset should be plotted.
+     *                              - Default: 1
      */
-    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=-1, scatterplot=true, normalize=true)
+    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=-1, scatterplot=true, normalize=true, title="", fraction=1)
     {
-        
-        //transform the sCsv string to a dataframe
-        let data = sCsv.split("\n")
+        this.benchmarkStamp("start")
+        //still the same data?
+        //create a very quick checksum
+        let stepsize = parseInt(sCsv.length/20)
+        let slices = ""
+        for(let i = 0;i < sCsv.length; i+=stepsize)
+        {
+            slices = slices + sCsv[i]
+        }
+        //it's very important to take the fraction parameter into account for the checksum
+        //because otherwise a changed fraction parameter would not change the amount of datapoints that are plotted because
+        //the checksum stays the same and the dfCache.dataframe will not update
+        let checksum = title+sCsv.length+slices+fraction
+        //check this so that the split operations don't have to be repeated
 
-        let i = 0
-        if(header)
-            i = 1 //start at line index 1 to skip the header
+        this.benchmarkStamp("calculated checksum")
 
-        for(;i < data.length; i ++)
-            data[i-1] = data[i].split(separator)
+        if(this.dfCache == undefined || this.dfCache.checksum != checksum)
+        {
+            //new csv arrived:
 
-        if(header)
-            data.pop() //because there will be one undefined value in the array
+            //transform the sCsv string to a dataframe
+            let data = sCsv.split("\n")
+            data = data.slice(data.length-data.length*fraction) //slice() will parseInt the parameter
+            let headerRow = ""
 
-        //plot the dataframe
-        plot.plotDataFrame(data, x1col, x2col, x3col, colorCol, scatterplot)
+            let i = 0
+            if(header)
+            {
+                i = 1 //start at line index 1 to skip the header
+                headerRow = data[0]
+            }
+
+            for(;i < data.length; i ++)
+                data[i-1] = data[i].split(separator)
+
+            if(header)
+                data.pop() //because there will be one undefined value in the array
+
+            //cache the dataframe. If the same dataframe is used next time, don't parse it again
+            this.dfCache = {}
+            this.dfCache.dataframe = data
+            this.dfCache.checksum = checksum
+
+            this.benchmarkStamp("created the dataframe")
+            //plot the dataframe. Fraction is now 1, because the fraction has already been taken into account
+            plot.plotDataFrame(data, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1)
+        }
+        else
+        {
+            //this.dfCache != undefined and checksum is the same
+            //same data. Fraction is now 1, because the fraction has already been taken into account
+            plot.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1)
+        }
     }
     
-    
+
     
     /**
      * plots a dataframe on the canvas element which was defined in the constructor of Plot()
      *
-     * @param {number[][]}  df           int[][] of datapoints. [column][row]
+     * @param {number[][]}  df           int[][] of datapoints. [row][column]
      * @param {number}      x1col        column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param {number}      x2col        column index used for transforming the x2 axis (z). default: -1 (use index)
      * @param {number}      x3col        column index used for plotting the x3 axis (y)
      * @param {any}         colorCol     TODO see plotCsvString javadoc
      * @param {boolean}     scatterplot  true if this function should plot dots as datapoints into the 3D space. Default true
      * @param {boolean}     normalize    if false, data will not be normalized. Datapoints with high values will be very far away then
+     * @param {number}      fraction     between 0 and 1, how much of the dataset should be plotted.
+     *                                   - Default: 1
      */
-    plotDataFrame(df, x1col, x2col, x3col, colorCol=false, scatterplot=true, normalize=true)
+    plotDataFrame(df, x1col, x2col, x3col, colorCol=-1, scatterplot=true, normalize=true, fraction=1)
     {
+        //TODO check types of the input parameters, throw error about what was expected, but what was found
         //TODO check if cols are available in the dataframe, if not, throw errors and stop
-        //TODO check type of cols, if numbers or not
+        //TODO check type of cols (of the first row), if it contains numbers or not. throw error if something else is found. only colorCol is allowed to contain string values
 
         this.resetCalculation()
         if(this.plotmesh != undefined)
@@ -316,39 +424,78 @@ export class Plot
         let x1maxDf = 1
         let x2maxDf = 1
         let x3maxDf = 1
+        let clrMax = 1
 
+        //normalize, so that the farthest away point is still within the xLen yLen zLen frame
+        //TODO logarithmic normalizing
         if(normalize)
         {
-            //not only normalize y, but also x and z. That means all y values need to get into that xLen * zLen square
+            //not only normalize y, but also x and z. That means all datapoints values need to get into that xLen * zLen * yLen cube
             //determine max for y-normalisation
             for(let i = 0; i < df.length; i++)
+            {
                 if(Math.abs(df[i][x1col]) > x1maxDf)
                     x1maxDf = Math.abs(df[i][x1col])
 
-
-            for(let i = 0; i < df.length; i++)
                 if(Math.abs(df[i][x2col]) > x2maxDf)
                     x2maxDf = Math.abs(df[i][x2col])
 
-            for(let i = 0; i < df.length; i++)
                 if(Math.abs(df[i][x3col]) > x3maxDf)
                     x3maxDf = Math.abs(df[i][x3col])
+            }
+            
+            //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
+            if(typeof(df[0][colorCol]) == "number" && colorCol != -1)
+                for(let i = 0; i < df.length; i++)
+                {
+                    if(Math.abs(df[i][colorCol]) > clrMax)
+                    clrMax = Math.abs(df[i][colorCol])
+                }
+            //if typeOf typeof(df[0][colorCol]) is a string, try to use that string as the color information
         }
 
-        //create a 2d xLen*res zLen*res array that contains the datapoints
-        let zRes = this.zLen*this.zRes
-        let xRes = this.xLen*this.xRes
+        this.benchmarkStamp("normalized the data")
 
-
-        if(!scatterplot)
+        if(scatterplot)
         {
-            let plotMeshRawData = new Array(xRes)
-    
-            for(let x = 0; x < xRes; x++)
+            //plot it using circle sprites
+            let geometry = new THREE.Geometry()
+            let sprite = new THREE.TextureLoader().load(this.dataPointImage)
+            //https://github.com/mrdoob/three.js/issues/1625
+            sprite.magFilter = THREE.LinearFilter
+            sprite.minFilter = THREE.LinearFilter
+
+            for(let  i = 0; i < df.length; i ++)
             {
-                //this is not a 2D array that has the same shape as this.plotmesh basically
-                plotMeshRawData[x] = new Array(zRes)
+                let vertex = new THREE.Vector3()
+                vertex.x = df[i][x1col]/x1maxDf
+                vertex.y = df[i][x2col]/x2maxDf
+                vertex.z = df[i][x3col]/x3maxDf
+                geometry.vertices.push(vertex)
             }
+
+            //https://github.com/mrdoob/three.js/issues/1625
+            //alphatest = 1 causes errors
+            //alphatest = 0.9 edgy picture
+            //alphatest = 0.1 black edges on the sprite
+            //alphatest = 0 not transparent infront of other sprites anymore
+            //sizeAttenuation: false, sprites don't change size in distance and size is in px
+            let material = new THREE.PointsMaterial({size: 0.02, map: sprite, alphaTest: 0.7, transparent: true })
+            material.color.setRGB(0.2,0.7,0.5)
+            let particles = new THREE.Points(geometry, material)
+            this.plotmesh = particles
+            this.scene.add(particles)
+            this.benchmarkStamp("made a scatterplot")
+        }
+        else
+        {
+            //plot it as a 3D-Mesh with mountains and valleys
+
+            //create a 2d xLen*res zLen*res array that contains the datapoints
+            let plotMeshRawData = new Array(this.xVerticesCount)
+            for(let x = 0; x < xRes; x++)
+                //this is a 2D array that has the same shape as the geometric shape of this.plotmesh basically
+                plotMeshRawData[x] = new Array(this.zVerticesCount)
     
     
             //from the data in the dataframe and the selected columns
@@ -382,35 +529,7 @@ export class Plot
 
                 }
             }
-        }
-        else
-        {
-            let geometry = new THREE.Geometry()
-            let sprite = new THREE.TextureLoader().load(this.dataPointImage)
-            //https://github.com/mrdoob/three.js/issues/1625
-            sprite.magFilter = THREE.LinearFilter
-            sprite.minFilter = THREE.LinearFilter
-
-            for(let  i = 0; i < df.length; i ++)
-            {
-                let vertex = new THREE.Vector3()
-                vertex.x = df[i][x1col]/x1maxDf
-                vertex.y = df[i][x2col]/x2maxDf
-                vertex.z = df[i][x3col]/x3maxDf
-                geometry.vertices.push(vertex)
-            }
-
-            //https://github.com/mrdoob/three.js/issues/1625
-            //alphatest = 1 causes errors
-            //alphatest = 0.9 edgy picture
-            //alphatest = 0.1 black edges on the sprite
-            //alphatest = 0 not transparent infront of other sprites anymore
-            //sizeAttenuation: false, sprites don't change size in distance and size is in px
-            let material = new THREE.PointsMaterial({size: 0.02, map: sprite, alphaTest: 0.7, transparent: true })
-            material.color.setRGB(0.2,0.7,0.5)
-            let particles = new THREE.Points(geometry, material)
-            this.plotmesh = particles
-            this.scene.add(particles)
+            this.benchmarkStamp("made a 3D-Mesh plot")
         }
 
         //TODO is there s smarter way to do it?
@@ -419,9 +538,7 @@ export class Plot
 
 
 
-    /**
-     * Creates the camera
-     */
+    /** Creates the camera */
     createArcCamera()
     {
         let width = this.container.offsetWidth
@@ -451,9 +568,7 @@ export class Plot
 
 
 
-    /**
-     * takes care of creating the light
-     */
+    /** takes care of creating the light */
     createLight()
     {
         // set a directional light
@@ -466,7 +581,6 @@ export class Plot
     
     /**
      * Creates new axes with the defined color
-     * 
      * @param {String} color     hex string of the axes color
      */
     setAxesColor(color="#000000") {
@@ -479,7 +593,6 @@ export class Plot
 
     /**
      * creates the axes that point into the three x, y and z directions as wireframes
-     * 
      * @param {string} color     hex string of the axes color
      */
     createAxes(color="#000000")
