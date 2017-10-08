@@ -103,6 +103,7 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 
 You have to upload the .csv file **afterwards** you typed in the configuration at the moment.
 
+
 ## Todo
 
 - try to do the same in three.js and see what is better suited
@@ -122,3 +123,10 @@ You have to upload the .csv file **afterwards** you typed in the configuration a
 **maybe:**
 - for recursive formulas, use scatterplot and plot a datapoint everytime f(x1,x2) gets called. Datapoints, that have been calculated already at some point, are already cached (helps to stop recursion overflows and increases performance)
 - for recursive formulas, offer some start value setter
+
+
+## Creating the doc from javadoc
+
+    npm install jsdoc -g
+    #I had to reboot once afterswards to use the jsdoc command
+    jsdoc src/JsPlot3D.js -d ./documentation
