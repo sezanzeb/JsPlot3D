@@ -181,7 +181,7 @@ export default class MathParser
         //Math.Math. could be there a few times at this point. clear that
         formula = formula.replace("Math.Math.","Math.")
         
-        console.log("final parsed formula: "+formula)
+        //console.log("final parsed formula: "+formula)
 
         return formula
     }

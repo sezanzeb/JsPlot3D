@@ -20,46 +20,108 @@ export class Plot
     constructor(container, backgroundClr="#ffffff", axesClr="#000000")
     {
         //config
-        //boundaries of the plot data
-        this.xLen = 1
-        this.yLen = 1
-        this.zLen = 1
-        this.xRes = 40
-        this.zRes = 40
-        this.xVerticesCount = this.xLen*this.xRes+1
-        this.zVerticesCount = this.zLen*this.zRes+1
+        //boundaries and dimensions of the plot data
+        this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:40,zRes:40})
         
-        //some plotdata specific letiables. I want setters and getter for all those at some point
-        this.dataframe
-        this.formula
+        //some plotdata specific variables. I want setters and getter for all those at some point
         this.MathParser = new MathParser()
-        this.stopRecursion
-        this.calculatedPoints
         this.resetCalculation() //configures the variables
-        this.datapointImage = "datapoint.png"
-
-        //3d objects
-        this.plotmesh
+        this.dataPointImage = "datapoint.png"
 
         //three.js setup
-        this.container = container
-        let height = container.offsetHeight
-        let width = container.offsetWidth
-
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
-        this.renderer.setSize(width,height)
         this.renderer.setClearColor(backgroundClr)
-        container.appendChild(this.renderer.domElement)
+        this.setContainer(container)
+        this.container.appendChild(this.renderer.domElement)
 
         this.scene = new THREE.Scene()
         
         this.createAxes(axesClr)
         this.createLight()
-        this.createArcCamera(width, height)
-
+        this.createArcCamera()
         this.render()
     }
     
+
+    /**
+     * sets the container of this plot
+     * 
+     * @param {object} container DOM-Element of the new container
+     */
+    setContainer(container)
+    {
+        this.container = container
+        this.renderer.setSize(container.offsetWidth,container.offsetHeight)
+    }
+    
+
+    /**
+     * gets the DOM container of this plot
+     * 
+     * @return {object} the DOM-Element that contains the plot
+     */
+    getContainer()
+    {
+        return this.container
+    }
+
+
+    /**
+     * 
+     * @param {json} dimensions json object can contain the following:
+     *                          - xRes number of vertices for the x-axis 
+     *                          - zRes number of vertices for the z-axis
+     *                          - xLen length of the x-axis (to be divided into xRes vertices)
+     *                          - zLen length of the z-axis (to be divided into zRes vertices)
+     *                          TODO set offset of the plot
+     */
+    setDimensions(dimensions)
+    {
+        if(dimensions.xRes != undefined)
+            this.xRes = dimensions.xRes
+        if(dimensions.zRes != undefined)
+            this.zRes = dimensions.zRes
+        if(dimensions.xLen != undefined)
+            this.xLen = dimensions.xLen
+        if(dimensions.yLen != undefined)
+            this.yLen = dimensions.yLen
+        if(dimensions.zLen != undefined)
+            this.zLen = dimensions.zLen
+            
+        this.xVerticesCount = this.xLen*this.xRes+1
+        this.zVerticesCount = this.zLen*this.zRes+1
+    }
+
+
+    /**
+     * returns a JSON object that contains the dimensions
+     * TODO print also min and max x, y and z (offset of the plot)
+     * 
+     * @return {json} {xRes, yRes, zRes, xLen, zLen}
+     */
+    getDimensions()
+    {
+        return {
+            xRes: this.xRes,
+            zRes: this.zRes,
+            xLen: this.xLen,
+            yLen: this.yLen,
+            zLen: this.zLen
+        }
+    }
+
+
+
+    /**
+     * changes the datapoint image. You need to plot the data again after this function so that the change takes effect
+     * 
+     * @param {string} url url of the image.
+     */
+    setDataPointImage(url)
+    {
+        this.dataPointImage = url
+    }
+
 
 
     /**
@@ -73,7 +135,7 @@ export class Plot
 
 
     /**
-     * reinitializes the letiables that are needed for calculating plots, so that a new plot can be started
+     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started
      */
     resetCalculation()
     {
@@ -81,7 +143,7 @@ export class Plot
         for(let i = 0;i < this.calculatedPoints.length; i++)
             this.calculatedPoints[i] = new Array(this.zVerticesCount)
 
-        this.formula = ""
+        this.parsedFormula = ""
         this.stopRecursion = false
     }
 
@@ -90,20 +152,17 @@ export class Plot
     /**
      * plots a formula on the canvas element which was defined in the constructor of Plot()
      * 
-     * @param {string}  s           string of formula
-     * @param {boolean} scatterplot - true if this function should plot values as datapoints into the 3D space
-     *                              - false if it should be a connected mesh (default)
+     * @param {string}  originalFormula string of formula
+     * @param {boolean} scatterplot     - true if this function should plot values as datapoints into the 3D space
+     *                                  - false if it should be a connected mesh (default)
      */
-    plotFormula(s, scatterplot=false)
-    {
-        if(s == undefined)
-            throw("formula is missing in the parameter of plotFormula. Example: plotFormula(\"sin(x1)\")")
-            
+    plotFormula(originalFormula, scatterplot=false)
+    {       
         if(this.plotmesh != undefined)
             this.scene.remove(this.plotmesh)
 
         this.resetCalculation()
-        this.formula = this.MathParser.parse(s)
+        this.parsedFormula = this.MathParser.parse(originalFormula)
 
         if(!scatterplot)
         {
@@ -178,7 +237,7 @@ export class Plot
 
         }
 
-        //TODO is there s smarter way to do it?
+        //TODO is there s smarter way to do it? Without Timeout it won't render
         window.setTimeout(()=>this.render(),10)
     }
     
@@ -229,7 +288,7 @@ export class Plot
             data.pop() //because there will be one undefined value in the array
 
         //plot the dataframe
-        plot.plotDataFrame(data,x1col,x2col,x3col, colorCol, scatterplot)
+        plot.plotDataFrame(data, x1col, x2col, x3col, colorCol, scatterplot)
     }
     
     
@@ -253,7 +312,6 @@ export class Plot
         this.resetCalculation()
         if(this.plotmesh != undefined)
             this.scene.remove(this.plotmesh)
-
 
         let x1maxDf = 1
         let x2maxDf = 1
@@ -328,7 +386,7 @@ export class Plot
         else
         {
             let geometry = new THREE.Geometry()
-            let sprite = new THREE.TextureLoader().load(this.datapointImage)
+            let sprite = new THREE.TextureLoader().load(this.dataPointImage)
             //https://github.com/mrdoob/three.js/issues/1625
             sprite.magFilter = THREE.LinearFilter
             sprite.minFilter = THREE.LinearFilter
@@ -363,18 +421,18 @@ export class Plot
 
     /**
      * Creates the camera
-     * 
-     * @param {number} width screen width
-     * @param {number} height screen height
      */
-    createArcCamera(width, height)
+    createArcCamera()
     {
+        let width = this.container.offsetWidth
+        let height = this.container.offsetHeight
+
         let viewAngle = 80
         let aspect = width / height
-        let near = 0.1
-        let far = 10
+        let near = 0.1 //when objects start to disappear at zoom-in
+        let far = 10 //when objects start to disappear at zoom-out
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        camera.position.set(0.5,0.5,2)
+        camera.position.set(0.5,0.6,2)
         
         let controls = new OrbitControls(camera, this.renderer.domElement)
         controls.enableKeys = true
@@ -385,7 +443,9 @@ export class Plot
         controls.enableZoom = true
         controls.rotateSpeed = 0.3
 
-        camera.lookAt(new THREE.Vector3(0.5,0.5,0.5))
+        //start looking at the target initially
+        camera.lookAt(controls.target)
+
         this.camera = camera
     }
 
@@ -405,12 +465,14 @@ export class Plot
 
     
     /**
-     * Actually a synonym for createAxes(color). Creates new axes with the defined color
+     * Creates new axes with the defined color
      * 
      * @param {String} color     hex string of the axes color
      */
     setAxesColor(color="#000000") {
-        this.createAxes(color)
+        if(this.axes != undefined)
+            this.scene.remove(this.axes)
+        this.axes = this.createAxes(color)
     }
 
 
@@ -422,8 +484,6 @@ export class Plot
      */
     createAxes(color="#000000")
     {
-        //THREETODO displose axes is they have been are already created
-
         let geom = new THREE.Geometry()
 
         let cent = new THREE.Vector3(0,0,0)
@@ -447,7 +507,11 @@ export class Plot
           });
 
         let axes = new THREE.Mesh(geom, axesMat)
-        this.scene.add(axes);
+        this.scene.add(axes)
+
+        this.axes = axes
+        //TODO is there s smarter way to do it? Without Timeout it won't render
+        window.setTimeout(()=>this.render(),10)
     }
 
 
@@ -473,7 +537,7 @@ export class Plot
             if(!this.stopRecursion)
                 //bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
                 //another solution would be probably if I would just hand the variables over to MathParser
-                val = this.MathParser.eval2(this.formula, x1, x2, this.f.bind(this))
+                val = this.MathParser.eval2(this.parsedFormula, x1, x2, this.f.bind(this))
             
             this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x2*this.zRes)] = val
         }
