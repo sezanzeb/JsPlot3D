@@ -53,6 +53,7 @@ function plotcsv()
     let x1 = document.getElementById("x1").value
     let x2 = document.getElementById("x2").value
     let x3 = document.getElementById("x3").value
+    let clr = document.getElementById("clr").value
     let sep = document.getElementById("sep").value
-    plot.plotCsvString(decodedData,x1,x2,x3,sep,true,0,1,1,"",1)
+    plot.plotCsvString(decodedData,x1,x2,x3,sep,true,clr,1,1,"",1)
 }

@@ -39,13 +39,13 @@ This example is animated because of the interval.
     <script type="text/javascript" src="3DPlotBundle.js"></script>
     <script>
         var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"))
-        plot.res = 10
+        plot.setDimensions({xRes: 15, zRes: 15})
         plot.plotFormula("sin(2*x1)*sin(2*x2)")
         var i = 0;
         window.setInterval(function() {
             plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)")
             i += 0.01
-        },16.6667)
+        },33.3333) //30fps
     </script>
 
 **Plotting .csv Files**
@@ -54,11 +54,11 @@ Save the following to a .html file and open it in your browser.
 
 Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your needs. 2-4 are the three columns from the csv file that serve as dimensions of the datapoints. the 5th parameter is the separator of the .csv file format. Very often it's "," or ";".
 
-    <canvas id="canvas" style="width:500px; height:500px;"></canvas>
+    <div id="JsPlot3DContainer" style="width:45vw; height:90vh;"></div>
     <input id="fileup" type="file"></input>
     <script type="text/javascript" src="3DPlotBundle.js"></script>
     <script>
-        var plot = new JSPLOT3D.Plot(document.getElementById("canvas"))
+        var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"))
         document.getElementById("fileup").addEventListener("change",function(e)
         {
             let file = e.target.files[0]
@@ -71,12 +71,11 @@ Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your nee
                 return function(e)
                 {
                     let data = atob(e.target.result.split("base64,")[1])
-                    plot.plotCsvString(data,0,1,2,";",true)
+                    plot.plotCsvString(data,0,1,2,";",true) //when trying this out, take care of setting the right separator!
                 }
             })(file)
         })
     </script>
-
 
 ## Live Example
 
@@ -129,3 +128,8 @@ You have to upload the .csv file **afterwards** you typed in the configuration a
     npm install jsdoc -g
     #I had to reboot once afterswards to use the jsdoc command
     jsdoc src/JsPlot3D.js -d ./documentation
+
+
+## Attribution
+
+iris.csv Dataset by Ronald Fisher

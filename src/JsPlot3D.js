@@ -39,7 +39,7 @@ export class Plot
         
         //config
         //boundaries and dimensions of the plot data
-        this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:40,zRes:40})
+        this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
 
         this.createLight()
         this.createAxes(axesClr)
@@ -97,6 +97,11 @@ export class Plot
                     side: THREE.DoubleSide
                     })
 
+                /*let plotmat = new THREE.MeshBasicMaterial({
+                    vertexColors: THREE.VertexColors,
+                    side: THREE.DoubleSide
+                })*/
+
                 this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
                 this.scene.add(this.plotmesh)
             }
@@ -114,6 +119,7 @@ export class Plot
                 {
                     y = this.f(x/this.xRes,z/this.xRes)
                     this.plotmesh.geometry.vertices[vIndex].y = y
+                    this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
                     vIndex ++
                 }
                 
@@ -258,10 +264,14 @@ export class Plot
         if(this.plotmesh != undefined)
             this.scene.remove(this.plotmesh)
 
+        //max in terms of "how far away is the farthest away point"
         let x1maxDf = 1
         let x2maxDf = 1
         let x3maxDf = 1
+
+        //highest and lowest color value
         let clrMax = 1
+        let clrMin = 0
 
         //normalize, so that the farthest away point is still within the xLen yLen zLen frame
         //TODO logarithmic normalizing
@@ -271,6 +281,8 @@ export class Plot
             //determine max for y-normalisation
             for(let i = 0; i < df.length; i++)
             {
+                //max in terms of "how far away is the farthest away point"
+                //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
                 if(Math.abs(df[i][x1col]) > x1maxDf)
                     x1maxDf = Math.abs(df[i][x1col])
 
@@ -282,11 +294,13 @@ export class Plot
             }
             
             //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
-            if(typeof(df[0][colorCol]) == "number" && colorCol != -1)
+            if(!isNaN(parseInt(df[0][colorCol])) && colorCol != -1)
                 for(let i = 0; i < df.length; i++)
                 {
-                    if(Math.abs(df[i][colorCol]) > clrMax)
-                    clrMax = Math.abs(df[i][colorCol])
+                    if(parseInt(df[i][colorCol]) > clrMax)
+                        clrMax = parseInt(df[i][colorCol])
+                    if(parseInt(df[i][colorCol]) < clrMin)
+                        clrMin = parseInt(df[i][colorCol])
                 }
             //if typeOf typeof(df[0][colorCol]) is a string, try to use that string as the color information
         }
@@ -309,6 +323,7 @@ export class Plot
                 vertex.y = df[i][x2col]/x2maxDf
                 vertex.z = df[i][x3col]/x3maxDf
                 geometry.vertices.push(vertex)
+                geometry.colors.push(new THREE.Color(0).setHSL((df[i][colorCol]-clrMin)/(clrMax-clrMin),1,0.5))
             }
 
             //https://github.com/mrdoob/three.js/issues/1625
@@ -317,8 +332,14 @@ export class Plot
             //alphatest = 0.1 black edges on the sprite
             //alphatest = 0 not transparent infront of other sprites anymore
             //sizeAttenuation: false, sprites don't change size in distance and size is in px
-            let material = new THREE.PointsMaterial({size: 0.02, map: sprite, alphaTest: 0.7, transparent: true })
-            material.color.set(0x2faca3)
+            let material = new THREE.PointsMaterial({
+                size: 0.02,
+                map: sprite,
+                alphaTest: 0.7,
+                transparent: true,
+                vertexColors: true
+            })
+            //material.color.set(0x2faca3)
             let particles = new THREE.Points(geometry, material)
             this.plotmesh = particles
             this.scene.add(particles)
