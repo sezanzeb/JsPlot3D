@@ -7,8 +7,8 @@ Plots functions and .csv files. Scatterplot is also supported. It will plot usin
 It is written in ES6 syntax and compiled using webpack.
 
 <p align="center">
-  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/scatterplot.png"/>
-  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/master/planeplot.png"/>
+  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/babylonjs/scatterplot.png"/>
+  <img width="45%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/babylonjs/planeplot.png"/>
 </p>
 
 
