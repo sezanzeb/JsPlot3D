@@ -68,25 +68,20 @@ export class Plot
         this.resetCalculation()
         this.parsedFormula = this.MathParser.parse(originalFormula)
         
-
-
-        if(!scatterplot)
+        if(!scatterplot) //3D-Plane
         {
             //might need to recreate the geometry and the matieral
+            //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
             if(this.plotmesh == undefined || this.plotmesh.geometry.type != "PlaneGeometry")
             {
                 if(this.plotmesh != undefined)
-                this.scene.remove(this.plotmesh)
+                    this.scene.remove(this.plotmesh)
 
                 //create plane, divided into segments
                 let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
                 //move it
                 planegeometry.rotateX(Math.PI/2)
                 planegeometry.translate(this.xLen/2,0,this.zLen/2)
-
-                planegeometry.computeFaceNormals()
-                planegeometry.computeVertexNormals()
-                planegeometry.__dirtyNormals = true
 
                 //color the plane
                 let plotmat = new THREE.MeshStandardMaterial({
@@ -123,34 +118,44 @@ export class Plot
                     vIndex ++
                 }
                 
+            //normals need to be recomputed so that the lighting works after the transformation
+            this.plotmesh.geometry.computeFaceNormals()
+            this.plotmesh.geometry.computeVertexNormals()
+            this.plotmesh.geometry.__dirtyNormals = true
+            //make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
+    
+            window.setTimeout(()=>this.render(),10)
         }
         else
         {
+            //Scatterplot
+
             //if scatterplot, create a dataframe and send it to plotDataFrame
             let df = new Array(this.xLen*this.xRes * this.zLen*this.zRes)
 
+            //the three values that are going to be stored in the dataframe
             let y = 0
             let x = 0
             let z = 0
+
+            //line number in the new dataframe
             let i = 0
 
             for(let x = 0; x <= this.xVerticesCount; x++)
             {
                 for(let z = 0; z <= this.zVerticesCount; z++)
                 {
-                    y = this.f(x/this.xRes,z/this.zRes)
-                    df[i] = [x/this.xRes,y,z/this.zRes]
+                    y = this.f(x/this.xRes,z/this.zRes) //calculate y. y = f(x1,x2)
+                    df[i] = [x/this.xRes,y,z/this.zRes] //store the datapoint
                     i++
                 }
             }
 
+            //continue plotting this DataFrame
             plot.plotDataFrame(df, 0, 1, 2, true, false)
 
         }
-
-        //TODO is there s smarter way to do it? Without Timeout it won't render
-        window.setTimeout(()=>this.render(),10)
     }
     
     
@@ -652,11 +657,11 @@ export class Plot
     createLight()
     {
         // set a directional light
-        let directionalLight1 = new THREE.DirectionalLight(0xff6600, 5)
-        directionalLight1.position.y = 30;
+        let directionalLight1 = new THREE.DirectionalLight(0xff6600, 4)
+        directionalLight1.position.y = 10;
         this.scene.add(directionalLight1)
-        let directionalLight2 = new THREE.DirectionalLight(0x0033ff, 5)
-        directionalLight2.position.y = -30;
+        let directionalLight2 = new THREE.DirectionalLight(0x0033ff, 6)
+        directionalLight2.position.y = -10;
         this.scene.add(directionalLight2)
     }
 
