@@ -47,7 +47,7 @@ This example is animated because of the interval.
 
 Save the following to a .html file and open it in your browser.
 
-Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your needs. 2-4 are the three columns from the csv file that serve as dimensions of the datapoints. the 5th parameter is the separator of the .csv file format. Very often it's "," or ";".
+Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your needs. 2-4 are the three columns from the csv file that serve as dimensions of the datapoints. the 5th parameter is the separator of the .csv file format. In example.csv it's ";", in iris.csv it's ","
 
     <div id="JsPlot3DContainer" style="width:45vw; height:90vh;"></div>
     <input id="fileup" type="file"></input>
@@ -61,14 +61,11 @@ Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your nee
             reader.readAsDataURL(file)
             let data = ""
 
-            reader.onload = (function(theFile)
+            reader.onload = function(e)
             {
-                return function(e)
-                {
-                    let data = atob(e.target.result.split("base64,")[1])
-                    plot.plotCsvString(data,0,1,2,";",true) //when trying this out, take care of setting the right separator!
-                }
-            })(file)
+                let data = atob(e.target.result.split("base64,")[1])
+                plot.plotCsvString(data,0,1,2,";",true) //when trying this out, take care of setting the right separator!
+            }
         })
     </script>
 
