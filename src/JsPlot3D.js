@@ -187,7 +187,7 @@ export class Plot
      * @param {string}  title       title of the data
      * @param {number}  fraction    between 0 and 1, how much of the dataset should be plotted.
      */
-    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=-1, scatterplot=true, normalize=true, title="", fraction=1)
+    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=-1, scatterplot=true, normalize=true, title="", fraction=1, labeled=false)
     {
         this.benchmarkStamp("start")
         //still the same data?
@@ -215,18 +215,19 @@ export class Plot
             data = data.slice(data.length-data.length*fraction)
             let headerRow = ""
 
-            let i = 0
             if(header)
             {
-                i = 1 //start at line index 1 to skip the header
                 headerRow = data[0]
-            }
-
-            for(;i < data.length; i ++)
-                data[i-1] = data[i].split(separator)
-
-            if(header)
+                //start at line index 1 to skip the header
+                for(let i = 1;i < data.length; i ++)
+                    data[i-1] = data[i].split(separator) //overwrite the header (-1)
                 data.pop() //because there will be one undefined value in the array
+            }
+            else
+            {
+                for(let i = 0;i < data.length; i ++)
+                    data[i] = data[i].split(separator)
+            }
 
             //cache the dataframe. If the same dataframe is used next time, don't parse it again
             this.dfCache = {}
@@ -235,14 +236,14 @@ export class Plot
 
             this.benchmarkStamp("created the dataframe")
             //plot the dataframe. Fraction is now 1, because the fraction has already been taken into account
-            plot.plotDataFrame(data, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1)
+            plot.plotDataFrame(data, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1, labeled)
         }
         else
         {
             //cached
             //this.dfCache != undefined and checkstring is the same
             //same data. Fraction is now 1, because the fraction has already been taken into account
-            plot.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1)
+            plot.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1, labeled)
         }
     }
     
@@ -260,7 +261,7 @@ export class Plot
      * @param {boolean}     normalize    if false, data will not be normalized. Datapoints with high values will be very far away then
      * @param {number}      fraction     between 0 and 1, how much of the dataset should be plotted.
      */
-    plotDataFrame(df, x1col, x2col, x3col, colorCol=-1, scatterplot=true, normalize=true, fraction=1)
+    plotDataFrame(df, x1col, x2col, x3col, colorCol=-1, scatterplot=true, normalize=true, fraction=1, labeled=false)
     {
         //TODO check types of the input parameters, throw error about what was expected, but what was found
         //TODO check if cols are available in the dataframe, if not, throw errors and stop
@@ -273,10 +274,15 @@ export class Plot
             this.plotmesh = undefined
         }
 
-        //max in terms of "how far away is the farthest away point"
-        let x1maxDf = 1
-        let x2maxDf = 1
-        let x3maxDf = 1
+
+
+
+        //-------------------------//
+        //     coloring labels     //    
+        //-------------------------//
+        //creates an array "dfColors" that holds the color information
+        //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
+
 
         let numberOfLabels = 0
         //let numberOfLabels = df.length
@@ -286,39 +292,149 @@ export class Plot
 
         //take care that all the labels are numbers
         let map = {}
-        if(isNaN(parseInt(df[0][colorCol])))
+        let dfColors = new Array(df.length) //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
+        let filterColor = true //add some filters (upper and lower color boundaries for heatmaps, normalization). Turn off if strings are in dfColors
+
+        //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
+        //no need to check if it's numbers or not, because dfColors carries only numbers
+        //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
+        let clrMax
+        let clrMin
+        let findHighestAndLowest = (value) =>
         {
+            if(filterColor && colorCol != -1)
+            {
+                if(value > clrMax)
+                    clrMax = value
+                if(value < clrMin)
+                    clrMin = value
+            }
+        }
+
+        //now take care about if the user says it's labeled or not, if it's numbers, hex, rgb, hsl or strings
+        //store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
+
+        //parameter. Does the dataset hold classes/labels?
+        if(labeled) //get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
+        {
+            clrMax = 0 //assume 0
+            clrMin = 0 //assume 0
+            //count to ammount of labels here
             let label = ""
             for(let i = 0; i < df.length; i++)
             {
-                label = df[i][colorCol]
-                if(map[label] == undefined) //is this label still unknown?
-                {
-                    map[label] = numberOfLabels //map it to a unique number
-                    numberOfLabels ++ //make suer the next label gets a different number
-                }
-                df[i][colorCol] = map[label] //assign the number from the hashmap to the according label
-            }
-        }
-        else
-        {
-            //otherwise count the number of labels, that apparently are either 0.1, 0.1234346, 0.284977298, etc. or 1, 2, 3, 4, ... or similar
-            let label = 0
-            for(let i = 0; i < df.length; i++)
-            {
-                label = df[i][colorCol]
+                label = df[i][colorCol] //read the label/classification
                 if(map[label] == undefined) //is this label still unknown?
                 {
                     map[label] = numberOfLabels //map it to a unique number
                     numberOfLabels ++ //make sure the next label gets a different number
                 }
-                //the only difference to the code above is, this here does not overwrite the dataframe
+                //copy the labels to dfColors
+                dfColors[i] = parseFloat(map[label])
+                findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
+            }
+        }
+        else
+        {
+            //if it is a string value, try to recognize #, rgb and hex
+            if(isNaN(parseInt(df[0][colorCol])))
+            {
+                filterColor = false //don't apply normalization and heatmapfilters to it
+
+                if(df[0][colorCol].toLowerCase().indexOf("rgb") == 0)
+                {
+                    for(let i = 0; i < df.length; i++)
+                        dfColors[i] = "#0066ff"
+                }
+                else if(df[0][colorCol].toLowerCase().indexOf("#") == 0)
+                {
+                    //supported by three.js right away
+                    for(let i = 0; i < df.length; i++)
+                        dfColors[i] = df[i][colorCol]
+                }
+                else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0) 
+                {
+                    for(let i = 0; i < df.length; i++)
+                        dfColors[i] = "#0066ff"
+                }
+                else
+                {
+                    //nothing worked, print a warning and color it all the same way
+                    for(let i = 0; i < df.length; i++)
+                        dfColors[i] = new THREE.Color(0).setHSL(0.2,0.95,0.55)
+
+                    console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
+                        "string (\""+df[0][colorCol]+"\"). \"labeled\" is set as "+labeled+", make sure this is what you want. Possible formats "+
+                        "for this column are numbers, hex values \"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". Now assuming labeled = true and restarting.")
+
+                    labeled = true
+                    //restart
+                    this.plotDataFrame(df, x1col, x2col, x3col, colorCol, scatterplot, normalize, fraction, labeled)
+                    return 
+                }
+            }
+            else
+            {
+                //it's a number. just copy it over and filter it to a heatmap
+                clrMax = df[0][colorCol] //assume the first value
+                clrMin = df[0][colorCol] //assume the first value
+                for(let i = 0; i < df.length; i++)
+                {
+                    dfColors[i] = parseFloat(df[i][colorCol])
+                    findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
+                }
             }
         }
 
-        //highest and lowest color value
-        let clrMax = df[0][colorCol]
-        let clrMin = df[0][colorCol]
+        //now apply the filters and create a THREE color from the information stored in dfColors
+        for(let i = 0;i < df.length; i++)
+        {
+            let color = dfColors[i]
+            //set color boundaries so that the colors are heatmap like
+            let upperColorBoundary = 0 //equals red //what the highest value will get
+            let lowerColorBoundary = 0.7 //equals blue //what the lowest value will get
+
+            //manipulate the color
+            if(!filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
+            {
+                //if no filtering is allowed, just go ahead and store that color
+                dfColors[i] = new THREE.Color(color)
+            }
+            else
+            {
+                //assume the hue is stored in dfColors
+                color = parseFloat(color)
+                color = (color-clrMin)/(clrMax-clrMin) //normalize
+                if(labeled)
+                {
+                    //labeled data (each class gets a different color)
+                    //prevent two labels being both red (0 and 1 as hue)
+                    color = color*(1-1/numberOfLabels)
+                    color = (color-0.06)%1 //shift the hue for more interesting colors
+                }
+                else
+                {
+                    //heatmap
+                    //make sure all the colors are within the defined range
+                    color = color * (1 - lowerColorBoundary - (1-upperColorBoundary)) + lowerColorBoundary
+                }
+                
+                //store that color
+                dfColors[i] = new THREE.Color(0).setHSL(color,0.95,0.55)
+            }
+        }
+
+
+        //-------------------------//
+        //       normalizing       //    
+        //-------------------------//
+        //finds out by how much the values (as well as colors) to divide and for the colors also a displacement
+
+
+        //max in terms of "how far away is the farthest away point"
+        let x1maxDf = 1
+        let x2maxDf = 1
+        let x3maxDf = 1
 
         //normalize, so that the farthest away point is still within the xLen yLen zLen frame
         //TODO logarithmic normalizing
@@ -339,23 +455,18 @@ export class Plot
                 if(Math.abs(df[i][x3col]) > x3maxDf)
                     x3maxDf = Math.abs(df[i][x3col])
             }
-            
-            //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
-            if(!isNaN(parseInt(df[0][colorCol])) && colorCol != -1)
-                for(let i = 0; i < df.length; i++)
-                {
-                    if(parseInt(df[i][colorCol]) > clrMax)
-                        clrMax = parseInt(df[i][colorCol])
-                    if(parseInt(df[i][colorCol]) < clrMin)
-                        clrMin = parseInt(df[i][colorCol])
-                }
-            //if typeOf typeof(df[0][colorCol]) is a string, try to use that string as the color information
         }
 
         this.benchmarkStamp("normalized the data")
 
+        
         if(scatterplot)
         {
+            //-------------------------//
+            //       scatterplot       //    
+            //-------------------------//
+
+
             //plot it using circle sprites
             let geometry = new THREE.Geometry()
             let sprite = new THREE.TextureLoader().load(this.dataPointImage)
@@ -363,23 +474,21 @@ export class Plot
             sprite.magFilter = THREE.LinearFilter
             sprite.minFilter = THREE.LinearFilter
 
-            for(let  i = 0; i < df.length; i ++)
+            for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
                 vertex.x = df[i][x1col]/x1maxDf
                 vertex.y = df[i][x2col]/x2maxDf
                 vertex.z = df[i][x3col]/x3maxDf
                 geometry.vertices.push(vertex)
-                let normalizedcolor = (df[i][colorCol]-clrMin)/(clrMax-clrMin)/(1-1/numberOfLabels) //normalize and prevent turning red again at the other end
-                let shiftedcolor = (normalizedcolor-0.07)%1 //shift the hue for more interesting colors
-                geometry.colors.push(new THREE.Color(0).setHSL(shiftedcolor,0.95,0.55))
+                geometry.colors.push(dfColors[i])
             }
 
             //https://github.com/mrdoob/three.js/issues/1625
-            //alphatest = 1 causes errors
-            //alphatest = 0.9 edgy picture
-            //alphatest = 0.1 black edges on the sprite
-            //alphatest = 0 not transparent infront of other sprites anymore
+            //alphaTest = 1 causes errors
+            //alphaTest = 0.9 edgy picture
+            //alphaTest = 0.1 black edges on the sprite
+            //alphaTest = 0 not transparent infront of other sprites anymore
             //sizeAttenuation: false, sprites don't change size in distance and size is in px
             let material = new THREE.PointsMaterial({
                 size: 0.02,
@@ -396,7 +505,68 @@ export class Plot
         }
         else
         {
-            //TODO I'm going to implement this once the 3D Plot from PlotFormula works properly and gets colored properly
+            //-------------------------//
+            //       3D-Mesh Plot      //    
+            //-------------------------//
+
+
+            console.log("not scatterplot")
+            //might need to recreate the geometry and the matieral
+            //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
+            if(this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry")
+            {
+                if(this.plotmesh != undefined)
+                    this.scene.remove(this.plotmesh)
+
+                //create plane, divided into segments
+                let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
+                //move it
+                planegeometry.rotateX(Math.PI/2)
+                planegeometry.translate(this.xLen/2,0,this.zLen/2)
+
+                //color the plane
+                let plotmat = new THREE.MeshStandardMaterial({
+                    color: 0xff3b00,
+                    emissive: 0x2f7b8c,
+                    roughness: 0.8,
+                    //wireframe: true,
+                    side: THREE.DoubleSide
+                    })
+
+                /*let plotmat = new THREE.MeshBasicMaterial({
+                    vertexColors: THREE.VertexColors,
+                    side: THREE.DoubleSide
+                })*/
+
+                this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
+                this.scene.add(this.plotmesh)
+            }
+            //if not, go ahead and manipulate the vertices
+
+            //TODO hiding faces if typeof y is not number:
+            //https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
+
+            //modifying vertex positions:
+            //https://github.com/mrdoob/three.js/issues/972
+            let y = 0
+            let vIndex = 0
+            for(let z = this.zVerticesCount-1; z >= 0; z--)
+                for(let x = 0; x < this.xVerticesCount; x++)
+                {
+                    y = df[i][x2col]/x2maxDf
+                    this.plotmesh.geometry.vertices[vIndex].y = y
+                    this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
+                    vIndex ++
+                }
+                
+            //normals need to be recomputed so that the lighting works after the transformation
+            this.plotmesh.geometry.computeFaceNormals()
+            this.plotmesh.geometry.computeVertexNormals()
+            this.plotmesh.geometry.__dirtyNormals = true
+            //make sure the updated mesh is actually rendered
+            this.plotmesh.geometry.verticesNeedUpdate = true
+    
+            window.setTimeout(()=>this.render(),10)
             console.log("not yet implemented")
         }
 
@@ -596,6 +766,8 @@ export class Plot
         let near = 0.1 //when objects start to disappear at zoom-in
         let far = 10 //when objects start to disappear at zoom-out
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
+        //let zoom = 1000
+        //let camera = new THREE.OrthographicCamera(width/-zoom, width/zoom, height/-zoom, height/zoom, near, far)
         camera.position.set(0.5,0.6,2)
         
         let controls = new OrbitControls(camera, this.renderer.domElement)
