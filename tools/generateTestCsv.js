@@ -15,8 +15,18 @@ for(let i = 1;i < lines; i++)
         (Math.cos(i/100)+rand())+";"+
         (Math.tanh(i/100)+rand())+";"+
         (Math.sqrt(i/100)+rand())+";"+
-        "RGB("+i/lines+","+i/lines+","+i/lines+")"
+        "RGB("+(1-i/lines)+","+1+","+i/lines+")"
 }
+
+/*  let hexTest = parseInt((i/lines)*255).toString(16)
+    if(hexTest.length == 1)
+        hexTest = "0"+hexTest
+
+    csv[i] = i+";"+
+        (Math.cos(i/100)+rand())+";"+
+        (Math.tanh(i/100)+rand())+";"+
+        (Math.sqrt(i/100)+rand())+";"+
+        "#"+"33"+"ff"+hexTest*/
 
 function rand()
 {

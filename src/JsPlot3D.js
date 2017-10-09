@@ -341,21 +341,30 @@ export class Plot
             {
                 filterColor = false //don't apply normalization and heatmapfilters to it
 
+                //try to extract color information from the string
                 if(df[0][colorCol].toLowerCase().indexOf("rgb") == 0)
                 {
                     for(let i = 0; i < df.length; i++)
-                        dfColors[i] = "#0066ff"
+                    {
+                        //remove "rgb", brackets and split it into an array of [r,g,b]
+                        let rgb = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
+                        dfColors[i] = new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
+                    }
                 }
                 else if(df[0][colorCol].toLowerCase().indexOf("#") == 0)
                 {
-                    //supported by three.js right away
+                    //hex strings are supported by three.js right away
                     for(let i = 0; i < df.length; i++)
                         dfColors[i] = df[i][colorCol]
                 }
                 else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0) 
                 {
                     for(let i = 0; i < df.length; i++)
-                        dfColors[i] = "#0066ff"
+                    {
+                        //remove "hsl", brackets and split it into an array of [r,g,b]
+                        let hsl = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
+                        dfColors[i] = new THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
+                    }
                 }
                 else
                 {
