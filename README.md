@@ -11,18 +11,15 @@ default branch: "threejs"
 
     npm install
     npm start
-    #3DPlotBundle.js is now created in public/3DPlotBundle.js
-    firefox public/index.html
+    #3JsPlot3D.js is now created in compiled/JsPlot3D.js
+    #to minify the file, add the -p parameter to webpack in scripts.start in package.json
 
 
 ## How to Use
 
-first, you need to build. In a console, cd to the project root and use
-
-    npm install
-    npm start
+first, you need to build. See above.
     
-3DPlotBundle.js will then be created in public/ automatically
+JsPlot3D.js will then be created in compiled/ automatically
     
 **Plotting Formulas**
 
@@ -72,12 +69,9 @@ Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your nee
 
 ## Live Example
 
-first, you need to build. In a console, cd to the project root and use
+first, you need to build. See above.
 
-    npm install
-    npm start
-
-open public/index.html in your browser for a live example.
+open examples/index.html in your browser for a live example.
 
 Example for f(x1,x2):
 
