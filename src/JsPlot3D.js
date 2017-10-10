@@ -180,7 +180,7 @@ export class Plot
      * @param {object}  options     json object with one or more of the following parameters:
      * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
-     * - colorCol {number}: -1, if no coloration should be applied. Otherwise the index of the csv column that contains color information. 
+     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information. 
      *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
      *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
      *                      Integers that are used as class for labeled data would result in various different hues in the same way.
@@ -191,12 +191,13 @@ export class Plot
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
      */
     plotCsvString(sCsv, x1col, x2col, x3col, options)
     {
-        //-------------------------//
-        //        parameters       //    
-        //-------------------------//
+        //---------------------------//
+        //  parameter type checking  //    
+        //---------------------------//
         //default config
         let separator=","
         let header=false
@@ -207,28 +208,66 @@ export class Plot
         let fraction=1
         let labeled=false
 
-        if(options == undefined)
-            options = {}
-        if(options["separator"] == "") //don't accept an empty string
-            options.separator = undefined
-        if(options["separator"] != undefined)
-            separator = options.separator
-        if(options["header"] != undefined)
-            header = options.header
-        if(options["colorCol"] == "")
-            options.colorCol = undefined
-        if(options["colorCol"] != undefined)
-            colorCol = options.colorCol
-        if(options["scatterplot"] != undefined)
-            scatterplot = options.scatterplot
-        if(options["normalize"] != undefined)
-            normalize = options.normalize
-        if(options["title"] != undefined)
-            title = options.title
-        if(options["fraction"] != undefined)
-            fraction = options.fraction
-        if(options["labeled"] != undefined)
-            labeled = options.labeled
+        //some helper functions
+        let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
+        let checkBoolean = (varname, variable) => {
+            if(variable == undefined)
+                return //not defined in the (optional) options, don't do anything then
+            let a = (variable == true || variable == false)
+            if(!a) errorParamType(varname, variable, "boolean")
+            return(a) //returns true (valid) or false
+        }
+        let checkNumber = (varname, variable) => {
+            if(variable == undefined || variable == "")
+                return //not defined in the (optional) options, don't do anything then
+            if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
+                return errorParamType(varname, variable, "number")
+            else return true //returns true (valid) or false
+        }
+
+        //make sure options is defined
+        if(typeof(options) == "object")
+        {
+            //seems like the user sent some parameters. check them
+
+            //treat empty strings as if it was undefined in those cases:
+            if(options.colorCol == "")
+                options.colorCol = undefined
+            if(options.separator == "")
+                options.separator = undefined
+
+            //check numbers. Overwrite if it's good. If not, default value will remain
+            if(checkNumber("fraction",options.fraction))
+                fraction = parseFloat(options.fraction)
+            if(checkNumber("colorCol",options.colorCol))
+                colorCol = parseInt(options.colorCol)
+            if(checkNumber("x1col",x1col))
+                x1col = parseFloat(x1col)
+            if(checkNumber("x2col",x2col))
+                x2col = parseFloat(x2col)
+            if(checkNumber("x3col",x3col))
+                x3col = parseFloat(x3col)
+
+            //check booleans. Overwrite if it's good. If not, default value will remain
+            if(checkBoolean("labeled",options.labeled))
+                labeled = options.labeled
+            if(checkBoolean("normalize",options.normalize))
+                normalize = options.normalize
+            if(checkBoolean("header",options.header))
+                header = options.header
+            if(checkBoolean("scatterplot",options.scatterplot))
+                scatterplot = options.scatterplot
+
+            //check everything else
+            if(options.separator != undefined)
+                separator = options.separator
+            if(options.title != undefined)
+                title = options.title
+            if(options.defaultcolor != undefined)
+                defaultcolor = options.defaultcolor
+        }
+
+
 
         this.benchmarkStamp("start")
 
@@ -239,14 +278,12 @@ export class Plot
         //still the same data?
         //create a very quick checksum sort of string
         let stepsize = parseInt(sCsv.length/20)
-        let slices = ""
+        let samples = ""
         for(let i = 0;i < sCsv.length; i+=stepsize)
-        {
-            slices = slices + sCsv[i]
-        }
+            samples = samples + sCsv[i]
+
         //take everything into account that changes how the dataframe looks after the processing
-        let checkstring = title+sCsv.length+slices+fraction+header+separator
-        this.benchmarkStamp("calculated checkstring")
+        let checkstring = title+sCsv.length+samples+fraction+header+separator
 
         //now check if the checksum changed. If yes, remake the dataframe from the input
         if(this.dfCache == undefined || this.dfCache.checkstring != checkstring)
@@ -257,14 +294,21 @@ export class Plot
             let data = sCsv.split("\n")
             data = data.slice(data.length-data.length*fraction)
             let headerRow = ""
-            
+
             //find out the separator automatically if the user didn't define it
-            if(options["separator"] == undefined)
+            if(options.separator == undefined)
+            {
                 if(data[0].indexOf(separator) == -1)
                     separator = ";" //try a different one
-            if(options["separator"] != undefined)
+                    
                 if(data[0].indexOf(separator) == -1)
-                    console.warn("no csv separator/delimiter was detected. Please set separator=... according to your file format: \""+data[0]+"\"")
+                    return console.error("no csv separator/delimiter was detected. Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
+            }
+            else
+            {
+                if(data[0].indexOf(separator) == -1)
+                    return console.error("haven't found any occurence of the separator '"+separator+"' in the csv format (\""+data[0]+"\")")
+            }
 
             if(options["header"] == undefined)
             {
@@ -273,7 +317,7 @@ export class Plot
                 //if both are yes, it's probably header = true
                 if(isNaN(data[0].split(separator)[x1col]) && !isNaN(data[1].split(separator)[x1col]))
                 {
-                    console.log("detected headers. To prevent this, set header=false")
+                    console.log("detected headers, going to remove them. To prevent this, set header=false")
                     header = true
                 }
             }
@@ -311,7 +355,7 @@ export class Plot
             this.dfCache.dataframe = data
             this.dfCache.checkstring = checkstring
 
-            this.benchmarkStamp("created the dataframe")
+            this.benchmarkStamp("created the dataframe and cached it")
 
             //plot the dataframe.
             options.header = false //header is already removed
@@ -338,9 +382,8 @@ export class Plot
      * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
      * @param {number}  x3col       column index used for plotting the x3 axis (y)
      * @param {object}  options     json object with one or more of the following parameters:
-     * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
-     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file.
-     * - colorCol {number}: -1, if no coloration should be applied. Otherwise the index of the csv column that contains color information. 
+     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
+     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information. 
      *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
      *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
      *                      Integers that are used as class for labeled data would result in various different hues in the same way.
@@ -351,12 +394,13 @@ export class Plot
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
      */
     plotDataFrame(df, x1col, x2col, x3col, options)
     {
-        //-------------------------//
-        //        parameters       //    
-        //-------------------------//
+        //---------------------------//
+        //  parameter type checking  //    
+        //---------------------------//
         //default config
         let header=false
         let colorCol=-1
@@ -366,37 +410,69 @@ export class Plot
         let fraction=1
         let labeled=false
 
-        if(options == undefined)
-            options = {}
-        if(options["header"] != undefined)
-            header = options.header
-        if(options["colorCol"] == "")
-            options.colorCol = undefined
-        if(options["colorCol"] != undefined)
-            colorCol = options.colorCol
-        if(options["scatterplot"] != undefined)
-            scatterplot = options.scatterplot
-        if(options["normalize"] != undefined)
-            normalize = options.normalize
-        if(options["title"] != undefined)
-            title = options.title
-        if(options["fraction"] != undefined)
-            fraction = options.fraction
-        if(options["labeled"] != undefined)
-            labeled = options.labeled
+        //some helper functions
+        let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
+        let checkBoolean = (varname, variable) => {
+            if(variable == undefined)
+                return //not defined in the (optional) options, don't do anything then
+            let a = (variable == true || variable == false)
+            if(!a) errorParamType(varname, variable, "boolean")
+            return(a) //returns true (valid) or false
+        }
+        let checkNumber = (varname, variable) => {
+            if(variable == undefined || variable == "")
+                return //not defined in the (optional) options, don't do anything then
+            if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
+                return errorParamType(varname, variable, "number")
+            else return true //returns true (valid) or false
+        }
 
-        //TODO check types of the input parameters, throw error about what was expected, but what was found
-        //TODO check if cols are available in the dataframe, if not, throw errors and stop
-        //TODO check type of cols (of the first row), if it contains numbers or not. throw error if something else is found. only colorCol is allowed to contain string values
+        //make sure options is defined
+        if(typeof(options) == "object")
+        {
+            //seems like the user sent some parameters. check them
 
+            //treat empty strings as if it was undefined in those cases:
+            if(options.colorCol == "")
+                options.colorCol = undefined
+
+            //check numbers. Overwrite if it's good. If not, default value will remain
+            if(checkNumber("fraction",options.fraction))
+                fraction = parseFloat(options.fraction)
+            if(checkNumber("colorCol",options.colorCol))
+                colorCol = parseInt(options.colorCol)
+            if(checkNumber("x1col",x1col))
+                x1col = parseFloat(x1col)
+            if(checkNumber("x2col",x2col))
+                x2col = parseFloat(x2col)
+            if(checkNumber("x3col",x3col))
+                x3col = parseFloat(x3col)
+
+            //check booleans. Overwrite if it's good. If not, default value will remain
+            if(checkBoolean("labeled",options.labeled))
+                labeled = options.labeled
+            if(checkBoolean("normalize",options.normalize))
+                normalize = options.normalize
+            if(checkBoolean("header",options.header))
+                header = options.header
+            if(checkBoolean("scatterplot",options.scatterplot))
+                scatterplot = options.scatterplot
+
+            //check everything else
+            if(options.title != undefined)
+                title = options.title
+            if(options.defaultcolor != undefined)
+                defaultcolor = options.defaultcolor
+        }
+
+
+        //remove the old mesh
         this.resetCalculation()
         if(this.plotmesh != undefined)
         {
             this.scene.remove(this.plotmesh)
             this.plotmesh = undefined
         }
-
-
 
 
         //-------------------------//
