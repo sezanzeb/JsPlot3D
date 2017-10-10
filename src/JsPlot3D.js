@@ -17,38 +17,46 @@ export class Plot
      * 
      * @param {object} container     html div DOM element which can then be selected using
      *                               - Plot(document.getElementById("foobar"))
-     * @param {string} backgroundClr background color of the plot.
-     * @param {string} axesClr       color of the axes.
+     * @param {json}   options       at least one of backgroundClr or axesClr in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc
      */
-    constructor(container, backgroundClr="#ffffff", axesClr="#000000")
+    constructor(container, options)
     {
+        //parameter checking
+        let backgroundColor = "#ffffff"
+        let axesColor = "#000000"
+        if(options == undefined)
+            options = {}
+        if(options.backgroundColor != undefined)
+            backgroundColor = options.backgroundColor
+        if(options.axesColor != undefined)
+            axesColor = options.axesColor
         if(typeof(container) != "object")
             return console.error("first param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
         
+
         //some plotdata specific variables. I want setters and getter for all those at some point
         this.MathParser = new MathParser()
         this.resetCalculation() //configures the variables
         this.dataPointImage = "datapoint.png"
 
+
         //check if dataPointImage is available
         let img = new Image()
         img.onerror = ()=>console.warn(this.dataPointImage+" does not exist. Scatterplots will not be visible")
-
         img.src = this.dataPointImage
+
 
         //three.js setup
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
-        this.renderer.setClearColor(backgroundClr)
+        this.renderer.setClearColor(backgroundColor)
         this.setContainer(container)
-
         this.scene = new THREE.Scene()
         
-        //config
+        
         //boundaries and dimensions of the plot data
         this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
-
         this.createLight()
-        this.createAxes(axesClr)
+        this.createAxes(axesColor)
         this.createArcCamera()
         this.render()
 
@@ -207,6 +215,7 @@ export class Plot
         let title=""
         let fraction=1
         let labeled=false
+        let defaultColor=0 //black
 
         //some helper functions
         let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
@@ -263,8 +272,8 @@ export class Plot
                 separator = options.separator
             if(options.title != undefined)
                 title = options.title
-            if(options.defaultcolor != undefined)
-                defaultcolor = options.defaultcolor
+            if(options.defaultColor != undefined)
+                defaultColor = options.defaultColor
         }
         else
         {
@@ -413,6 +422,7 @@ export class Plot
         let title=""
         let fraction=1
         let labeled=false
+        let defaultColor=0 //black
 
         //some helper functions
         let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
@@ -465,8 +475,8 @@ export class Plot
             //check everything else
             if(options.title != undefined)
                 title = options.title
-            if(options.defaultcolor != undefined)
-                defaultcolor = options.defaultcolor
+            if(options.defaultColor != undefined)
+                defaultColor = options.defaultColor
         }
 
 
@@ -649,7 +659,7 @@ export class Plot
         {
             //colorCol is -1
             for(let i = 0; i < df.length; i++)
-                dfColors[i] = new THREE.Color(0)
+                dfColors[i] = this.getColorObjectFromAnyString(defaultColor)
         }
 
 
@@ -804,15 +814,64 @@ export class Plot
     }
 
 
-    
+
+    getColorObjectFromAnyString(color)
+    {
+        if(typeof(color) == "number")
+            return new THREE.Color(color) //number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
+            //numbers are supported by three.js by default
+
+        if(typeof(color) != "string")
+            return console.error("getColorObjectFromAnyString expected String or Number as parameter but got "+typeof(color))
+
+        if(color.toLowerCase().indexOf("rgb") == 0)
+        {
+            //remove "rgb", brackets and split it into an array of [r,g,b]
+            let rgb = color.substring(4,color.length-1).split(",")
+            return new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
+        }
+        else if(color.toLowerCase().indexOf("#") == 0)
+        {
+            //hex strings are supported by three.js right away
+            return new THREE.Color(color)
+        }
+        else if(color.toLowerCase().indexOf("hsl") == 0) 
+        {
+            //remove "hsl", brackets and split it into an array of [r,g,b]
+            let hsl = color.substring(4,color.length-1).split(",")
+            return new THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
+        }
+        return undefined
+    }
+
+
+
     /**
-     * Creates new axes with the defined color
+     * changes the background color and triggers a rerender
+     * @param {string} color 
+     */
+    setBackgroundColor(color)
+    {
+        let colorObject = this.getColorObjectFromAnyString(color)
+        if(colorObject != undefined)
+            this.renderer.setClearColor(this.getColorObjectFromAnyString(color))
+        else
+            this.renderer.setClearColor(color)
+        this.render()
+    }
+
+    
+
+    /**
+     * Creates new axes with the defined color and triggers a rerender
      * @param {String} color     hex string of the axes color
      */
-    setAxesColor(color="#000000") {
+    setAxesColor(color)
+    {
         if(this.axes != undefined)
             this.scene.remove(this.axes)
         this.axes = this.createAxes(color)
+        this.render()
     }
 
     
@@ -877,6 +936,8 @@ export class Plot
         //vertices counts changed, so the mesh has to be recreated
         this.scene.remove(this.plotmesh)
         this.plotmesh = false //trigger recreation next time .Plot...() gets called
+
+        //takes effect once the mesh gets created from new
     }
 
 
@@ -1036,10 +1097,14 @@ export class Plot
     /**
      * creates the axes that point into the three x, y and z directions as wireframes
      * @private
-     * @param {string} color     hex string of the axes color
+     * @param {string} color     hex string of the axes color. default black #000000
      */
     createAxes(color="#000000")
     {
+        let colorObject = this.getColorObjectFromAnyString(color)
+        if(colorObject != undefined)
+            color = colorObject
+
         let geom = new THREE.Geometry()
 
         let cent = new THREE.Vector3(0,0,0)
@@ -1066,6 +1131,21 @@ export class Plot
         this.scene.add(axes)
 
         this.axes = axes
+
+        //a box that adds a few dashed lines to the sides for more orientation (unfinished)
+        //needs to be aligned to xLen, yLen and zLen. Maybe the three planes x1*x2, x2*x3 and x1*x3 should get such dashed lines
+        //not sure yet
+        /*let boxgeom = new THREE.BoxGeometry(1,1,1)
+        boxgeom.translate(0.5,0.5,0.5)
+        let boxmat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            side: THREE.BackSide,
+            opacity: 0.1,
+            transparent: true
+        })
+        let box = new THREE.Mesh(boxgeom,boxmat)
+        this.scene.add(box)*/
+
         //TODO is there s smarter way to do it? Without Timeout it won't render
         window.setTimeout(()=>this.render(),10)
     }

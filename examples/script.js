@@ -1,4 +1,7 @@
-var plot = new JSPLOT3D.Plot(document.getElementById("threecanvas"),"#33404c","#ffffff")
+var plot = new JSPLOT3D.Plot(document.getElementById("threecanvas"), {
+    backgroundColor:"#33404c",
+    axesColor:"#ffffff"
+})
 var decodedData = ""
 var cached = false
 

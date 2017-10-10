@@ -1,8 +1,12 @@
-<div id="JsPlot3DContainer" style="width:45vw; height:90vh;"></div>
+<div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
 <input id="fileup" type="file"></input>
+<p>any csv (that has 3 columns that contain numeric data) you upload should print green dots on a blue background. The axes are yellow</p>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
     var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"))
+    plot.setBackgroundColor("rgb(0.15,0.35,0.7)")
+    plot.setAxesColor("hsl(0.1667,1,0.5)")
+
     document.getElementById("fileup").addEventListener("change",function(e)
     {
         let file = e.target.files[0]
@@ -13,7 +17,9 @@
         reader.onload = function(e)
         {
             let data = atob(e.target.result.split("base64,")[1])
-            plot.plotCsvString(data,0,1,2)
+            plot.plotCsvString(data,0,1,2,{
+                defaultColor: "rgb(0.1,1,0.3)"
+            })
         }
     })
 </script>
