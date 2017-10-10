@@ -30,6 +30,12 @@ export class Plot
         this.resetCalculation() //configures the variables
         this.dataPointImage = "datapoint.png"
 
+        //check if dataPointImage is available
+        let img = new Image()
+        img.onerror = ()=>console.warn(this.dataPointImage+" does not exist. Scatterplots will not be visible")
+
+        img.src = this.dataPointImage
+
         //three.js setup
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
         this.renderer.setClearColor(backgroundClr)
@@ -132,7 +138,7 @@ export class Plot
             //Scatterplot
 
             //if scatterplot, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.xLen*this.xRes * this.zLen*this.zRes)
+            let df = new Array(this.xVerticesCount * this.zVerticesCount)
 
             //the three values that are going to be stored in the dataframe
             let y = 0
@@ -142,18 +148,22 @@ export class Plot
             //line number in the new dataframe
             let i = 0
 
-            for(let x = 0; x <= this.xVerticesCount; x++)
+            for(let x = 0; x < this.xVerticesCount; x++)
             {
-                for(let z = 0; z <= this.zVerticesCount; z++)
+                for(let z = 0; z < this.zVerticesCount; z++)
                 {
                     y = this.f(x/this.xRes,z/this.zRes) //calculate y. y = f(x1,x2)
                     df[i] = [x/this.xRes,y,z/this.zRes] //store the datapoint
                     i++
                 }
             }
+            let options = {
+                scatterplot: true,
+                colorCol: 1
+            }
 
             //continue plotting this DataFrame
-            plot.plotDataFrame(df, 0, 1, 2, true, false)
+            plot.plotDataFrame(df, 0, 1, 2, options)
 
         }
     }
@@ -189,7 +199,7 @@ export class Plot
         //-------------------------//
         //default config
         let separator=","
-        let header=true //default true to prevent errors
+        let header=false
         let colorCol=-1
         let scatterplot=true
         let normalize=true
@@ -197,12 +207,16 @@ export class Plot
         let fraction=1
         let labeled=false
 
+        if(options == undefined)
+            options = {}
         if(options["separator"] == "") //don't accept an empty string
             options.separator = undefined
         if(options["separator"] != undefined)
             separator = options.separator
         if(options["header"] != undefined)
             header = options.header
+        if(options["colorCol"] == "")
+            options.colorCol = undefined
         if(options["colorCol"] != undefined)
             colorCol = options.colorCol
         if(options["scatterplot"] != undefined)
@@ -250,7 +264,19 @@ export class Plot
                     separator = ";" //try a different one
             if(options["separator"] != undefined)
                 if(data[0].indexOf(separator) == -1)
-                    console.warn("separator was not found in the data. Make sure '"+separator+"' actually is the separator/delimiter of \""+data[0]+"\"")
+                    console.warn("no csv separator/delimiter was detected. Please set separator=... according to your file format: \""+data[0]+"\"")
+
+            if(options["header"] == undefined)
+            {
+                //find out automatically if they are headers or not
+                //take x1col, check first line type (string/NaN?) then second line type (number/!NaN?)
+                //if both are yes, it's probably header = true
+                if(isNaN(data[0].split(separator)[x1col]) && !isNaN(data[1].split(separator)[x1col]))
+                {
+                    console.log("detected headers. To prevent this, set header=false")
+                    header = true
+                }
+            }
 
             if(header)
             {
@@ -340,8 +366,12 @@ export class Plot
         let fraction=1
         let labeled=false
 
+        if(options == undefined)
+            options = {}
         if(options["header"] != undefined)
             header = options.header
+        if(options["colorCol"] == "")
+            options.colorCol = undefined
         if(options["colorCol"] != undefined)
             colorCol = options.colorCol
         if(options["scatterplot"] != undefined)
@@ -407,7 +437,7 @@ export class Plot
         //store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
 
         //parameter. Does the dataset hold classes/labels?
-        if(colorCol != -1) //does the user event want colors?
+        if(colorCol != -1) //does the user even want colors?
         {
             if(labeled) //get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
             {
@@ -473,9 +503,9 @@ export class Plot
                             dfColors[i] = new THREE.Color(0).setHSL(0.2,0.95,0.55)
 
                         console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
-                            "string (\""+df[0][colorCol]+"\"). \"labeled\" is set as "+labeled+", \"header\"is set to "+header+". Possible formats "+
-                            "for this column are numbers, hex values \"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". "+
-                            "Now assuming labeled = true and restarting.")
+                            "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" (might be false "+
+                            "because plotCsvString() already removed the headers). Possible formats for this column are numbers, hex values "+
+                            "\"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". Now assuming labeled = true and restarting.")
 
                         //restart
                         labeled = true
@@ -537,6 +567,7 @@ export class Plot
         }
         else
         {
+            //colorCol is -1
             for(let i = 0; i < df.length; i++)
                 dfColors[i] = new THREE.Color(0)
         }
@@ -629,7 +660,6 @@ export class Plot
             //-------------------------//
 
 
-            console.log("not scatterplot")
             //might need to recreate the geometry and the matieral
             //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
             if(this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry")

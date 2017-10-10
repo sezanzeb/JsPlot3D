@@ -64,7 +64,7 @@ Configure the 2nd, 3th, 4th and 5th parameter of plot.plotsvString() to your nee
             reader.onload = function(e)
             {
                 let data = atob(e.target.result.split("base64,")[1])
-                plot.plotCsvString(data,0,1,2,";",true) //when trying this out, take care of setting the right separator!
+                plot.plotCsvString(data,0,1,2)
             }
         })
     </script>
