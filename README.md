@@ -101,6 +101,7 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 
 ## Todo
 
+- provide default color parameter (in case colorCol remains the default, which is -1)
 - move the params of the plot functions that are optional to an optional json object. foo(a,b,c) => foo(a,{"par1":b,"par2":c})
 - display box around the plot that has inverse culling, so that the viewer can look inside it. Display a grid texture on it's faces.
 - redraw function that can be called after changing the color or dimension settings. For this the dataframe and the settings need to be cached. That means don't overwrite values in the cached dataframe (like the stringlabel -> numberlabel loop does). Make a copy of the cached dataframe and then plot. Or maybe don't overwrite the dataframe but rather create an additional labelarray that carries the label info.

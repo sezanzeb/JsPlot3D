@@ -55,5 +55,14 @@ function plotcsv()
     let x3 = document.getElementById("x3").value
     let clr = document.getElementById("clr").value
     let sep = document.getElementById("sep").value
-    plot.plotCsvString(decodedData,x1,x2,x3,sep,true,clr,1,1,"",1,false)
+    plot.plotCsvString(decodedData,x1,x2,x3,{
+        separator: sep,
+        header: true,
+        colorCol: clr,
+        scatterplot: 1,
+        normalize: 1,
+        title: "",
+        fraction: 1,
+        labeled: false
+    })
 }

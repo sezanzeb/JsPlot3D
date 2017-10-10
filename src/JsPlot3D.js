@@ -167,29 +167,61 @@ export class Plot
      * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
      * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
      * @param {number}  x3col       column index used for plotting the x3 axis (y)
-     * @param {string}  separator   separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
-     * @param {boolean} header      a boolean value whether or not there are headers in the first row of the csv file.
-     * @param {number} colorCol    TODO not yet implemented    
-     * 
-     *                              -1, if no coloration should be applied. Otherwise the index of the csv column that contains color information. (0, 1, 2 etc.)
-     * 
-     *                              formats of the column within the .csv file allowed:
-     *                              - numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically
-     *                              - Integers that are used as class for labeled data would result in various different hues in the same way
-     *                              - hex strings ("#f8e2b9") (not yet implemented)
-     *                              - "rgb(...)" strings (not yet implemented)
-     *                              - "hsl(...)" strings (not yet implemented)
-     *                              - strings as labels
-     * 
-     * @param {boolean} scatterplot (not yet working) - true if the datapoints should be dots inside the 3D space (Default)
-     *                              - false if it should be a connected mesh
-     * @param {boolean} normalize   if false, data will not be normalized. Datapoints with high values will be very far away then
-     * @param {string}  title       title of the data
-     * @param {number}  fraction    between 0 and 1, how much of the dataset should be plotted.
+     * @param {object}  options     json object with one or more of the following parameters:
+     * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
+     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
+     * - colorCol {number}: -1, if no coloration should be applied. Otherwise the index of the csv column that contains color information. 
+     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
+     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * - scatterplot {boolean}: (not yet working) true if the datapoints should be dots inside the 3D space (Default). false if it should be a connected mesh
+     * - normalize {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then
+     * - title {string}: title of the data
+     * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
+     * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
+     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
      */
-    plotCsvString(sCsv, x1col, x2col, x3col, separator=",", header=false, colorCol=-1, scatterplot=true, normalize=true, title="", fraction=1, labeled=false)
+    plotCsvString(sCsv, x1col, x2col, x3col, options)
     {
+        //-------------------------//
+        //        parameters       //    
+        //-------------------------//
+        //default config
+        let separator=","
+        let header=true //default true to prevent errors
+        let colorCol=-1
+        let scatterplot=true
+        let normalize=true
+        let title=""
+        let fraction=1
+        let labeled=false
+
+        if(options["separator"] == "") //don't accept an empty string
+            options.separator = undefined
+        if(options["separator"] != undefined)
+            separator = options.separator
+        if(options["header"] != undefined)
+            header = options.header
+        if(options["colorCol"] != undefined)
+            colorCol = options.colorCol
+        if(options["scatterplot"] != undefined)
+            scatterplot = options.scatterplot
+        if(options["normalize"] != undefined)
+            normalize = options.normalize
+        if(options["title"] != undefined)
+            title = options.title
+        if(options["fraction"] != undefined)
+            fraction = options.fraction
+        if(options["labeled"] != undefined)
+            labeled = options.labeled
+
         this.benchmarkStamp("start")
+
+        //-------------------------//
+        //         caching         //    
+        //-------------------------//
+
         //still the same data?
         //create a very quick checksum sort of string
         let stepsize = parseInt(sCsv.length/20)
@@ -198,11 +230,8 @@ export class Plot
         {
             slices = slices + sCsv[i]
         }
-        //it's very important to take the fraction parameter into account for the checksum
-        //because otherwise a changed fraction parameter would not change the amount of datapoints that are plotted because
-        //the checksum stays the same and the dfCache.dataframe will not update
-        let checkstring = title+sCsv.length+slices+fraction
-
+        //take everything into account that changes how the dataframe looks after the processing
+        let checkstring = title+sCsv.length+slices+fraction+header+separator
         this.benchmarkStamp("calculated checkstring")
 
         //now check if the checksum changed. If yes, remake the dataframe from the input
@@ -214,19 +243,41 @@ export class Plot
             let data = sCsv.split("\n")
             data = data.slice(data.length-data.length*fraction)
             let headerRow = ""
+            
+            //find out the separator automatically if the user didn't define it
+            if(options["separator"] == undefined)
+                if(data[0].indexOf(separator) == -1)
+                    separator = ";" //try a different one
+            if(options["separator"] != undefined)
+                if(data[0].indexOf(separator) == -1)
+                    console.warn("separator was not found in the data. Make sure '"+separator+"' actually is the separator/delimiter of \""+data[0]+"\"")
 
             if(header)
             {
                 headerRow = data[0]
+                //remove leading and ending whitespaces in headers
+                for(let j = 0;j < headerRow.length; j++)
+                   headerRow[j].trim()
+
                 //start at line index 1 to skip the header
                 for(let i = 1;i < data.length; i ++)
+                {
                     data[i-1] = data[i].split(separator) //overwrite the header (-1)
+                    //remove leading and ending whitespaces in data
+                    for(let j = 0;j < data[i].length; j++)
+                        data[i][j].trim()
+                }
                 data.pop() //because there will be one undefined value in the array
             }
             else
             {
                 for(let i = 0;i < data.length; i ++)
+                {
                     data[i] = data[i].split(separator)
+                    //remove leading and ending whitespaces in data
+                    for(let j = 0;j < data[i].length; j++)
+                        data[i][j].trim()
+                }
             }
 
             //cache the dataframe. If the same dataframe is used next time, don't parse it again
@@ -235,15 +286,19 @@ export class Plot
             this.dfCache.checkstring = checkstring
 
             this.benchmarkStamp("created the dataframe")
-            //plot the dataframe. Fraction is now 1, because the fraction has already been taken into account
-            plot.plotDataFrame(data, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1, labeled)
+
+            //plot the dataframe.
+            options.header = false //header is already removed
+            options.fraction = 1 //Fraction is now 1, because the fraction has already been taken into account
+            plot.plotDataFrame(data, x1col, x2col, x3col, options)
         }
         else
         {
+            console.log("using cached dataframe")
             //cached
             //this.dfCache != undefined and checkstring is the same
             //same data. Fraction is now 1, because the fraction has already been taken into account
-            plot.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, colorCol, scatterplot, normalize, 1, labeled)
+            plot.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, options)
         }
     }
     
@@ -252,17 +307,54 @@ export class Plot
     /**
      * plots a dataframe on the canvas element which was defined in the constructor of Plot()
      *
-     * @param {number[][]}  df           int[][] of datapoints. [row][column]
-     * @param {number}      x1col        column index used for transforming the x1 axis (x). default: -1 (use index)
-     * @param {number}      x2col        column index used for transforming the x2 axis (z). default: -1 (use index)
-     * @param {number}      x3col        column index used for plotting the x3 axis (y)
-     * @param {any}         colorCol     TODO see plotCsvString javadoc
-     * @param {boolean}     scatterplot  (not yet working) true if this function should plot dots as datapoints into the 3D space. Default true
-     * @param {boolean}     normalize    if false, data will not be normalized. Datapoints with high values will be very far away then
-     * @param {number}      fraction     between 0 and 1, how much of the dataset should be plotted.
+     * @param {number[][]}  df      int[][] of datapoints. [row][column]
+     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
+     * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
+     * @param {number}  x3col       column index used for plotting the x3 axis (y)
+     * @param {object}  options     json object with one or more of the following parameters:
+     * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
+     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file.
+     * - colorCol {number}: -1, if no coloration should be applied. Otherwise the index of the csv column that contains color information. 
+     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
+     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * - scatterplot {boolean}: (not yet working) true if the datapoints should be dots inside the 3D space (Default). false if it should be a connected mesh
+     * - normalize {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then
+     * - title {string}: title of the data
+     * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
+     * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
+     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
      */
-    plotDataFrame(df, x1col, x2col, x3col, colorCol=-1, scatterplot=true, normalize=true, fraction=1, labeled=false)
+    plotDataFrame(df, x1col, x2col, x3col, options)
     {
+        //-------------------------//
+        //        parameters       //    
+        //-------------------------//
+        //default config
+        let header=false
+        let colorCol=-1
+        let scatterplot=true
+        let normalize=true
+        let title=""
+        let fraction=1
+        let labeled=false
+
+        if(options["header"] != undefined)
+            header = options.header
+        if(options["colorCol"] != undefined)
+            colorCol = options.colorCol
+        if(options["scatterplot"] != undefined)
+            scatterplot = options.scatterplot
+        if(options["normalize"] != undefined)
+            normalize = options.normalize
+        if(options["title"] != undefined)
+            title = options.title
+        if(options["fraction"] != undefined)
+            fraction = options.fraction
+        if(options["labeled"] != undefined)
+            labeled = options.labeled
+
         //TODO check types of the input parameters, throw error about what was expected, but what was found
         //TODO check if cols are available in the dataframe, if not, throw errors and stop
         //TODO check type of cols (of the first row), if it contains numbers or not. throw error if something else is found. only colorCol is allowed to contain string values
@@ -315,123 +407,141 @@ export class Plot
         //store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
 
         //parameter. Does the dataset hold classes/labels?
-        if(labeled) //get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
+        if(colorCol != -1) //does the user event want colors?
         {
-            clrMax = 0 //assume 0
-            clrMin = 0 //assume 0
-            //count to ammount of labels here
-            let label = ""
-            for(let i = 0; i < df.length; i++)
+            if(labeled) //get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
             {
-                label = df[i][colorCol] //read the label/classification
-                if(map[label] == undefined) //is this label still unknown?
+                if(df[0][colorCol].indexOf("rgb") == 0 ||
+                   df[0][colorCol].indexOf("hsl") == 0 ||
+                  (df[0][colorCol].indexOf("#")   == 0 && df[0][colorCol].length == 7))
                 {
-                    map[label] = numberOfLabels //map it to a unique number
-                    numberOfLabels ++ //make sure the next label gets a different number
+                    console.warn(df[0][colorCol]+" might be a color. \"labeled\" is set true. For the stored colors to show up, try \"labeled=false\"")
                 }
-                //copy the labels to dfColors
-                dfColors[i] = parseFloat(map[label])
-                findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
+                clrMax = 0 //assume 0
+                clrMin = 0 //assume 0
+                //count to ammount of labels here
+                let label = ""
+                for(let i = 0; i < df.length; i++)
+                {
+                    label = df[i][colorCol] //read the label/classification
+                    if(map[label] == undefined) //is this label still unknown?
+                    {
+                        map[label] = numberOfLabels //map it to a unique number
+                        numberOfLabels ++ //make sure the next label gets a different number
+                    }
+                    //copy the labels to dfColors
+                    dfColors[i] = parseFloat(map[label])
+                    findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
+                }
+            }
+            else
+            {
+                //if it is a string value, try to recognize #, rgb and hex
+                if(isNaN(parseInt(df[0][colorCol])))
+                {
+                    filterColor = false //don't apply normalization and heatmapfilters to it
+
+                    //try to extract color information from the string
+                    if(df[0][colorCol].toLowerCase().indexOf("rgb") == 0)
+                    {
+                        for(let i = 0; i < df.length; i++)
+                        {
+                            //remove "rgb", brackets and split it into an array of [r,g,b]
+                            let rgb = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
+                            dfColors[i] = new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
+                        }
+                    }
+                    else if(df[0][colorCol].toLowerCase().indexOf("#") == 0)
+                    {
+                        //hex strings are supported by three.js right away
+                        for(let i = 0; i < df.length; i++)
+                            dfColors[i] = df[i][colorCol]
+                    }
+                    else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0) 
+                    {
+                        for(let i = 0; i < df.length; i++)
+                        {
+                            //remove "hsl", brackets and split it into an array of [r,g,b]
+                            let hsl = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
+                            dfColors[i] = new THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
+                        }
+                    }
+                    else
+                    {
+                        //nothing worked, print a warning and color it all the same way
+                        for(let i = 0; i < df.length; i++)
+                            dfColors[i] = new THREE.Color(0).setHSL(0.2,0.95,0.55)
+
+                        console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
+                            "string (\""+df[0][colorCol]+"\"). \"labeled\" is set as "+labeled+", \"header\"is set to "+header+". Possible formats "+
+                            "for this column are numbers, hex values \"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". "+
+                            "Now assuming labeled = true and restarting.")
+
+                        //restart
+                        labeled = true
+                        options.labeled = labeled
+                        this.plotDataFrame(df, x1col, x2col, x3col, options)
+                        return 
+                    }
+                }
+                else
+                {
+                    //it's a number. just copy it over and filter it to a heatmap
+                    clrMax = df[0][colorCol] //assume the first value
+                    clrMin = df[0][colorCol] //assume the first value
+                    for(let i = 0; i < df.length; i++)
+                    {
+                        dfColors[i] = parseFloat(df[i][colorCol])
+                        findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
+                    }
+                }
+            }
+
+            //now apply the filters and create a THREE color from the information stored in dfColors
+            for(let i = 0;i < df.length; i++)
+            {
+                let color = dfColors[i]
+                //set color boundaries so that the colors are heatmap like
+                let upperColorBoundary = 0 //equals red //what the highest value will get
+                let lowerColorBoundary = 0.7 //equals blue //what the lowest value will get
+
+                //manipulate the color
+                if(!filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
+                {
+                    //if no filtering is allowed, just go ahead and store that color
+                    dfColors[i] = new THREE.Color(color)
+                }
+                else
+                {
+                    //assume the hue is stored in dfColors
+                    color = parseFloat(color)
+                    color = (color-clrMin)/(clrMax-clrMin) //normalize
+                    if(labeled)
+                    {
+                        //labeled data (each class gets a different color)
+                        //prevent two labels being both red (0 and 1 as hue)
+                        color = color*(1-1/numberOfLabels)
+                        color = (color-0.06)%1 //shift the hue for more interesting colors
+                    }
+                    else
+                    {
+                        //heatmap
+                        //make sure all the colors are within the defined range
+                        color = color * (1 - lowerColorBoundary - (1-upperColorBoundary)) + lowerColorBoundary
+                    }
+                    
+                    //store that color
+                    dfColors[i] = new THREE.Color(0).setHSL(color,0.95,0.55)
+                }
             }
         }
         else
         {
-            //if it is a string value, try to recognize #, rgb and hex
-            if(isNaN(parseInt(df[0][colorCol])))
-            {
-                filterColor = false //don't apply normalization and heatmapfilters to it
-
-                //try to extract color information from the string
-                if(df[0][colorCol].toLowerCase().indexOf("rgb") == 0)
-                {
-                    for(let i = 0; i < df.length; i++)
-                    {
-                        //remove "rgb", brackets and split it into an array of [r,g,b]
-                        let rgb = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
-                        dfColors[i] = new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
-                    }
-                }
-                else if(df[0][colorCol].toLowerCase().indexOf("#") == 0)
-                {
-                    //hex strings are supported by three.js right away
-                    for(let i = 0; i < df.length; i++)
-                        dfColors[i] = df[i][colorCol]
-                }
-                else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0) 
-                {
-                    for(let i = 0; i < df.length; i++)
-                    {
-                        //remove "hsl", brackets and split it into an array of [r,g,b]
-                        let hsl = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
-                        dfColors[i] = new THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
-                    }
-                }
-                else
-                {
-                    //nothing worked, print a warning and color it all the same way
-                    for(let i = 0; i < df.length; i++)
-                        dfColors[i] = new THREE.Color(0).setHSL(0.2,0.95,0.55)
-
-                    console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
-                        "string (\""+df[0][colorCol]+"\"). \"labeled\" is set as "+labeled+", make sure this is what you want. Possible formats "+
-                        "for this column are numbers, hex values \"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". Now assuming labeled = true and restarting.")
-
-                    labeled = true
-                    //restart
-                    this.plotDataFrame(df, x1col, x2col, x3col, colorCol, scatterplot, normalize, fraction, labeled)
-                    return 
-                }
-            }
-            else
-            {
-                //it's a number. just copy it over and filter it to a heatmap
-                clrMax = df[0][colorCol] //assume the first value
-                clrMin = df[0][colorCol] //assume the first value
-                for(let i = 0; i < df.length; i++)
-                {
-                    dfColors[i] = parseFloat(df[i][colorCol])
-                    findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
-                }
-            }
+            for(let i = 0; i < df.length; i++)
+                dfColors[i] = new THREE.Color(0)
         }
 
-        //now apply the filters and create a THREE color from the information stored in dfColors
-        for(let i = 0;i < df.length; i++)
-        {
-            let color = dfColors[i]
-            //set color boundaries so that the colors are heatmap like
-            let upperColorBoundary = 0 //equals red //what the highest value will get
-            let lowerColorBoundary = 0.7 //equals blue //what the lowest value will get
 
-            //manipulate the color
-            if(!filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
-            {
-                //if no filtering is allowed, just go ahead and store that color
-                dfColors[i] = new THREE.Color(color)
-            }
-            else
-            {
-                //assume the hue is stored in dfColors
-                color = parseFloat(color)
-                color = (color-clrMin)/(clrMax-clrMin) //normalize
-                if(labeled)
-                {
-                    //labeled data (each class gets a different color)
-                    //prevent two labels being both red (0 and 1 as hue)
-                    color = color*(1-1/numberOfLabels)
-                    color = (color-0.06)%1 //shift the hue for more interesting colors
-                }
-                else
-                {
-                    //heatmap
-                    //make sure all the colors are within the defined range
-                    color = color * (1 - lowerColorBoundary - (1-upperColorBoundary)) + lowerColorBoundary
-                }
-                
-                //store that color
-                dfColors[i] = new THREE.Color(0).setHSL(color,0.95,0.55)
-            }
-        }
 
 
         //-------------------------//

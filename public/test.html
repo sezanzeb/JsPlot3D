@@ -13,7 +13,7 @@
         reader.onload = function(e)
         {
             let data = atob(e.target.result.split("base64,")[1])
-            plot.plotCsvString(data,0,1,2,";",true) //when trying this out, take care of setting the right separator!
+            plot.plotCsvString(data,0,1,2,{separator: ";"}) //when trying this out, take care of setting the right separator!
         }
     })
 </script>
