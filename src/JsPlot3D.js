@@ -266,6 +266,10 @@ export class Plot
             if(options.defaultcolor != undefined)
                 defaultcolor = options.defaultcolor
         }
+        else
+        {
+            options = {}
+        }
 
 
 

@@ -5,8 +5,8 @@ module.exports = {
   entry: path.resolve(__dirname, 'src/JsPlot3D.js'),
 
   output: {
-    path: path.resolve(__dirname, 'public'),
-    filename: '3DPlotBundle.js',
+    path: path.resolve(__dirname, 'compiled'),
+    filename: 'JsPlot3D.js',
     library: 'JSPLOT3D'
   },
 
