@@ -1,4 +1,4 @@
-# 3D-Plot-Js
+# JsPlot3D
 
 Plots functions and .csv files. Scatterplot is also supported. It will plot using three.js. Processing happens client side.
 
