@@ -53,8 +53,6 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/barchart.png"/>
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot.png"/>
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/polygon.png"/>
-</p>
-<p align="center">
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/barchart2.png"/>
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot2.png"/>
 </p>
