@@ -10,7 +10,7 @@ document.getElementById("formulaForm").addEventListener("submit",function(e)
 {
     e.preventDefault()
     var formula = document.getElementById("formulaText").value
-    plot.plotFormula(formula, "barchart")
+    plot.plotFormula(formula, "scatterplot")
 })
 
 //write down that the file in the cache is not up to date anymore
