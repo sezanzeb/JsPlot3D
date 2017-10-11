@@ -84,13 +84,17 @@ var _MathParser = __webpack_require__(1);
 
 var _MathParser2 = _interopRequireDefault(_MathParser);
 
+var _ColorManager = __webpack_require__(2);
+
+var _ColorManager2 = _interopRequireDefault(_ColorManager);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /** @module JsPlot3D */
-var THREE = __webpack_require__(2);
-var OrbitControls = __webpack_require__(3)(THREE);
+var THREE = __webpack_require__(3);
+var OrbitControls = __webpack_require__(4)(THREE);
 
 /**
  * Plots Dataframes and Formulas into a 3D Space
@@ -122,6 +126,7 @@ var Plot = exports.Plot = function () {
         this.MathParser = new _MathParser2.default();
         this.resetCalculation(); //configures the variables
         this.dataPointImage = "datapoint.png";
+        this.ColorManager = new _ColorManager2.default(THREE);
 
         //check if dataPointImage is available
         var img = new Image();
@@ -144,6 +149,10 @@ var Plot = exports.Plot = function () {
         this.render();
 
         //this.enableBenchmarking()
+
+        window.setInterval(function () {
+            return _this.render();
+        }, 32);
     }
 
     /**
@@ -158,8 +167,6 @@ var Plot = exports.Plot = function () {
     _createClass(Plot, [{
         key: "plotFormula",
         value: function plotFormula(originalFormula) {
-            var _this2 = this;
-
             var scatterplot = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
             if (typeof originalFormula != "string") return console.error("first param of plotFormula (originalFormula) should be string");
@@ -220,10 +227,6 @@ var Plot = exports.Plot = function () {
                     this.plotmesh.geometry.__dirtyNormals = true;
                     //make sure the updated mesh is actually rendered
                     this.plotmesh.geometry.verticesNeedUpdate = true;
-
-                    window.setTimeout(function () {
-                        return _this2.render();
-                    }, 10);
                 } else {
                 //Scatterplot
 
@@ -377,7 +380,7 @@ var Plot = exports.Plot = function () {
                     //take x1col, check first line type (string/NaN?) then second line type (number/!NaN?)
                     //if both are yes, it's probably header = true
                     if (isNaN(data[0].split(separator)[x1col]) && !isNaN(data[1].split(separator)[x1col])) {
-                        console.log("detected headers, going to remove them. To prevent this, set header=false");
+                        console.log("detected headers, first csv line is not going to be plotted therefore. To prevent this, set header=false");
                         header = true;
                     }
                 }
@@ -452,8 +455,6 @@ var Plot = exports.Plot = function () {
     }, {
         key: "plotDataFrame",
         value: function plotDataFrame(df, x1col, x2col, x3col, options) {
-            var _this3 = this;
-
             //---------------------------//
             //  parameter type checking  //    
             //---------------------------//
@@ -520,139 +521,16 @@ var Plot = exports.Plot = function () {
             //creates an array "dfColors" that holds the color information
             //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
 
-
-            var numberOfLabels = 0;
-            //let numberOfLabels = df.length
-            //the color gets divided by (1-1/numberOfLabels) so that red does not appear twice.
-            //e.g. 3 labels would be red, turqoise, red. if numberOfLabels would get initialized with 0, that formula would diverge to -inf
-            //1 would make that term zero, so that the color would diverge to inf. a high number converges that term to 1, so the color won't be touched
-
-            //take care that all the labels are numbers
-            var map = {};
-            var dfColors = new Array(df.length); //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
-            var filterColor = true; //add some filters (upper and lower color boundaries for heatmaps, normalization). Turn off if strings are in dfColors
-
-            //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
-            //no need to check if it's numbers or not, because dfColors carries only numbers
-            //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
-            var clrMax = void 0;
-            var clrMin = void 0;
-            var findHighestAndLowest = function findHighestAndLowest(value) {
-                if (filterColor && colorCol != -1) {
-                    if (value > clrMax) clrMax = value;
-                    if (value < clrMin) clrMin = value;
-                }
-            };
-
-            //now take care about if the user says it's labeled or not, if it's numbers, hex, rgb, hsl or strings
-            //store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
-
-            //parameter. Does the dataset hold classes/labels?
-            if (colorCol != -1) //does the user even want colors?
-                {
-                    if (labeled) //get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
-                        {
-                            if (df[0][colorCol].indexOf("rgb") == 0 || df[0][colorCol].indexOf("hsl") == 0 || df[0][colorCol].indexOf("#") == 0 && df[0][colorCol].length == 7) {
-                                console.warn(df[0][colorCol] + " might be a color. \"labeled\" is set true. For the stored colors to show up, try \"labeled=false\"");
-                            }
-                            clrMax = 0; //assume 0
-                            clrMin = 0; //assume 0
-                            //count to ammount of labels here
-                            var label = "";
-                            for (var _i5 = 0; _i5 < df.length; _i5++) {
-                                label = df[_i5][colorCol]; //read the label/classification
-                                if (map[label] == undefined) //is this label still unknown?
-                                    {
-                                        map[label] = numberOfLabels; //map it to a unique number
-                                        numberOfLabels++; //make sure the next label gets a different number
-                                    }
-                                //copy the labels to dfColors
-                                dfColors[_i5] = parseFloat(map[label]);
-                                findHighestAndLowest(dfColors[_i5]); //update clrMin and clrMax
-                            }
-                        } else {
-                        //if it is a string value, try to recognize #, rgb and hex
-                        if (isNaN(parseInt(df[0][colorCol]))) {
-                            filterColor = false; //don't apply normalization and heatmapfilters to it
-
-                            //try to extract color information from the string
-                            if (df[0][colorCol].toLowerCase().indexOf("rgb") == 0) {
-                                for (var _i6 = 0; _i6 < df.length; _i6++) {
-                                    //remove "rgb", brackets and split it into an array of [r,g,b]
-                                    var rgb = df[_i6][colorCol].substring(4, df[_i6][colorCol].length - 1).split(",");
-                                    dfColors[_i6] = new THREE.Color(0).setRGB(rgb[0], rgb[1], rgb[2]);
-                                }
-                            } else if (df[0][colorCol].toLowerCase().indexOf("#") == 0) {
-                                //hex strings are supported by three.js right away
-                                for (var _i7 = 0; _i7 < df.length; _i7++) {
-                                    dfColors[_i7] = df[_i7][colorCol];
-                                }
-                            } else if (df[0][colorCol].toLowerCase().indexOf("hsl") == 0) {
-                                for (var _i8 = 0; _i8 < df.length; _i8++) {
-                                    //remove "hsl", brackets and split it into an array of [r,g,b]
-                                    var hsl = df[_i8][colorCol].substring(4, df[_i8][colorCol].length - 1).split(",");
-                                    dfColors[_i8] = new THREE.Color(0).setHSL(hsl[0], hsl[1], hsl[2]);
-                                }
-                            } else {
-                                //nothing worked, print a warning and color it all the same way
-                                for (var _i9 = 0; _i9 < df.length; _i9++) {
-                                    dfColors[_i9] = new THREE.Color(0).setHSL(0.2, 0.95, 0.55);
-                                }console.warn("the column that is supposed to hold the color information (index " + colorCol + ") contained an unrecognized " + "string (\"" + df[0][colorCol] + "\"). \"labeled\" is set to " + labeled + ", \"header\" is set to " + header + " (might be false " + "because plotCsvString() already removed the headers). Possible formats for this column are numbers, hex values " + "\"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". Now assuming labeled = true and restarting.");
-
-                                //restart
-                                labeled = true;
-                                options.labeled = labeled;
-                                this.plotDataFrame(df, x1col, x2col, x3col, options);
-                                return;
-                            }
-                        } else {
-                            //it's a number. just copy it over and filter it to a heatmap
-                            clrMax = df[0][colorCol]; //assume the first value
-                            clrMin = df[0][colorCol]; //assume the first value
-                            for (var _i10 = 0; _i10 < df.length; _i10++) {
-                                dfColors[_i10] = parseFloat(df[_i10][colorCol]);
-                                findHighestAndLowest(dfColors[_i10]); //update clrMin and clrMax
-                            }
-                        }
-                    }
-
-                    //now apply the filters and create a THREE color from the information stored in dfColors
-                    for (var _i11 = 0; _i11 < df.length; _i11++) {
-                        var color = dfColors[_i11];
-                        //set color boundaries so that the colors are heatmap like
-                        var upperColorBoundary = 0; //equals red //what the highest value will get
-                        var lowerColorBoundary = 0.7; //equals blue //what the lowest value will get
-
-                        //manipulate the color
-                        if (!filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
-                            {
-                                //if no filtering is allowed, just go ahead and store that color
-                                dfColors[_i11] = new THREE.Color(color);
-                            } else {
-                            //assume the hue is stored in dfColors
-                            color = parseFloat(color);
-                            color = (color - clrMin) / (clrMax - clrMin); //normalize
-                            if (labeled) {
-                                //labeled data (each class gets a different color)
-                                //prevent two labels being both red (0 and 1 as hue)
-                                color = color * (1 - 1 / numberOfLabels);
-                                color = (color - 0.06) % 1; //shift the hue for more interesting colors
-                            } else {
-                                //heatmap
-                                //make sure all the colors are within the defined range
-                                color = color * (1 - lowerColorBoundary - (1 - upperColorBoundary)) + lowerColorBoundary;
-                            }
-
-                            //store that color
-                            dfColors[_i11] = new THREE.Color(0).setHSL(color, 0.95, 0.55);
-                        }
-                    }
-                } else {
-                //colorCol is -1
-                for (var _i12 = 0; _i12 < df.length; _i12++) {
-                    dfColors[_i12] = this.getColorObjectFromAnyString(defaultColor);
-                }
+            var dfColors = this.ColorManager.getColorMap(df, colorCol, defaultColor, labeled, header);
+            if (dfColors == -1) {
+                //ColorManager tells us to restart
+                labeled = true;
+                options.labeled = labeled;
+                this.plotDataFrame(df, x1col, x2col, x3col, options);
+                return;
             }
+
+            //by this point only dfColors stays relevant. So the function above can be easily moved to a different class to clear up the code here
 
             //-------------------------//
             //       normalizing       //    
@@ -670,14 +548,14 @@ var Plot = exports.Plot = function () {
             if (normalize) {
                 //not only normalize y, but also x and z. That means all datapoints values need to get into that xLen * zLen * yLen cube
                 //determine max for y-normalisation
-                for (var _i13 = 0; _i13 < df.length; _i13++) {
+                for (var _i5 = 0; _i5 < df.length; _i5++) {
                     //max in terms of "how far away is the farthest away point"
                     //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                    if (Math.abs(df[_i13][x1col]) > x1maxDf) x1maxDf = Math.abs(df[_i13][x1col]);
+                    if (Math.abs(df[_i5][x1col]) > x1maxDf) x1maxDf = Math.abs(df[_i5][x1col]);
 
-                    if (Math.abs(df[_i13][x2col]) > x2maxDf) x2maxDf = Math.abs(df[_i13][x2col]);
+                    if (Math.abs(df[_i5][x2col]) > x2maxDf) x2maxDf = Math.abs(df[_i5][x2col]);
 
-                    if (Math.abs(df[_i13][x3col]) > x3maxDf) x3maxDf = Math.abs(df[_i13][x3col]);
+                    if (Math.abs(df[_i5][x3col]) > x3maxDf) x3maxDf = Math.abs(df[_i5][x3col]);
                 }
             }
 
@@ -688,7 +566,6 @@ var Plot = exports.Plot = function () {
                 //       scatterplot       //    
                 //-------------------------//
 
-
                 //plot it using circle sprites
                 var geometry = new THREE.Geometry();
                 var sprite = new THREE.TextureLoader().load(this.dataPointImage);
@@ -696,13 +573,13 @@ var Plot = exports.Plot = function () {
                 sprite.magFilter = THREE.LinearFilter;
                 sprite.minFilter = THREE.LinearFilter;
 
-                for (var _i14 = 0; _i14 < df.length; _i14++) {
+                for (var _i6 = 0; _i6 < df.length; _i6++) {
                     var vertex = new THREE.Vector3();
-                    vertex.x = df[_i14][x1col] / x1maxDf;
-                    vertex.y = df[_i14][x2col] / x2maxDf;
-                    vertex.z = df[_i14][x3col] / x3maxDf;
+                    vertex.x = df[_i6][x1col] / x1maxDf;
+                    vertex.y = df[_i6][x2col] / x2maxDf;
+                    vertex.z = df[_i6][x3col] / x3maxDf;
                     geometry.vertices.push(vertex);
-                    geometry.colors.push(dfColors[_i14]);
+                    geometry.colors.push(dfColors[_i6]);
                 }
 
                 //https://github.com/mrdoob/three.js/issues/1625
@@ -779,39 +656,7 @@ var Plot = exports.Plot = function () {
                 this.plotmesh.geometry.__dirtyNormals = true;
                 //make sure the updated mesh is actually rendered
                 this.plotmesh.geometry.verticesNeedUpdate = true;
-
-                window.setTimeout(function () {
-                    return _this3.render();
-                }, 10);
-                console.log("not yet implemented");
             }
-
-            //TODO is there s smarter way to do it?
-            window.setTimeout(function () {
-                return _this3.render();
-            }, 10);
-        }
-    }, {
-        key: "getColorObjectFromAnyString",
-        value: function getColorObjectFromAnyString(color) {
-            if (typeof color == "number") return new THREE.Color(color); //number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
-            //numbers are supported by three.js by default
-
-            if (typeof color != "string") return console.error("getColorObjectFromAnyString expected String or Number as parameter but got " + (typeof color === "undefined" ? "undefined" : _typeof(color)));
-
-            if (color.toLowerCase().indexOf("rgb") == 0) {
-                //remove "rgb", brackets and split it into an array of [r,g,b]
-                var rgb = color.substring(4, color.length - 1).split(",");
-                return new THREE.Color(0).setRGB(rgb[0], rgb[1], rgb[2]);
-            } else if (color.toLowerCase().indexOf("#") == 0) {
-                //hex strings are supported by three.js right away
-                return new THREE.Color(color);
-            } else if (color.toLowerCase().indexOf("hsl") == 0) {
-                //remove "hsl", brackets and split it into an array of [r,g,b]
-                var hsl = color.substring(4, color.length - 1).split(",");
-                return new THREE.Color(0).setHSL(hsl[0], hsl[1], hsl[2]);
-            }
-            return undefined;
         }
 
         /**
@@ -822,8 +667,8 @@ var Plot = exports.Plot = function () {
     }, {
         key: "setBackgroundColor",
         value: function setBackgroundColor(color) {
-            var colorObject = this.getColorObjectFromAnyString(color);
-            if (colorObject != undefined) this.renderer.setClearColor(this.getColorObjectFromAnyString(color));else this.renderer.setClearColor(color);
+            var colorObject = this.ColorManager.getColorObjectFromAnyString(color);
+            if (colorObject != undefined) this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(color));else this.renderer.setClearColor(color);
             this.render();
         }
 
@@ -938,8 +783,8 @@ var Plot = exports.Plot = function () {
         key: "resetCalculation",
         value: function resetCalculation() {
             this.calculatedPoints = new Array(this.xVerticesCount);
-            for (var _i15 = 0; _i15 < this.calculatedPoints.length; _i15++) {
-                this.calculatedPoints[_i15] = new Array(this.zVerticesCount);
+            for (var _i7 = 0; _i7 < this.calculatedPoints.length; _i7++) {
+                this.calculatedPoints[_i7] = new Array(this.zVerticesCount);
             }this.parsedFormula = "";
             this.stopRecursion = false;
         }
@@ -1004,15 +849,15 @@ var Plot = exports.Plot = function () {
     }, {
         key: "createArcCamera",
         value: function createArcCamera() {
-            var _this4 = this;
+            var _this2 = this;
 
             var width = this.container.offsetWidth;
             var height = this.container.offsetHeight;
 
             var viewAngle = 80;
             var aspect = width / height;
-            var near = 0.1; //when objects start to disappear at zoom-in
-            var far = 10; //when objects start to disappear at zoom-out
+            var near = 0.05; //when objects start to disappear at zoom-in
+            var far = 20; //when objects start to disappear at zoom-out
             var camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far);
             //let zoom = 1000
             //let camera = new THREE.OrthographicCamera(width/-zoom, width/zoom, height/-zoom, height/zoom, near, far)
@@ -1022,12 +867,14 @@ var Plot = exports.Plot = function () {
             controls.enableKeys = true;
             controls.target.set(0.5, 0.5, 0.5);
             controls.addEventListener("change", function () {
-                return _this4.render();
+                return _this2.render();
             });
             controls.enableDamping = true;
             controls.dampingFactor = 0.25;
             controls.enableZoom = true;
             controls.rotateSpeed = 0.3;
+            controls.maxDistance = 5;
+            controls.minDistance = 0.3;
 
             //start looking at the target initially
             camera.lookAt(controls.target);
@@ -1061,11 +908,9 @@ var Plot = exports.Plot = function () {
     }, {
         key: "createAxes",
         value: function createAxes() {
-            var _this5 = this;
-
             var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "#000000";
 
-            var colorObject = this.getColorObjectFromAnyString(color);
+            var colorObject = this.ColorManager.getColorObjectFromAnyString(color);
             if (colorObject != undefined) color = colorObject;
 
             var geom = new THREE.Geometry();
@@ -1096,6 +941,8 @@ var Plot = exports.Plot = function () {
             this.axes = axes;
 
             //a box that adds a few dashed lines to the sides for more orientation (unfinished)
+            //needs to be aligned to xLen, yLen and zLen. Maybe the three planes x1*x2, x2*x3 and x1*x3 should get such dashed lines
+            //not sure yet
             /*let boxgeom = new THREE.BoxGeometry(1,1,1)
             boxgeom.translate(0.5,0.5,0.5)
             let boxmat = new THREE.MeshBasicMaterial({
@@ -1106,11 +953,6 @@ var Plot = exports.Plot = function () {
             })
             let box = new THREE.Mesh(boxgeom,boxmat)
             this.scene.add(box)*/
-
-            //TODO is there s smarter way to do it? Without Timeout it won't render
-            window.setTimeout(function () {
-                return _this5.render();
-            }, 10);
         }
 
         /**
@@ -1127,7 +969,7 @@ var Plot = exports.Plot = function () {
             if (x1 < 0 || x2 < 0 || x1 > this.xLen || x2 > this.zLen) return 0;
 
             //checking for a point if it has been calculated already increases the performance and
-            //reduces the number of recursions. It will reduce the precision though
+            //reduces the number of recursions.
 
             var val = this.calculatedPoints[parseInt(x1 * this.xRes)][parseInt(x2 * this.zRes)];
 
@@ -1361,6 +1203,232 @@ exports.default = MathParser;
 
 /***/ }),
 /* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var ColorManager = function () {
+    function ColorManager(THREE) {
+        _classCallCheck(this, ColorManager);
+
+        this.THREE = THREE;
+    }
+
+    /**
+     * returns dfColors. An array, indexes are the same as the vertices of the
+     * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
+     * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
+     * 
+     * @param {any[][]} df 
+     * @param {number} colorCol
+     */
+
+
+    _createClass(ColorManager, [{
+        key: "getColorMap",
+        value: function getColorMap(df, colorCol, defaultColor, labeled, header) {
+            var numberOfLabels = 0;
+            //let numberOfLabels = df.length
+            //the color gets divided by (1-1/numberOfLabels) so that red does not appear twice.
+            //e.g. 3 labels would be red, turqoise, red. if numberOfLabels would get initialized with 0, that formula would diverge to -inf
+            //1 would make that term zero, so that the color would diverge to inf. a high number converges that term to 1, so the color won't be touched
+
+            //take care that all the labels are numbers
+            var map = {};
+            var dfColors = new Array(df.length); //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
+            var filterColor = true; //add some filters (upper and lower color boundaries for heatmaps, normalization). Turn off if strings are in dfColors
+
+            //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
+            //no need to check if it's numbers or not, because dfColors carries only numbers
+            //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
+            var clrMax = void 0;
+            var clrMin = void 0;
+            var findHighestAndLowest = function findHighestAndLowest(value) {
+                if (filterColor && colorCol != -1) {
+                    if (value > clrMax) clrMax = value;
+                    if (value < clrMin) clrMin = value;
+                }
+            };
+
+            //now take care about if the user says it's labeled or not, if it's numbers, hex, rgb, hsl or strings
+            //store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
+
+            //parameter. Does the dataset hold classes/labels?
+            if (colorCol != -1) //does the user even want colors?
+                {
+                    if (labeled) //get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
+                        {
+
+                            //------------------------//
+                            //     string labeled     //
+                            //------------------------//
+                            //e.g. "group1" "group2" "tall" "small" "0" "1" "flower" "tree"
+
+                            if (df[0][colorCol].indexOf("rgb") == 0 || df[0][colorCol].indexOf("hsl") == 0 || df[0][colorCol].indexOf("#") == 0 && df[0][colorCol].length == 7) {
+                                console.warn(df[0][colorCol] + " might be a color. \"labeled\" is set true. For the stored colors to show up, try \"labeled=false\"");
+                            }
+                            clrMax = 0; //assume 0
+                            clrMin = 0; //assume 0
+                            //count to ammount of labels here
+                            var label = "";
+                            for (var i = 0; i < df.length; i++) {
+                                label = df[i][colorCol]; //read the label/classification
+                                if (map[label] == undefined) //is this label still unknown?
+                                    {
+                                        map[label] = numberOfLabels; //map it to a unique number
+                                        numberOfLabels++; //make sure the next label gets a different number
+                                    }
+                                //copy the labels to dfColors as numbers
+                                dfColors[i] = parseFloat(map[label]);
+                                findHighestAndLowest(dfColors[i]); //update clrMin and clrMax
+                            }
+                        } else {
+
+                        //------------------------//
+                        //       color code       //
+                        //------------------------//
+                        //#, rgb and hex
+
+                        //if it is a string value
+                        if (isNaN(parseInt(df[0][colorCol]))) {
+                            filterColor = false; //don't apply normalization and heatmapfilters to it
+
+                            //try to extract color information from the string
+                            if (df[0][colorCol].toLowerCase().indexOf("rgb") == 0) {
+                                for (var _i = 0; _i < df.length; _i++) {
+                                    //remove "rgb", brackets and split it into an array of [r,g,b]
+                                    var rgb = df[_i][colorCol].substring(4, df[_i][colorCol].length - 1).split(",");
+                                    dfColors[_i] = new this.THREE.Color(0).setRGB(rgb[0], rgb[1], rgb[2]);
+                                }
+                            } else if (df[0][colorCol].toLowerCase().indexOf("#") == 0) {
+                                //hex strings are supported by three.js right away
+                                for (var _i2 = 0; _i2 < df.length; _i2++) {
+                                    dfColors[_i2] = df[_i2][colorCol];
+                                }
+                            } else if (df[0][colorCol].toLowerCase().indexOf("hsl") == 0) {
+                                for (var _i3 = 0; _i3 < df.length; _i3++) {
+                                    //remove "hsl", brackets and split it into an array of [r,g,b]
+                                    var hsl = df[_i3][colorCol].substring(4, df[_i3][colorCol].length - 1).split(",");
+                                    dfColors[_i3] = new this.THREE.Color(0).setHSL(hsl[0], hsl[1], hsl[2]);
+                                }
+                            } else {
+                                //nothing worked, print a warning
+
+                                console.warn("the column that is supposed to hold the color information (index " + colorCol + ") contained an unrecognized " + "string (\"" + df[0][colorCol] + "\"). \"labeled\" is set to " + labeled + ", \"header\" is set to " + header + " (might be false " + "because plotCsvString() already removed the headers). Possible formats for this column are numbers, hex values " + "\"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". Now assuming labeled = true and restarting.");
+
+                                //restart. Tell the Plot class to restart
+                                return -1;
+                            }
+
+                            //dfColors now contains THREE.Color objects
+                            return dfColors;
+                        } else {
+                            //------------------------//
+                            //         number         //
+                            //------------------------//
+                            //examples: 0x3a96cd (3839693) 0xffffff (16777215) 0x000000 (0)
+
+                            //it's a number. just copy it over and filter it to a heatmap
+                            clrMax = df[0][colorCol]; //assume the first value
+                            clrMin = df[0][colorCol]; //assume the first value
+                            for (var _i4 = 0; _i4 < df.length; _i4++) {
+                                dfColors[_i4] = parseFloat(df[_i4][colorCol]);
+                                findHighestAndLowest(dfColors[_i4]); //update clrMin and clrMax
+                            }
+                        }
+                    }
+
+                    //now apply the filters and create a THREE color from the information stored in dfColors
+                    for (var _i5 = 0; _i5 < df.length; _i5++) {
+                        var color = dfColors[_i5];
+                        //set color boundaries so that the colors are heatmap like
+                        var upperColorBoundary = 0; //equals red //what the highest value will get
+                        var lowerColorBoundary = 0.7; //equals blue //what the lowest value will get
+
+                        //manipulate the color
+                        if (filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
+                            {
+
+                                //------------------------//
+                                //     heatmap filter     //
+                                //------------------------//
+
+
+                                //assume the hue is stored in dfColors
+                                color = parseFloat(color);
+                                color = (color - clrMin) / (clrMax - clrMin); //normalize
+                                if (labeled) {
+                                    //labeled data (each class gets a different color)
+                                    //prevent two labels being both red (0 and 1 as hue)
+                                    color = color * (1 - 1 / numberOfLabels);
+                                    color = (color - 0.06) % 1; //shift the hue for more interesting colors
+                                } else {
+                                    //heatmap
+                                    //make sure all the colors are within the defined range
+                                    color = color * (1 - lowerColorBoundary - (1 - upperColorBoundary)) + lowerColorBoundary;
+                                }
+
+                                //store that color
+                                dfColors[_i5] = new this.THREE.Color(0).setHSL(color, 0.95, 0.55);
+                            }
+                    }
+                } else {
+                //colorCol is -1
+                for (var _i6 = 0; _i6 < df.length; _i6++) {
+                    dfColors[_i6] = this.getColorObjectFromAnyString(defaultColor);
+                }
+            }
+
+            return dfColors;
+        }
+
+        /**
+         * converts the param color to a this.THREE.Color object
+         * @param {any} color examples: "rgb(0,0.5,1)" "hsl(0.3,0.4,0.7)" 0xff6600 "#72825a" 
+         */
+
+    }, {
+        key: "getColorObjectFromAnyString",
+        value: function getColorObjectFromAnyString(color) {
+            if (typeof color == "number") return new this.THREE.Color(color); //number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
+            //numbers are supported by three.js by default
+
+            if (typeof color != "string") return console.error("getColorObjectFromAnyString expected String or Number as parameter but got " + (typeof color === "undefined" ? "undefined" : _typeof(color)));
+
+            if (color.toLowerCase().indexOf("rgb") == 0) {
+                //remove "rgb", brackets and split it into an array of [r,g,b]
+                var rgb = color.substring(4, color.length - 1).split(",");
+                return new this.THREE.Color(0).setRGB(rgb[0], rgb[1], rgb[2]);
+            } else if (color.toLowerCase().indexOf("#") == 0) {
+                //hex strings are supported by three.js right away
+                return new this.THREE.Color(color);
+            } else if (color.toLowerCase().indexOf("hsl") == 0) {
+                //remove "hsl", brackets and split it into an array of [r,g,b]
+                var hsl = color.substring(4, color.length - 1).split(",");
+                return new this.THREE.Color(0).setHSL(hsl[0], hsl[1], hsl[2]);
+            }
+            return undefined;
+        }
+    }]);
+
+    return ColorManager;
+}();
+
+exports.default = ColorManager;
+
+/***/ }),
+/* 3 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -45598,7 +45666,7 @@ function CanvasRenderer() {
 
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports) {
 
 module.exports = function( THREE ) {

@@ -45,9 +45,9 @@ Example for f(x1,x2):
 
 It has to be in JavaScript syntax, but some common functions are also supported in regular mathematical syntax. the ^ XOR Operator does not work anymore this way though
 
-Take "example.csv" in the root directory of this repository or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions. In the last input field that says "sep" type in the .csv separator. e.g. ; or ,
+Take "example.csv" in the root directory of this repository or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions
 
-**it should look similar to this:***
+**it should look similar to this:**
 
 <p align="center">
   <img width="47%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot.png"/>
@@ -57,20 +57,24 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 
 ## Todo
 
-- display box around the plot that has inverse culling, so that the viewer can look inside it. Display a grid texture on it's faces.
-- redraw function that can be called after changing the color or dimension settings. For this the dataframe and the settings need to be cached. That means don't overwrite values in the cached dataframe (like the stringlabel -> numberlabel loop does). Make a copy of the cached dataframe and then plot. Or maybe don't overwrite the dataframe but rather create an additional labelarray that carries the label info.
-- csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire and use a wireframe material. For this, remove the scatterplot=true parameter, but rather store the mode inside the Plot object. Upon calling one of the Plot.Plot... functions read that mode variable and act accordingly. there would be setters and getters for the mode variable in that case (setModeScatterplot(), setModeMeshplot() and setModeWireplot()). Default would be scatterplot
-- csvplot: interpolate the datapoints for 3D Plane based plots
-- csvplot: for missing datapoints in the plane, remove the vertex
-- heatmapcolor it according to functino height
-- make it easy to use as a framework and make a doku for it
-- csvplot: display the colums that the csv contains in index.html to make selecting the column indices easier
-- create setters and maybe move some of the constructor parameters to those (e.g. colors)
-- add axis title and numbers
-- on submit csvform plot the scatterplot in examples/index.html
-- how is the performance for very large dataframes? base64 decoding the uplaoded file takes ages and I can't change that. what about the plotting itself?
+**needed for a first release:**
 
-**maybe:**
+- add axis title and numbers
+- heatmapcolor it according to function height
+- make csvs plot as mesh and for missing datapoints in the mesh, remove the vertex
+- how is the performance for very large dataframes? base64 decoding the uplaoded file takes ages and I can't change that. what about the plotting and data processing?
+- csvplot: interpolate the datapoints for 3D Plane based plots
+- write tests
+- make a nice live example
+- make it easy to use as a framework and make a doku for it with some examples
+- make a bundle without three.js, so that users don't link three.js twice if they already have it
+
+**what else is there:**
+- csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire and use a wireframe material. For this, remove the scatterplot=true parameter, but rather store the mode inside the Plot object. Upon calling one of the Plot.Plot... functions read that mode variable and act accordingly. there would be setters and getters for the mode variable in that case (setModeScatterplot(), setModeMeshplot() and setModeWireplot()). Default would be scatterplot
+- csvplot: add a 3D barchart mode
+- support writing the colum header name as x1col x2col x3col and colorCol
+- on submit csvform plot the scatterplot in examples/index.html
+- display box around the plot that has inverse culling, so that the viewer can look inside it. Display a grid texture on it's faces.
 - for recursive formulas, use scatterplot and plot a datapoint everytime f(x1,x2) gets called. Datapoints, that have been calculated already at some point, are already cached (helps to stop recursion overflows and increases performance)
 - for recursive formulas, offer some start value setter
 
