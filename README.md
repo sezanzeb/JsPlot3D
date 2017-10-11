@@ -33,11 +33,11 @@ see examples/test/a.html
 ## Screenshots
 
 <p align="center">
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/barchart.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/polygon.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/barchart2.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot2.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/barchart.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/scatterplot.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/polygon.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/barchart2.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/scatterplot2.png"/>
 </p>
 
 
