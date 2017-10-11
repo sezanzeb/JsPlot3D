@@ -120,7 +120,7 @@ var Plot = exports.Plot = function () {
         if (options == undefined) options = {};
         if (options.backgroundColor != undefined) backgroundColor = options.backgroundColor;
         if (options.axesColor != undefined) axesColor = options.axesColor;
-        if ((typeof container === "undefined" ? "undefined" : _typeof(container)) != "object") return console.error("first param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")");
+        if ((typeof container === "undefined" ? "undefined" : _typeof(container)) != "object") return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")");
 
         //some plotdata specific variables. I want setters and getter for all those at some point
         this.MathParser = new _MathParser2.default();
@@ -159,101 +159,136 @@ var Plot = exports.Plot = function () {
      * plots a formula into the container
      * 
      * @param {string}  originalFormula string of formula
-     * @param {boolean} scatterplot     - true if this function should plot values as datapoints into the 3D space
-     *                                  - false if it should be a connected mesh (default)
+     * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed
      */
 
 
     _createClass(Plot, [{
         key: "plotFormula",
-        value: function plotFormula(originalFormula) {
-            var scatterplot = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
+        value: function plotFormula(originalFormula, mode) {
+            if (originalFormula == undefined || originalFormula == "") return console.error("first param of plotFormula (originalFormula) is undefined or empty");
             if (typeof originalFormula != "string") return console.error("first param of plotFormula (originalFormula) should be string");
-            if (typeof scatterplot != "boolean") return console.error("first param of plotFormula (scatterplot) should be boolean");
 
             this.resetCalculation();
             this.parsedFormula = this.MathParser.parse(originalFormula);
 
-            if (!scatterplot) //3D-Plane
+            if (mode == "scatterplot") //3D-Plane
                 {
-                    //might need to recreate the geometry and the matieral
-                    //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
-                    if (this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry") {
-                        if (this.plotmesh != undefined) this.scene.remove(this.plotmesh);
 
-                        //create plane, divided into segments
-                        var planegeometry = new THREE.PlaneGeometry(this.xLen, this.zLen, this.xRes, this.zRes);
-                        //move it
-                        planegeometry.rotateX(Math.PI / 2);
-                        planegeometry.translate(this.xLen / 2, 0, this.zLen / 2);
+                    ////////  SCATTERPLOT    ////////
 
-                        //color the plane
-                        var plotmat = new THREE.MeshStandardMaterial({
-                            color: 0xff3b00,
-                            emissive: 0x2f7b8c,
-                            roughness: 0.8,
-                            //wireframe: true,
-                            side: THREE.DoubleSide
-                        });
+                    //if scatterplot, create a dataframe and send it to plotDataFrame
+                    var df = new Array(this.xVerticesCount * this.zVerticesCount);
 
-                        /*let plotmat = new THREE.MeshBasicMaterial({
-                            vertexColors: THREE.VertexColors,
-                            side: THREE.DoubleSide
-                        })*/
-
-                        this.plotmesh = new THREE.Mesh(planegeometry, plotmat);
-                        this.scene.add(this.plotmesh);
-                    }
-                    //if not, go ahead and manipulate the vertices
-
-                    //TODO hiding faces if typeof y is not number:
-                    //https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
-
-                    //modifying vertex positions:
-                    //https://github.com/mrdoob/three.js/issues/972
+                    //the three values that are going to be stored in the dataframe
                     var y = 0;
-                    var vIndex = 0;
-                    for (var z = this.zVerticesCount - 1; z >= 0; z--) {
-                        for (var x = 0; x < this.xVerticesCount; x++) {
-                            y = this.f(x / this.xRes, z / this.xRes);
-                            this.plotmesh.geometry.vertices[vIndex].y = y;
-                            this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff);
-                            vIndex++;
+                    var x = 0;
+                    var z = 0;
+
+                    //line number in the new dataframe
+                    var i = 0;
+
+                    for (var _x = 0; _x < this.xVerticesCount; _x++) {
+                        for (var _z = 0; _z < this.zVerticesCount; _z++) {
+                            y = this.f(_x / this.xRes, _z / this.zRes); //calculate y. y = f(x1,x2)
+                            df[i] = [_x, y, _z]; //store the datapoint
+                            i++;
                         }
-                    } //normals need to be recomputed so that the lighting works after the transformation
-                    this.plotmesh.geometry.computeFaceNormals();
-                    this.plotmesh.geometry.computeVertexNormals();
-                    this.plotmesh.geometry.__dirtyNormals = true;
-                    //make sure the updated mesh is actually rendered
-                    this.plotmesh.geometry.verticesNeedUpdate = true;
-                } else {
-                //Scatterplot
+                    }
+                    var options = {
+                        mode: mode,
+                        colorCol: 1 //y
+
+
+                        //continue plotting this DataFrame
+                    };plot.plotDataFrame(df, 0, 1, 2, options);
+                } else if (mode == "barchart") {
+
+                ////////  BARCHART ////////
+
 
                 //if scatterplot, create a dataframe and send it to plotDataFrame
-                var df = new Array(this.xVerticesCount * this.zVerticesCount);
+                var _df = new Array(this.xVerticesCount * this.zVerticesCount);
 
                 //the three values that are going to be stored in the dataframe
                 var _y = 0;
                 var _x2 = 0;
-                var _z = 0;
+                var _z2 = 0;
 
                 //line number in the new dataframe
                 var _i = 0;
 
                 for (var _x3 = 0; _x3 < this.xVerticesCount; _x3++) {
-                    for (var _z2 = 0; _z2 < this.zVerticesCount; _z2++) {
-                        _y = this.f(_x3 / this.xRes, _z2 / this.zRes); //calculate y. y = f(x1,x2)
-                        df[_i] = [_x3 / this.xRes, _y, _z2 / this.zRes]; //store the datapoint
+                    for (var _z3 = 0; _z3 < this.zVerticesCount; _z3++) {
+                        _y = this.f(_x3 / this.xRes, _z3 / this.zRes); //calculate y. y = f(x1,x2)
+                        _df[_i] = [_x3, _y, _z3]; //store the datapoint
                         _i++;
                     }
                 }
-                var options = {
-                    scatterplot: true,
-                    colorCol: 1
+                var _options = {
+                    mode: mode,
+                    colorCol: 1 //y
+
 
                     //continue plotting this DataFrame
-                };plot.plotDataFrame(df, 0, 1, 2, options);
+                };plot.plotDataFrame(_df, 0, 1, 2, _options);
+            } else {
+
+                if (mode != "polygon" && mode != undefined) console.warn("mode \"" + mode + "\" unrecognized. Assuming \"polygon\"");
+
+                ////////  POLYGON ////////
+
+
+                //might need to recreate the geometry and the matieral
+                //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
+                if (this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry") {
+                    if (this.plotmesh != undefined) this.scene.remove(this.plotmesh);
+
+                    //create plane, divided into segments
+                    var planegeometry = new THREE.PlaneGeometry(this.xLen, this.zLen, this.xRes, this.zRes);
+                    //move it
+                    planegeometry.rotateX(Math.PI / 2);
+                    planegeometry.translate(this.xLen / 2, 0, this.zLen / 2);
+
+                    //color the plane
+                    var plotmat = new THREE.MeshStandardMaterial({
+                        color: 0xff3b00,
+                        emissive: 0x2f7b8c,
+                        roughness: 0.8,
+                        //wireframe: true,
+                        side: THREE.DoubleSide
+                    });
+
+                    /*let plotmat = new THREE.MeshBasicMaterial({
+                        vertexColors: THREE.VertexColors,
+                        side: THREE.DoubleSide
+                    })*/
+
+                    this.plotmesh = new THREE.Mesh(planegeometry, plotmat);
+                    this.scene.add(this.plotmesh);
+                }
+                //if not, go ahead and manipulate the vertices
+
+                //TODO hiding faces if typeof y is not number:
+                //https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
+
+                //modifying vertex positions:
+                //https://github.com/mrdoob/three.js/issues/972
+                var _y2 = 0;
+                var vIndex = 0;
+                for (var _z4 = this.zVerticesCount - 1; _z4 >= 0; _z4--) {
+                    for (var _x4 = 0; _x4 < this.xVerticesCount; _x4++) {
+                        _y2 = this.f(_x4 / this.xRes, _z4 / this.xRes);
+                        this.plotmesh.geometry.vertices[vIndex].y = _y2;
+                        this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff);
+                        vIndex++;
+                    }
+                } //normals need to be recomputed so that the lighting works after the transformation
+                this.plotmesh.geometry.computeFaceNormals();
+                this.plotmesh.geometry.computeVertexNormals();
+                this.plotmesh.geometry.__dirtyNormals = true;
+                //make sure the updated mesh is actually rendered
+                this.plotmesh.geometry.verticesNeedUpdate = true;
             }
         }
 
@@ -265,6 +300,7 @@ var Plot = exports.Plot = function () {
          * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
          * @param {number}  x3col       column index used for plotting the x3 axis (y)
          * @param {object}  options     json object with one or more of the following parameters:
+         * - mode {string}: "barchart" or "scatterplot"
          * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
          * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
          * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information. 
@@ -272,7 +308,6 @@ var Plot = exports.Plot = function () {
          *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
          *                      Integers that are used as class for labeled data would result in various different hues in the same way.
          *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
-         * - scatterplot {boolean}: (not yet working) true if the datapoints should be dots inside the 3D space (Default). false if it should be a connected mesh
          * - normalize {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then
          * - title {string}: title of the data
          * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
@@ -287,16 +322,15 @@ var Plot = exports.Plot = function () {
             //---------------------------//
             //  parameter type checking  //    
             //---------------------------//
+
+            //a more complete checking will be done in plotDataFrame once the dataframe is generated.
+            //only check what is needed in plotCsvString
+
             //default config
             var separator = ",";
             var header = false;
-            var colorCol = -1;
-            var scatterplot = true;
-            var normalize = true;
             var title = "";
             var fraction = 1;
-            var labeled = false;
-            var defaultColor = 0; //black
 
             //some helper functions
             var errorParamType = function errorParamType(varname, variable, expectedType) {
@@ -318,26 +352,17 @@ var Plot = exports.Plot = function () {
                 //seems like the user sent some parameters. check them
 
                 //treat empty strings as if it was undefined in those cases:
-                if (options.colorCol == "") options.colorCol = undefined;
                 if (options.separator == "") options.separator = undefined;
 
                 //check numbers. Overwrite if it's good. If not, default value will remain
                 if (checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction);
-                if (checkNumber("colorCol", options.colorCol)) colorCol = parseInt(options.colorCol);
-                if (checkNumber("x1col", x1col)) x1col = parseFloat(x1col);
-                if (checkNumber("x2col", x2col)) x2col = parseFloat(x2col);
-                if (checkNumber("x3col", x3col)) x3col = parseFloat(x3col);
 
                 //check booleans. Overwrite if it's good. If not, default value will remain
-                if (checkBoolean("labeled", options.labeled)) labeled = options.labeled;
-                if (checkBoolean("normalize", options.normalize)) normalize = options.normalize;
                 if (checkBoolean("header", options.header)) header = options.header;
-                if (checkBoolean("scatterplot", options.scatterplot)) scatterplot = options.scatterplot;
 
                 //check everything else
                 if (options.separator != undefined) separator = options.separator;
                 if (options.title != undefined) title = options.title;
-                if (options.defaultColor != undefined) defaultColor = options.defaultColor;
             } else {
                 options = {};
             }
@@ -352,8 +377,8 @@ var Plot = exports.Plot = function () {
             //create a very quick checksum sort of string
             var stepsize = parseInt(sCsv.length / 20);
             var samples = "";
-            for (var _i2 = 0; _i2 < sCsv.length; _i2 += stepsize) {
-                samples = samples + sCsv[_i2];
+            for (var i = 0; i < sCsv.length; i += stepsize) {
+                samples = samples + sCsv[i];
             } //take everything into account that changes how the dataframe looks after the processing
             var checkstring = title + sCsv.length + samples + fraction + header + separator;
 
@@ -391,20 +416,20 @@ var Plot = exports.Plot = function () {
                     for (var j = 0; j < headerRow.length; j++) {
                         headerRow[j].trim();
                     } //start at line index 1 to skip the header
-                    for (var _i3 = 1; _i3 < data.length; _i3++) {
-                        data[_i3 - 1] = data[_i3].split(separator); //overwrite the header (-1)
+                    for (var _i2 = 1; _i2 < data.length; _i2++) {
+                        data[_i2 - 1] = data[_i2].split(separator); //overwrite the header (-1)
                         //remove leading and ending whitespaces in data
-                        for (var _j = 0; _j < data[_i3].length; _j++) {
-                            data[_i3][_j].trim();
+                        for (var _j = 0; _j < data[_i2].length; _j++) {
+                            data[_i2][_j].trim();
                         }
                     }
                     data.pop(); //because there will be one undefined value in the array
                 } else {
-                    for (var _i4 = 0; _i4 < data.length; _i4++) {
-                        data[_i4] = data[_i4].split(separator);
+                    for (var _i3 = 0; _i3 < data.length; _i3++) {
+                        data[_i3] = data[_i3].split(separator);
                         //remove leading and ending whitespaces in data
-                        for (var _j2 = 0; _j2 < data[_i4].length; _j2++) {
-                            data[_i4][_j2].trim();
+                        for (var _j2 = 0; _j2 < data[_i3].length; _j2++) {
+                            data[_i3][_j2].trim();
                         }
                     }
                 }
@@ -437,13 +462,13 @@ var Plot = exports.Plot = function () {
          * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
          * @param {number}  x3col       column index used for plotting the x3 axis (y)
          * @param {object}  options     json object with one or more of the following parameters:
+         * - mode {string}: "barchart" or "scatterplot"
          * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
          * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information. 
          *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
          *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
          *                      Integers that are used as class for labeled data would result in various different hues in the same way.
          *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
-         * - scatterplot {boolean}: (not yet working) true if the datapoints should be dots inside the 3D space (Default). false if it should be a connected mesh
          * - normalize {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then
          * - title {string}: title of the data
          * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
@@ -454,19 +479,35 @@ var Plot = exports.Plot = function () {
 
     }, {
         key: "plotDataFrame",
-        value: function plotDataFrame(df, x1col, x2col, x3col, options) {
+        value: function plotDataFrame(df) {
+            var x1col = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+            var x2col = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+            var x3col = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 2;
+            var options = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
+
+
             //---------------------------//
-            //  parameter type checking  //    
+            //  parameter type checking  //
             //---------------------------//
             //default config
             var header = false;
             var colorCol = -1;
-            var scatterplot = true;
+            var mode = "scatterplot";
             var normalize = true;
             var title = "";
             var fraction = 1;
             var labeled = false;
             var defaultColor = 0; //black
+            var barchartPadding = 0.5 / this.xRes;
+
+            if (x1col == undefined || x1col == "") x1col = 0;
+            if (x2col == undefined || x2col == "") x2col = 1;
+            if (x3col == undefined || x3col == "") x3col = 2;
+
+            //check integrity of column indices
+            if (x1col >= df[0].length) return console.error("column with index " + x1col + " is not existant in the dataframe");
+            if (x2col >= df[0].length) return console.error("column with index " + x2col + " is not existant in the dataframe");
+            if (x3col >= df[0].length) return console.error("column with index " + x3col + " is not existant in the dataframe");
 
             //some helper functions
             var errorParamType = function errorParamType(varname, variable, expectedType) {
@@ -491,8 +532,13 @@ var Plot = exports.Plot = function () {
                 if (options.colorCol == "") options.colorCol = undefined;
 
                 //check numbers. Overwrite if it's good. If not, default value will remain
+                if (options.colorCol != undefined && options.colorCol >= df[0].length) {
+                    console.error("column with index " + options.colorCol + ", used as colorCol, is not existant in the dataframe");
+                    options.colorCol = -1;
+                }
                 if (checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction);
                 if (checkNumber("colorCol", options.colorCol)) colorCol = parseInt(options.colorCol);
+                if (checkNumber("barchartPadding", options.barchartPadding)) barchartPadding = parseInt(options.barchartPadding);
                 if (checkNumber("x1col", x1col)) x1col = parseFloat(x1col);
                 if (checkNumber("x2col", x2col)) x2col = parseFloat(x2col);
                 if (checkNumber("x3col", x3col)) x3col = parseFloat(x3col);
@@ -501,11 +547,11 @@ var Plot = exports.Plot = function () {
                 if (checkBoolean("labeled", options.labeled)) labeled = options.labeled;
                 if (checkBoolean("normalize", options.normalize)) normalize = options.normalize;
                 if (checkBoolean("header", options.header)) header = options.header;
-                if (checkBoolean("scatterplot", options.scatterplot)) scatterplot = options.scatterplot;
 
                 //check everything else
                 if (options.title != undefined) title = options.title;
                 if (options.defaultColor != undefined) defaultColor = options.defaultColor;
+                if (options.mode != undefined) mode = options.mode;
             }
 
             //remove the old mesh
@@ -548,22 +594,22 @@ var Plot = exports.Plot = function () {
             if (normalize) {
                 //not only normalize y, but also x and z. That means all datapoints values need to get into that xLen * zLen * yLen cube
                 //determine max for y-normalisation
-                for (var _i5 = 0; _i5 < df.length; _i5++) {
+                for (var i = 0; i < df.length; i++) {
                     //max in terms of "how far away is the farthest away point"
                     //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                    if (Math.abs(df[_i5][x1col]) > x1maxDf) x1maxDf = Math.abs(df[_i5][x1col]);
+                    if (Math.abs(df[i][x1col]) > x1maxDf) x1maxDf = Math.abs(df[i][x1col]);
 
-                    if (Math.abs(df[_i5][x2col]) > x2maxDf) x2maxDf = Math.abs(df[_i5][x2col]);
+                    if (Math.abs(df[i][x2col]) > x2maxDf) x2maxDf = Math.abs(df[i][x2col]);
 
-                    if (Math.abs(df[_i5][x3col]) > x3maxDf) x3maxDf = Math.abs(df[_i5][x3col]);
+                    if (Math.abs(df[i][x3col]) > x3maxDf) x3maxDf = Math.abs(df[i][x3col]);
                 }
             }
 
             this.benchmarkStamp("normalized the data");
 
-            if (scatterplot) {
+            if (mode == "barchart") {
                 //-------------------------//
-                //       scatterplot       //    
+                //        Bar Chart        //    
                 //-------------------------//
 
                 //plot it using circle sprites
@@ -573,13 +619,130 @@ var Plot = exports.Plot = function () {
                 sprite.magFilter = THREE.LinearFilter;
                 sprite.minFilter = THREE.LinearFilter;
 
-                for (var _i6 = 0; _i6 < df.length; _i6++) {
+                var cubegroup = new THREE.Group();
+
+                //dimensions of the bars
+                var barXWidth = 1 / this.xRes;
+                var barZWidth = 1 / this.zRes;
+                if (barchartPadding > barXWidth || barchartPadding > barZWidth) console.warn("barchartPadding might be too large. Try a maximum value of " + Math.min(barXWidth, barZWidth));
+
+                //bars shouldn't overlap but rather fit to the grid. For this a few steps have to be undertaken:
+
+
+                //now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
+                var barHeights = new Array(this.xVerticesCount);
+                for (var x = 0; x < barHeights.length; x++) {
+                    barHeights[x] = new Array(this.zVerticesCount);
+                }x2maxDf = 0; //reset max height, as it will be overwritten
+                var x2minDf = 0; //to calculate the heatmap, this is needed aswell
+
+                //fill the barHeights array with the added heights of the bars
+                for (var _i4 = 0; _i4 < df.length; _i4++) {
+                    //get coordinates that can fit into an array tis.x
+                    var _x9 = parseInt(df[_i4][x1col] / x1maxDf * this.xRes);
+                    var z = parseInt(df[_i4][x3col] / x3maxDf * this.zRes);
+
+                    var y = parseFloat(df[_i4][x2col]); //don't normalize yet
+
+                    if (barHeights[_x9] != undefined) //does the datapoint fit into the frame? TODO this should also plot when the datapoint is somewhere else or something
+                        {
+                            if (barHeights[_x9][z] != undefined) {
+                                barHeights[_x9][z] += y;
+                            } else {
+                                barHeights[_x9][z] = y;
+                            }
+                            //get the new maximum and minimum
+                            if (barHeights[_x9][z] > x2maxDf) x2maxDf = barHeights[_x9][z];
+                            if (barHeights[_x9][z] < x2minDf) x2minDf = barHeights[_x9][z];
+                        }
+                }
+
+                var normalizationValue = Math.max(x2maxDf, Math.abs(x2minDf));
+                if (normalizationValue == 0) return console.error("your dataframe does not contain any information. The maximum amplitude in your barchart is 0 therefore");
+
+                //now iterate over the barHeights array and plot the bars according to their stored height
+                for (var _x10 = 0; _x10 < barHeights.length; _x10++) {
+                    for (var _z5 = 0; _z5 < barHeights[_x10].length; _z5++) {
+                        //retreive the bar height and nomralize it
+                        var _y3 = barHeights[_x10][_z5] / normalizationValue; //now normalize
+
+                        if (!isNaN(_y3) && _y3 != undefined) {
+                            //create the bar
+                            var shape = new THREE.CubeGeometry(1 / this.xRes - barchartPadding, Math.abs(_y3), 1 / this.zRes - barchartPadding);
+                            shape.translate(_x10 / this.xRes, _y3 / 2, _z5 / this.zRes); //move it to the right position
+
+                            //get a heatmap like color scheme
+                            var color = this.ColorManager.convertToHeat(_y3, x2minDf / normalizationValue, x2maxDf / normalizationValue);
+
+                            var plotmat = new THREE.MeshStandardMaterial({
+                                color: color,
+                                emissive: color,
+                                roughness: 1
+                            });
+
+                            cubegroup.add(new THREE.Mesh(shape, plotmat));
+                        }
+                    }
+                }this.plotmesh = cubegroup;
+                this.scene.add(cubegroup);
+                this.benchmarkStamp("made a bar chart");
+            } else if (mode == "polygon") {
+
+                //-------------------------//
+                //       3D-Mesh Plot      //    
+                //-------------------------//
+
+                //I unfortinatelly think this can't work
+
+                //(as long as the datapoint coordinates are not grid like.)
+                //if they are, the code would have to detect the resolution and then an easy algorithm can be run over the
+                //datapoints to connect triangles with the nearest vertices and leave those out that are not existant
+
+                //I could try to align the datapoints to a grid and maybe even interpolating it, but when there are only few datapoints
+                //in some parts of the "landscape", there won't be a polygon created, because there would still be spaces in the grid
+
+                //the only way i can think of would be a "density based clustering like with a dynamic radius" kind of approach that checks for intersections
+                //because edges should not cross each other. It would be ridiculously complex and I really don't have the time for that during my studies
+
+                //one could also:
+                //1. align the scattered datapoints to a grid (interpolated, that means add the datapoints y-value to nearby grid positions mulitplied with the distance)
+                //2. connect triangles when datapoints are directly next to each other (go clockwise around the grid positions that are one step away)
+                //3. datapoints that are still don't connected to anything receive a circle sprite OR connect themself to the 2 nearest vertices
+
+
+            } else if (mode == "linechart") {
+
+                //-------------------------//
+                //        lineplot         //    
+                //-------------------------//
+
+                //iterate over dataframe datapoints, connect the latest point with the new one
+                //  +---+---+---+--> +   +   +
+                //it goes zig zag through the 3D Space
+
+
+            } else {
+                if (mode != "scatterplot" && mode != undefined) console.warn("mode \"" + mode + "\" unrecognized. Assuming \"scatterplot\"");
+                //Default
+
+                //-------------------------//
+                //       scatterplot       //    
+                //-------------------------//
+
+                //plot it using circle sprites
+                var _geometry = new THREE.Geometry();
+                var _sprite = new THREE.TextureLoader().load(this.dataPointImage);
+                //https://github.com/mrdoob/three.js/issues/1625
+                _sprite.magFilter = THREE.LinearFilter;
+                _sprite.minFilter = THREE.LinearFilter;
+
+                for (var _i5 = 0; _i5 < df.length; _i5++) {
                     var vertex = new THREE.Vector3();
-                    vertex.x = df[_i6][x1col] / x1maxDf;
-                    vertex.y = df[_i6][x2col] / x2maxDf;
-                    vertex.z = df[_i6][x3col] / x3maxDf;
-                    geometry.vertices.push(vertex);
-                    geometry.colors.push(dfColors[_i6]);
+                    vertex.x = df[_i5][x1col] / x1maxDf;
+                    vertex.y = df[_i5][x2col] / x2maxDf;
+                    vertex.z = df[_i5][x3col] / x3maxDf;
+                    _geometry.vertices.push(vertex);
+                    _geometry.colors.push(dfColors[_i5]);
                 }
 
                 //https://github.com/mrdoob/three.js/issues/1625
@@ -590,72 +753,16 @@ var Plot = exports.Plot = function () {
                 //sizeAttenuation: false, sprites don't change size in distance and size is in px
                 var material = new THREE.PointsMaterial({
                     size: 0.02,
-                    map: sprite,
+                    map: _sprite,
                     alphaTest: 0.7,
                     transparent: true,
                     vertexColors: true
                 });
                 //material.color.set(0x2faca3)
-                var particles = new THREE.Points(geometry, material);
+                var particles = new THREE.Points(_geometry, material);
                 this.plotmesh = particles;
                 this.scene.add(particles);
                 this.benchmarkStamp("made a scatterplot");
-            } else {
-                //-------------------------//
-                //       3D-Mesh Plot      //    
-                //-------------------------//
-
-
-                //might need to recreate the geometry and the matieral
-                //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
-                if (this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry") {
-                    if (this.plotmesh != undefined) this.scene.remove(this.plotmesh);
-
-                    //create plane, divided into segments
-                    var planegeometry = new THREE.PlaneGeometry(this.xLen, this.zLen, this.xRes, this.zRes);
-                    //move it
-                    planegeometry.rotateX(Math.PI / 2);
-                    planegeometry.translate(this.xLen / 2, 0, this.zLen / 2);
-
-                    //color the plane
-                    var plotmat = new THREE.MeshStandardMaterial({
-                        color: 0xff3b00,
-                        emissive: 0x2f7b8c,
-                        roughness: 0.8,
-                        //wireframe: true,
-                        side: THREE.DoubleSide
-                    });
-
-                    /*let plotmat = new THREE.MeshBasicMaterial({
-                        vertexColors: THREE.VertexColors,
-                        side: THREE.DoubleSide
-                    })*/
-
-                    this.plotmesh = new THREE.Mesh(planegeometry, plotmat);
-                    this.scene.add(this.plotmesh);
-                }
-                //if not, go ahead and manipulate the vertices
-
-                //TODO hiding faces if typeof y is not number:
-                //https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
-
-                //modifying vertex positions:
-                //https://github.com/mrdoob/three.js/issues/972
-                var y = 0;
-                var vIndex = 0;
-                for (var z = this.zVerticesCount - 1; z >= 0; z--) {
-                    for (var x = 0; x < this.xVerticesCount; x++) {
-                        y = df[i][x2col] / x2maxDf;
-                        this.plotmesh.geometry.vertices[vIndex].y = y;
-                        this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff);
-                        vIndex++;
-                    }
-                } //normals need to be recomputed so that the lighting works after the transformation
-                this.plotmesh.geometry.computeFaceNormals();
-                this.plotmesh.geometry.computeVertexNormals();
-                this.plotmesh.geometry.__dirtyNormals = true;
-                //make sure the updated mesh is actually rendered
-                this.plotmesh.geometry.verticesNeedUpdate = true;
             }
         }
 
@@ -783,8 +890,8 @@ var Plot = exports.Plot = function () {
         key: "resetCalculation",
         value: function resetCalculation() {
             this.calculatedPoints = new Array(this.xVerticesCount);
-            for (var _i7 = 0; _i7 < this.calculatedPoints.length; _i7++) {
-                this.calculatedPoints[_i7] = new Array(this.zVerticesCount);
+            for (var i = 0; i < this.calculatedPoints.length; i++) {
+                this.calculatedPoints[i] = new Array(this.zVerticesCount);
             }this.parsedFormula = "";
             this.stopRecursion = false;
         }
@@ -1219,6 +1326,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var ColorManager = function () {
+    /**
+     * handles a few color related tasks
+     * @param {object} THREE three.js framework object. TODO make a better description on how to get this object 
+     */
     function ColorManager(THREE) {
         _classCallCheck(this, ColorManager);
 
@@ -1226,16 +1337,45 @@ var ColorManager = function () {
     }
 
     /**
-     * returns dfColors. An array, indexes are the same as the vertices of the
-     * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
-     * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
-     * 
-     * @param {any[][]} df 
-     * @param {number} colorCol
+     * converts a number to a heat color
+     * @param {number} value the value that should be converted to a heat color
+     * @param {number} min maximum value present in your dataframe. Default -1
+     * @param {number} max minimum value present in your dataframe. Default 1
+     * @return THREE.Color object
      */
 
 
     _createClass(ColorManager, [{
+        key: "convertToHeat",
+        value: function convertToHeat(value) {
+            var min = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : -1;
+            var max = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+
+            //set color boundaries so that the colors are heatmap like
+            var upperColorBoundary = 0; //equals red //what the highest value will get
+            var lowerColorBoundary = 0.7; //equals blue with a faint purple tone //what the lowest value will get
+
+            value = parseFloat(value);
+            value = (value - min) / (max - min); //normalize
+
+            //heatmap
+            //make sure all the colors are within the defined range
+            value = value * (1 - lowerColorBoundary - (1 - upperColorBoundary)) + lowerColorBoundary;
+
+            //return that color
+            return new this.THREE.Color(0).setHSL(value, 0.95, 0.55);
+        }
+
+        /**
+         * returns dfColors. An array, indexes are the same as the vertices of the
+         * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
+         * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
+         * 
+         * @param {any[][]} df 
+         * @param {number} colorCol
+         */
+
+    }, {
         key: "getColorMap",
         value: function getColorMap(df, colorCol, defaultColor, labeled, header) {
             var numberOfLabels = 0;
@@ -1254,6 +1394,7 @@ var ColorManager = function () {
             //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
             var clrMax = void 0;
             var clrMin = void 0;
+            //the following function just updates clrMax and clrMin, only available within the function that wraps this (getColorMap(...))
             var findHighestAndLowest = function findHighestAndLowest(value) {
                 if (filterColor && colorCol != -1) {
                     if (value > clrMax) clrMax = value;

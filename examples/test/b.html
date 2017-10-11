@@ -1,5 +1,5 @@
 <div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
-<p>a shape moves like a flag on a blue background. The axes are yellow</p>
+<p>a shape (a polygon) moves like a flag on a blue background. The axes are yellow</p>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
     var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"), {
@@ -7,7 +7,6 @@
         axesColor: 0xffff00
     })
     plot.setDimensions({xRes: 10, zRes: 10})
-    plot.plotFormula("sin(2*x1)*sin(2*x2)")
     var i = 0;
     window.setInterval(function() {
         plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)")

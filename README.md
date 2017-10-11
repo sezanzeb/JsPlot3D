@@ -50,8 +50,9 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 **it should look similar to this:**
 
 <p align="center">
-  <img width="47%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot.png"/>
-  <img width="47%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/planeplot.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/barchart.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/scatterplot.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/polygon.png"/>
 </p>
 
 
@@ -61,13 +62,13 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 
 - add axis title and numbers
 - heatmapcolor it according to function height
-- make csvs plot as mesh and for missing datapoints in the mesh, remove the vertex
 - how is the performance for very large dataframes? base64 decoding the uplaoded file takes ages and I can't change that. what about the plotting and data processing?
-- csvplot: interpolate the datapoints for 3D Plane based plots
 - write tests
 - make a nice live example
 - make it easy to use as a framework and make a doku for it with some examples
 - make a bundle without three.js, so that users don't link three.js twice if they already have it
+- make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
+- try to change xLen, yLen and zLen and fix errors
 
 **what else is there:**
 - csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire and use a wireframe material. For this, remove the scatterplot=true parameter, but rather store the mode inside the Plot object. Upon calling one of the Plot.Plot... functions read that mode variable and act accordingly. there would be setters and getters for the mode variable in that case (setModeScatterplot(), setModeMeshplot() and setModeWireplot()). Default would be scatterplot
@@ -77,6 +78,7 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 - display box around the plot that has inverse culling, so that the viewer can look inside it. Display a grid texture on it's faces.
 - for recursive formulas, use scatterplot and plot a datapoint everytime f(x1,x2) gets called. Datapoints, that have been calculated already at some point, are already cached (helps to stop recursion overflows and increases performance)
 - for recursive formulas, offer some start value setter
+- maybe there is some way of creating a polygon from unevenly distributed datapoints
 
 
 ## Creating a doc from the javadoc

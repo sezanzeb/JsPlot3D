@@ -1,10 +1,38 @@
 export default class ColorManager
 {
+    /**
+     * handles a few color related tasks
+     * @param {object} THREE three.js framework object. TODO make a better description on how to get this object 
+     */
     constructor(THREE)
     {
         this.THREE = THREE
     }
 
+
+    /**
+     * converts a number to a heat color
+     * @param {number} value the value that should be converted to a heat color
+     * @param {number} min maximum value present in your dataframe. Default -1
+     * @param {number} max minimum value present in your dataframe. Default 1
+     * @return THREE.Color object
+     */
+    convertToHeat(value,min=-1,max=1)
+    {
+        //set color boundaries so that the colors are heatmap like
+        let upperColorBoundary = 0 //equals red //what the highest value will get
+        let lowerColorBoundary = 0.7 //equals blue with a faint purple tone //what the lowest value will get
+
+        value = parseFloat(value)
+        value = (value-min)/(max-min) //normalize
+
+        //heatmap
+        //make sure all the colors are within the defined range
+        value = value * (1 - lowerColorBoundary - (1-upperColorBoundary)) + lowerColorBoundary
+        
+        //return that color
+        return new this.THREE.Color(0).setHSL(value,0.95,0.55)
+    }
 
     
     /**
@@ -33,6 +61,7 @@ export default class ColorManager
         //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
         let clrMax
         let clrMin
+        //the following function just updates clrMax and clrMin, only available within the function that wraps this (getColorMap(...))
         let findHighestAndLowest = (value) =>
         {
             if(filterColor && colorCol != -1)

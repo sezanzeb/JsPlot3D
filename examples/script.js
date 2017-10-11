@@ -10,7 +10,7 @@ document.getElementById("formulaForm").addEventListener("submit",function(e)
 {
     e.preventDefault()
     var formula = document.getElementById("formulaText").value
-    plot.plotFormula(formula)
+    plot.plotFormula(formula, "barchart")
 })
 
 //write down that the file in the cache is not up to date anymore
@@ -59,8 +59,8 @@ function plotcsv()
     let clr = document.getElementById("clr").value
     plot.plotCsvString(decodedData,x1,x2,x3,{
         colorCol: clr,
-        scatterplot: true,
         normalize: true,
+        mode: "barchart",
         title: "",
         fraction: 1,
         labeled: false
