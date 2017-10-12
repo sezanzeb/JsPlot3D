@@ -181,8 +181,6 @@ export default class MathParser
         //Math.Math. could be there a few times at this point. clear that
         formula = formula.replace(/(Math\.)+/g,"Math.")
         formula = formula.replace(/(this\.)+/g,"this.") //in case there are two this.
-        
-        console.log("final parsed formula: "+formula)
 
         return formula
     }

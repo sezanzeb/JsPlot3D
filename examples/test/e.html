@@ -1,0 +1,175 @@
+<h1>Labeled and Colored Data</h1>
+
+<div class="container" id="JsPlot3DContainer1"></div>
+<p>3 Classes should be visible in 3 different colors, 
+<font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font>.</p>
+
+<div class="container" id="JsPlot3DContainer2"></div>
+<div class="container" id="JsPlot3DContainer3"></div><br/>
+<div class="container" id="JsPlot3DContainer4"></div>
+<div class="container" id="JsPlot3DContainer5"></div>
+<p>They should be colored from black to white</font>, 
+<font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and look the same.</p>
+
+
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+
+<div class="hidden" id="csv1">
+        x;cos;tanh;sqrt;color
+        1;0.9999500004166653;0.00999966667999949;0.1;tree
+        2;0.9998000066665778;0.019997333759930885;0.1414213562373095;tree
+        3;0.9995500337489875;0.029991003238820143;0.17320508075688773;tree
+        4;0.9992001066609779;0.03997868031116358;0.2;flower
+        5;0.9987502603949663;0.04995837495788006;0.22360679774997896;flower
+        6;0.9982005399352042;0.0599281035291435;0.2449489742783178;flower
+        7;0.9975510002532796;0.06988589031642899;0.2645751311064591;painting
+        8;0.9968017063026194;0.07982976911113135;0.282842712474619;painting
+        9;0.9959527330119943;0.08975778474716013;0.3;painting
+</div>
+<div class="hidden" id="csv2">
+        x;cos;tanh;sqrt;color
+        1;0.9999500004166653;0.00999966667999949;0.1;#191919
+        2;0.9998000066665778;0.019997333759930885;0.1414213562373095;#333333
+        3;0.9995500337489875;0.029991003238820143;0.17320508075688773;#4c4c4c
+        4;0.9992001066609779;0.03997868031116358;0.2;#666666
+        5;0.9987502603949663;0.04995837495788006;0.22360679774997896;#7f7f7f
+        6;0.9982005399352042;0.0599281035291435;0.2449489742783178;#999999
+        7;0.9975510002532796;0.06988589031642899;0.2645751311064591;#b2b2b2
+        8;0.9968017063026194;0.07982976911113135;0.282842712474619;#cccccc
+        9;0.9959527330119943;0.08975778474716013;0.3;#e5e5e5
+</div>
+<div class="hidden" id="csv3">
+        x;cos;tanh;sqrt;color
+        1;0.9999500004166653;0.00999966667999949;0.1;HSL(0,0,0.1)
+        2;0.9998000066665778;0.019997333759930885;0.1414213562373095;HSL(0,0,0.2)
+        3;0.9995500337489875;0.029991003238820143;0.17320508075688773;HSL(0,0,0.3)
+        4;0.9992001066609779;0.03997868031116358;0.2;HSL(0,0,0.4)
+        5;0.9987502603949663;0.04995837495788006;0.22360679774997896;HSL(0,0,0.5)
+        6;0.9982005399352042;0.0599281035291435;0.2449489742783178;HSL(0,0,0.6)
+        7;0.9975510002532796;0.06988589031642899;0.2645751311064591;HSL(0,0,0.7)
+        8;0.9968017063026194;0.07982976911113135;0.282842712474619;HSL(0,0,0.8)
+        9;0.9959527330119943;0.08975778474716013;0.3;HSL(0,0,0.9)
+</div>
+<div class="hidden" id="csv4">
+        x;cos;tanh;sqrt;color
+        1;0.9999500004166653;0.00999966667999949;0.1;RGB(0.1,0.1,0.1)
+        2;0.9998000066665778;0.019997333759930885;0.1414213562373095;RGB(0.2,0.2,0.2)
+        3;0.9995500337489875;0.029991003238820143;0.17320508075688773;RGB(0.3,0.3,0.3)
+        4;0.9992001066609779;0.03997868031116358;0.2;RGB(0.4,0.4,0.4)
+        5;0.9987502603949663;0.04995837495788006;0.22360679774997896;RGB(0.5,0.5,0.5)
+        6;0.9982005399352042;0.0599281035291435;0.2449489742783178;RGB(0.6,0.6,0.6)
+        7;0.9975510002532796;0.06988589031642899;0.2645751311064591;RGB(0.7,0.7,0.7)
+        8;0.9968017063026194;0.07982976911113135;0.282842712474619;RGB(0.8,0.8,0.8)
+        9;0.9959527330119943;0.08975778474716013;0.3;RGB(0.9,0.9,0.9)
+</div>
+<div class="hidden" id="csv5">
+        x;cos;tanh;sqrt;color
+        1;0.9999500004166653;0.00999966667999949;0.1;1644825
+        2;0.9998000066665778;0.019997333759930885;0.1414213562373095;3355443
+        3;0.9995500337489875;0.029991003238820143;0.17320508075688773;5000268
+        4;0.9992001066609779;0.03997868031116358;0.2;6710886
+        5;0.9987502603949663;0.04995837495788006;0.22360679774997896;8355711
+        6;0.9982005399352042;0.0599281035291435;0.2449489742783178;10066329
+        7;0.9975510002532796;0.06988589031642899;0.2645751311064591;11711154
+        8;0.9968017063026194;0.07982976911113135;0.282842712474619;13421772
+        9;0.9959527330119943;0.08975778474716013;0.3;15066597
+</div>
+
+
+<script>
+    let data1 = document.getElementById("csv1").innerHTML
+    let data2 = document.getElementById("csv2").innerHTML
+    let data3 = document.getElementById("csv3").innerHTML
+    let data4 = document.getElementById("csv4").innerHTML
+    let data5 = document.getElementById("csv5").innerHTML
+
+    window.onload = function() {
+
+        console.log()
+        console.log("plot1")
+        
+        var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"))
+        plot1.setBackgroundColor("rgb(0.15,0.35,0.7)")
+        plot1.setAxesColor("hsl(0.1667,1,0.5)")
+        plot1.plotCsvString(data1,0,1,2,{
+            header: true,
+            dataPointSize:0.08,
+            labeled: true,
+            colorCol: 4
+        })
+
+        console.log()
+        console.log("plot2")
+
+        var plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+            axesColor: "hsl(0.1667,1,0.5)"
+        })
+        plot2.plotCsvString(data2,0,1,2,{
+            header: true,
+            dataPointSize:0.08,
+            colorCol: 4
+        })
+
+        console.log()
+        console.log("plot3")
+
+        var plot3 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer3"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+        })
+        plot3.setAxesColor("hsl(0.1667,1,0.5)")
+        plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
+        plot3.plotCsvString(data3,0,1,2,{
+            header: true,
+            dataPointSize:0.08,
+            colorCol: 4
+        })
+
+        console.log()
+        console.log("plot4")
+
+        var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"))
+        plot4.setBackgroundColor("rgb(0.15,0.35,0.7)")
+        plot4.setAxesColor("hsl(0.1667,1,0.5)")
+        plot4.plotCsvString(data4,0,1,2,{
+            header: true,
+            dataPointSize:0.08,
+            colorCol: 4
+        })
+
+        console.log()
+        console.log("plot5")
+
+        var plot5 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer5"))
+        plot5.setBackgroundColor("rgb(0.15,0.35,0.7)")
+        plot5.setAxesColor("hsl(0.1667,1,0.5)")
+        plot5.plotCsvString(data5,0,1,2,{
+            header: true,
+            dataPointSize:0.08,
+            colorCol: 4,
+            filterColor: false
+        })
+    }
+    
+</script>
+<style>
+
+    body
+    {
+        margin: 20px;
+        font-family: sans-serif;
+    }
+
+    .container
+    {
+        width:300px;
+        height:300px;
+        display:inline-block;
+        background:grey;
+    }
+
+    .hidden
+    {
+        display:none;
+    }
+</style>

@@ -39,11 +39,11 @@ export default class ColorManager
      * returns dfColors. An array, indexes are the same as the vertices of the
      * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
      * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
-     * 
-     * @param {any[][]} df 
-     * @param {number} colorCol
+     * The parameters have the same names as in JsPlot3D.js. Just forward them to this function
+     * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
+     * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains this.THREE.Color objects
      */
-    getColorMap(df,colorCol,defaultColor,labeled,header)
+    getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true)
     {
         let numberOfLabels = 0
         //let numberOfLabels = df.length
@@ -54,7 +54,6 @@ export default class ColorManager
         //take care that all the labels are numbers
         let map = {}
         let dfColors = new Array(df.length) //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
-        let filterColor = true //add some filters (upper and lower color boundaries for heatmaps, normalization). Turn off if strings are in dfColors
 
         //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
         //no need to check if it's numbers or not, because dfColors carries only numbers
@@ -137,7 +136,7 @@ export default class ColorManager
                     {
                         //hex strings are supported by three.js right away
                         for(let i = 0; i < df.length; i++)
-                            dfColors[i] = df[i][colorCol]
+                            dfColors[i] =  new this.THREE.Color(df[i][colorCol])
                     }
                     else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0) 
                     {
@@ -177,27 +176,29 @@ export default class ColorManager
                     for(let i = 0; i < df.length; i++)
                     {
                         dfColors[i] = parseFloat(df[i][colorCol])
-                        findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
+                        if(!filterColor)
+                            dfColors[i] = new this.THREE.Color(parseInt(df[i][colorCol]))
+                        else
+                            findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
                     }
                 }
             }
 
-            //now apply the filters and create a THREE color from the information stored in dfColors
-            for(let i = 0;i < df.length; i++)
-            {
-                let color = dfColors[i]
-                //set color boundaries so that the colors are heatmap like
-                let upperColorBoundary = 0 //equals red //what the highest value will get
-                let lowerColorBoundary = 0.7 //equals blue //what the lowest value will get
 
-                //manipulate the color
-                if(filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
+            //manipulate the color
+            if(filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
+            {
+                //now apply the filters and create a THREE color from the information stored in dfColors
+                for(let i = 0;i < df.length; i++)
                 {
-                    
+                    let color = dfColors[i]
+                    //set color boundaries so that the colors are heatmap like
+                    let upperColorBoundary = 0 //equals red //what the highest value will get
+                    let lowerColorBoundary = 0.7 //equals blue //what the lowest value will get
+                        
                     //------------------------//
                     //     heatmap filter     //
                     //------------------------//
-
 
                     //assume the hue is stored in dfColors
                     color = parseFloat(color)

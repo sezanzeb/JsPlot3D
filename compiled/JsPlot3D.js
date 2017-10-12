@@ -307,20 +307,29 @@ var Plot = exports.Plot = function () {
          * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
          * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
          * @param {object}  options     json object with one or more of the following parameters:
-         * - mode {string}: "barchart" or "scatterplot"
          * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
          * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
+         * - mode {string}: "barchart" or "scatterplot"
          * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information. 
          *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
          *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
          *                      Integers that are used as class for labeled data would result in various different hues in the same way.
          *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
-         * - normalize {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then
+         * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
+         * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
+         * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
          * - title {string}: title of the data
          * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
          * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
          *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
          * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
+         * - maxX1 {number}: the maximum x1 value in the dataframe. The maximum value in the column that is used as x1. Default 1
+         * - maxX2 {number}: the maximum x2 value in the dataframe. The maximum value in the column that is used as x2. Default 1 (y)
+         * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
+         * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
+         * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
+         * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated 
+         *                      as if it was a color. (converted to hexadecimal then). Default false
          */
 
     }, {
@@ -401,17 +410,18 @@ var Plot = exports.Plot = function () {
                 if (data[0] == "") //to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
                     //This probably happens when the csv data starts one line below the opening bracket of the Element
                     data = data.slice(-(data.length - 1));
+                if (data[data.length - 1] == "") data.pop();
 
                 //find out the separator automatically if the user didn't define it
                 if (options.separator == undefined || data[0].indexOf(separator) == -1) {
-                    if (options.separator != undefined) console.error("the specified separator/delimiter was not found. Now trying to detect it. Please set separator=\"...\" according to your file format: \"" + data[0] + "\"");
-
                     //in case of undefined or -1, assume ;, then try ,
                     separator = ";";
 
                     if (data[0].indexOf(separator) == -1) separator = ",";
 
                     if (data[0].indexOf(separator) == -1) return console.error("no csv separator/delimiter was detected. Please set separator=\"...\" according to your file format: \"" + data[0] + "\"");
+
+                    console.warn("the specified separator/delimiter was not found. Tried to detect it and came up with \"" + separator + "\". Please set separator=\"...\" according to your file format: \"" + data[0] + "\"");
                 }
 
                 if (options["header"] == undefined) {
@@ -458,6 +468,7 @@ var Plot = exports.Plot = function () {
                 //plot the dataframe.
                 options.header = false; //header is already removed
                 options.fraction = 1; //Fraction is now 1, because the fraction has already been taken into account
+
                 this.plotDataFrame(data, x1col, x2col, x3col, options);
             } else {
                 console.log("using cached dataframe");
@@ -496,6 +507,8 @@ var Plot = exports.Plot = function () {
          * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
          * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
          * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
+         * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated 
+         *                      as if it was a color. (converted to hexadecimal then). Default false
          */
 
     }, {
@@ -522,6 +535,7 @@ var Plot = exports.Plot = function () {
             var defaultColor = 0; //black
             var barchartPadding = 0.5 / this.xRes;
             var dataPointSize = 0.02;
+            var filterColor = true;
             //max in terms of "how far away is the farthest away point"
             var maxX1 = 1;
             var maxX2 = 1;
@@ -582,6 +596,7 @@ var Plot = exports.Plot = function () {
                 if (checkBoolean("normalizeX3", options.normalizeX3)) normalizeX3 = options.normalizeX3;
                 if (checkBoolean("header", options.header)) header = options.header;
                 if (checkBoolean("dfIsA2DMap", options.dfIsA2DMap)) dfIsA2DMap = options.dfIsA2DMap;
+                if (checkBoolean("filterColor", options.filterColor)) filterColor = options.filterColor;
 
                 //check everything else
                 if (options.title != undefined) title = options.title;
@@ -618,7 +633,7 @@ var Plot = exports.Plot = function () {
             //creates an array "dfColors" that holds the color information
             //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
 
-            var dfColors = this.ColorManager.getColorMap(df, colorCol, defaultColor, labeled, header);
+            var dfColors = this.ColorManager.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor);
             if (dfColors == -1) {
                 //ColorManager tells us to restart
                 labeled = true;
@@ -783,7 +798,7 @@ var Plot = exports.Plot = function () {
                 //       scatterplot       //    
                 //-------------------------//
 
-                //This is the default mode
+                //This is the default mode  
 
                 //plot it using circle sprites
                 var _geometry = new THREE.Geometry();
@@ -1343,8 +1358,6 @@ var MathParser = function () {
             formula = formula.replace(/(Math\.)+/g, "Math.");
             formula = formula.replace(/(this\.)+/g, "this."); //in case there are two this.
 
-            console.log("final parsed formula: " + formula);
-
             return formula;
         }
     }]);
@@ -1416,14 +1429,16 @@ var ColorManager = function () {
          * returns dfColors. An array, indexes are the same as the vertices of the
          * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
          * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
-         * 
-         * @param {any[][]} df 
-         * @param {number} colorCol
+         * The parameters have the same names as in JsPlot3D.js. Just forward them to this function
+         * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
+         * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains this.THREE.Color objects
          */
 
     }, {
         key: "getColorMap",
         value: function getColorMap(df, colorCol, defaultColor, labeled, header) {
+            var filterColor = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : true;
+
             var numberOfLabels = 0;
             //let numberOfLabels = df.length
             //the color gets divided by (1-1/numberOfLabels) so that red does not appear twice.
@@ -1433,7 +1448,6 @@ var ColorManager = function () {
             //take care that all the labels are numbers
             var map = {};
             var dfColors = new Array(df.length); //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
-            var filterColor = true; //add some filters (upper and lower color boundaries for heatmaps, normalization). Turn off if strings are in dfColors
 
             //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
             //no need to check if it's numbers or not, because dfColors carries only numbers
@@ -1501,7 +1515,7 @@ var ColorManager = function () {
                             } else if (df[0][colorCol].toLowerCase().indexOf("#") == 0) {
                                 //hex strings are supported by three.js right away
                                 for (var _i2 = 0; _i2 < df.length; _i2++) {
-                                    dfColors[_i2] = df[_i2][colorCol];
+                                    dfColors[_i2] = new this.THREE.Color(df[_i2][colorCol]);
                                 }
                             } else if (df[0][colorCol].toLowerCase().indexOf("hsl") == 0) {
                                 for (var _i3 = 0; _i3 < df.length; _i3++) {
@@ -1531,26 +1545,24 @@ var ColorManager = function () {
                             clrMin = df[0][colorCol]; //assume the first value
                             for (var _i4 = 0; _i4 < df.length; _i4++) {
                                 dfColors[_i4] = parseFloat(df[_i4][colorCol]);
-                                findHighestAndLowest(dfColors[_i4]); //update clrMin and clrMax
+                                if (!filterColor) dfColors[_i4] = new this.THREE.Color(parseInt(df[_i4][colorCol]));else findHighestAndLowest(dfColors[_i4]); //update clrMin and clrMax
                             }
                         }
                     }
 
-                    //now apply the filters and create a THREE color from the information stored in dfColors
-                    for (var _i5 = 0; _i5 < df.length; _i5++) {
-                        var color = dfColors[_i5];
-                        //set color boundaries so that the colors are heatmap like
-                        var upperColorBoundary = 0; //equals red //what the highest value will get
-                        var lowerColorBoundary = 0.7; //equals blue //what the lowest value will get
-
-                        //manipulate the color
-                        if (filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
-                            {
+                    //manipulate the color
+                    if (filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
+                        {
+                            //now apply the filters and create a THREE color from the information stored in dfColors
+                            for (var _i5 = 0; _i5 < df.length; _i5++) {
+                                var color = dfColors[_i5];
+                                //set color boundaries so that the colors are heatmap like
+                                var upperColorBoundary = 0; //equals red //what the highest value will get
+                                var lowerColorBoundary = 0.7; //equals blue //what the lowest value will get
 
                                 //------------------------//
                                 //     heatmap filter     //
                                 //------------------------//
-
 
                                 //assume the hue is stored in dfColors
                                 color = parseFloat(color);
@@ -1569,7 +1581,7 @@ var ColorManager = function () {
                                 //store that color
                                 dfColors[_i5] = new this.THREE.Color(0).setHSL(color, 0.95, 0.55);
                             }
-                    }
+                        }
                 } else {
                 //colorCol is -1
                 for (var _i6 = 0; _i6 < df.length; _i6++) {

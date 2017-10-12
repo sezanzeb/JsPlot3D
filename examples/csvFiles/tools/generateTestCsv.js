@@ -36,4 +36,4 @@ function rand()
     return a + b + c
 }
 
-fs.writeFileSync("./example.csv",csv.join("\n"))
+fs.writeFileSync("../example.csv",csv.join("\n"))

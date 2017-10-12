@@ -21,13 +21,7 @@ first, you need to build. See above.
     
 JsPlot3D.js will then be created in compiled/ automatically
     
-**Plotting Formulas**
-
-see examples/test/b.html
-
-**Plotting .csv Files**
-
-see examples/test/a.html
+Take a look into the sourcode of the files in examples, especially in examples/test. There are 4 files a.html, b.html, c.html and d.html which contain a few examples.
 
 
 ## Screenshots
@@ -67,7 +61,6 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 - add axis title and numbers (in the same color as axesColor)
 - heatmapcolor it according to function height (for polygons)
 - how is the performance for very large dataframes? base64 decoding the uplaoded file takes ages and I can't change that. what about the plotting and data processing?
-- write tests
 - make a nice live example
 - make it easy to use as a framework and make a doku for it with some examples
 - make a bundle without three.js, so that users don't link three.js twice if they already have it
