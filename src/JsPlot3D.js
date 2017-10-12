@@ -20,27 +20,25 @@ export class Plot
      *                               - Plot(document.getElementById("foobar"))
      * @param {json}   options       at least one of backgroundClr or axesClr in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc
      */
-    constructor(container, options)
+    constructor(container, options={})
     {
 
         //parameter checking
-        let backgroundColor = "#ffffff"
-        let axesColor = "#000000"
-        if(options == undefined)
-            options = {}
-        if(options.backgroundColor != undefined)
-            backgroundColor = options.backgroundColor
-        if(options.axesColor != undefined)
-            axesColor = options.axesColor
+        let backgroundColor = 0xffffff
+        let axesColor = 0x000000
         if(typeof(container) != "object")
             return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
-        
 
         //some plotdata specific variables. I want setters and getter for all those at some point
         this.MathParser = new MathParser()
         this.resetCalculation() //configures the variables
         this.dataPointImage = "datapoint.png"
         this.ColorManager = new ColorManager(THREE)
+
+        if(options.backgroundColor != undefined)
+            backgroundColor = options.backgroundColor
+        if(options.axesColor != undefined)
+            axesColor = options.axesColor
 
         //check if dataPointImage is available
         let img = new Image()
@@ -50,7 +48,7 @@ export class Plot
 
         //three.js setup
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
-        this.renderer.setClearColor(backgroundColor)
+        this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(backgroundColor))
         this.setContainer(container)
         this.scene = new THREE.Scene()
         
@@ -74,8 +72,9 @@ export class Plot
      * 
      * @param {string}  originalFormula string of formula
      * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed
+     * @param {number}  dataPointSize Default 0.02. In case mode is "scatterplot" it changes the size of the datapoints
      */
-    plotFormula(originalFormula, mode)
+    plotFormula(originalFormula, mode, dataPointSize=0.02)
     {       
         if(originalFormula == undefined || originalFormula == "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
@@ -112,11 +111,13 @@ export class Plot
             }
             let options = {
                 mode: mode,
-                colorCol: 1 //y
+                colorCol: 1, //y
+                normalizeX2: false,
+                dataPointSize: dataPointSize
             }
 
             //continue plotting this DataFrame
-            plot.plotDataFrame(df, 0, 1, 2, options)
+            this.plotDataFrame(df, 0, 1, 2, options)
         }
         else if(mode == "barchart")
         {
@@ -147,11 +148,13 @@ export class Plot
             }
             let options = {
                 mode: mode,
-                colorCol: 1 //y
+                colorCol: 1, //y
+                normalizeX2: false,
+                dataPointSize: dataPointSize
             }
             
             //continue plotting this DataFrame
-            plot.plotDataFrame(df, 0, 1, 2, options)
+            this.plotDataFrame(df, 0, 1, 2, options)
         }
         else
         {
@@ -226,9 +229,9 @@ export class Plot
      * plots a .csv string into the container
      *
      * @param {string}  sCsv        string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
-     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
-     * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
-     * @param {number}  x3col       column index used for plotting the x3 axis (y)
+     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
+     * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
+     * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
      * @param {object}  options     json object with one or more of the following parameters:
      * - mode {string}: "barchart" or "scatterplot"
      * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
@@ -305,8 +308,6 @@ export class Plot
             options = {}
         }
 
-
-
         this.benchmarkStamp("start")
 
         //-------------------------//
@@ -330,22 +331,27 @@ export class Plot
 
             //transform the sCsv string to a dataframe
             let data = sCsv.split("\n")
-            data = data.slice(data.length-data.length*fraction)
+            data = data.slice(0,data.length-data.length*(1-fraction))
             let headerRow = ""
+            
+            if(data[0] == "") //to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
+            //This probably happens when the csv data starts one line below the opening bracket of the Element
+                data = data.slice(-(data.length-1))
 
             //find out the separator automatically if the user didn't define it
-            if(options.separator == undefined)
+            if(options.separator == undefined || data[0].indexOf(separator) == -1)
             {
+                if(options.separator != undefined)
+                    console.error("the specified separator/delimiter was not found. Now trying to detect it. Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
+
+                //in case of undefined or -1, assume ;, then try ,
+                separator = ";"
+
                 if(data[0].indexOf(separator) == -1)
-                    separator = ";" //try a different one
+                    separator = ","
                     
                 if(data[0].indexOf(separator) == -1)
                     return console.error("no csv separator/delimiter was detected. Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
-            }
-            else
-            {
-                if(data[0].indexOf(separator) == -1)
-                    return console.error("haven't found any occurence of the separator '"+separator+"' in the csv format (\""+data[0]+"\")")
             }
 
             if(options["header"] == undefined)
@@ -398,7 +404,7 @@ export class Plot
             //plot the dataframe.
             options.header = false //header is already removed
             options.fraction = 1 //Fraction is now 1, because the fraction has already been taken into account
-            plot.plotDataFrame(data, x1col, x2col, x3col, options)
+            this.plotDataFrame(data, x1col, x2col, x3col, options)
         }
         else
         {
@@ -406,7 +412,7 @@ export class Plot
             //cached
             //this.dfCache != undefined and checkstring is the same
             //same data. Fraction is now 1, because the fraction has already been taken into account
-            plot.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, options)
+            this.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, options)
         }
     }
     
@@ -416,9 +422,9 @@ export class Plot
      * plots a dataframe on the canvas element which was defined in the constructor of Plot()
      *
      * @param {number[][]}  df      int[][] of datapoints. [row][column]
-     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
-     * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
-     * @param {number}  x3col       column index used for plotting the x3 axis (y)
+     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
+     * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
+     * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
      * @param {object}  options     json object with one or more of the following parameters:
      * - mode {string}: "barchart" or "scatterplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
@@ -427,16 +433,22 @@ export class Plot
      *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
      *                      Integers that are used as class for labeled data would result in various different hues in the same way.
      *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
-     * - normalize {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then
+     * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
+     * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
+     * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
+     * - maxX1 {number}: the maximum x1 value in the dataframe. The maximum value in the column that is used as x1. Default 1
+     * - maxX2 {number}: the maximum x2 value in the dataframe. The maximum value in the column that is used as x2. Default 1 (y)
+     * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
+     * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
+     * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      */
     plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={})
     {
-
         //---------------------------//
         //  parameter type checking  //
         //---------------------------//
@@ -444,43 +456,42 @@ export class Plot
         let header=false
         let colorCol=-1
         let mode="scatterplot"
-        let normalize=true
+        let normalizeX1=true
+        let normalizeX2=true
+        let normalizeX3=true
         let title=""
         let fraction=1
         let labeled=false
         let defaultColor=0 //black
         let barchartPadding=0.5/this.xRes
+        let dataPointSize=0.02
+        //max in terms of "how far away is the farthest away point"
+        let maxX1=1
+        let maxX2=1
+        let maxX3=1
 
-        if(x1col == undefined || x1col == "")
-            x1col = 0
-        if(x2col == undefined || x2col == "")
-            x2col = 1
-        if(x3col == undefined || x3col == "")
-            x3col = 2
-
-        //check integrity of column indices
-        if(x1col >= df[0].length)
-            return console.error("column with index "+x1col+" is not existant in the dataframe")
-        if(x2col >= df[0].length)
-            return console.error("column with index "+x2col+" is not existant in the dataframe")
-        if(x3col >= df[0].length)
-            return console.error("column with index "+x3col+" is not existant in the dataframe")
+        //when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
+        //it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
+        //because sometimes I am calculating a dataframe from a formula and then convert it to that [x][z] shape
+        //instead of calculating this shape right away
+        let dfIsA2DMap=false
 
         //some helper functions
         let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
         let checkBoolean = (varname, variable) => {
             if(variable == undefined)
-                return //not defined in the (optional) options, don't do anything then
+                return false//not defined in the (optional) options, don't do anything then
             let a = (variable == true || variable == false)
-            if(!a) errorParamType(varname, variable, "boolean")
+            if(!a)
+            { errorParamType(varname, variable, "boolean"); return false }   
             return(a) //returns true (valid) or false
         }
-        let checkNumber = (varname, variable) => {
-            if(variable == undefined || variable == "")
-                return //not defined in the (optional) options, don't do anything then
+        let checkNumber = (varname, variable) => { //returns true if it is a number, false if it is either not defined or not a number
+            if(variable == undefined || variable === "")
+                return false  //not defined in the (optional) options, don't do anything then
             if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
-                return errorParamType(varname, variable, "number")
-            else return true //returns true (valid) or false
+            { errorParamType(varname, variable, "number"); return false }
+            return true //returns true (valid) or false
         }
 
         //make sure options is defined
@@ -495,30 +506,39 @@ export class Plot
             //check numbers. Overwrite if it's good. If not, default value will remain
             if(options.colorCol != undefined && options.colorCol >= df[0].length)
             {
-                console.error("column with index "+options.colorCol+", used as colorCol, is not existant in the dataframe")
+                console.error("column with index "+options.colorCol+", used as colorCol, is not existant in the dataframe. Disabling coloration")
                 options.colorCol = -1
             }
             if(checkNumber("fraction",options.fraction))
                 fraction = parseFloat(options.fraction)
-            if(checkNumber("colorCol",options.colorCol))
-                colorCol = parseInt(options.colorCol)
             if(checkNumber("barchartPadding",options.barchartPadding))
                 barchartPadding = parseInt(options.barchartPadding)
-            if(checkNumber("x1col",x1col))
-                x1col = parseFloat(x1col)
-            if(checkNumber("x2col",x2col))
-                x2col = parseFloat(x2col)
-            if(checkNumber("x3col",x3col))
-                x3col = parseFloat(x3col)
+
+            if(checkNumber("maxX1",options.maxX1))
+                maxX1 = parseFloat(options.maxX1)
+            if(checkNumber("maxX2",options.maxX2))
+                maxX2 = parseFloat(options.maxX2)
+            if(checkNumber("maxX3",options.maxX3))
+                maxX3 = parseFloat(options.maxX3)
+            if(checkNumber("colorCol",options.colorCol))
+                colorCol = parseFloat(options.colorCol)
+            if(checkNumber("dataPointSize",options.dataPointSize))
+                dataPointSize = parseFloat(options.dataPointSize)
 
             //check booleans. Overwrite if it's good. If not, default value will remain
             if(checkBoolean("labeled",options.labeled))
                 labeled = options.labeled
-            if(checkBoolean("normalize",options.normalize))
-                normalize = options.normalize
+            if(checkBoolean("normalizeX1",options.normalizeX1))
+                normalizeX1 = options.normalizeX1
+            if(checkBoolean("normalizeX2",options.normalizeX2))
+                normalizeX2 = options.normalizeX2
+            if(checkBoolean("normalizeX3",options.normalizeX3))
+                normalizeX3 = options.normalizeX3
             if(checkBoolean("header",options.header))
                 header = options.header
-
+            if(checkBoolean("dfIsA2DMap",options.dfIsA2DMap))
+                dfIsA2DMap = options.dfIsA2DMap
+                
             //check everything else
             if(options.title != undefined)
                 title = options.title
@@ -527,7 +547,34 @@ export class Plot
             if(options.mode != undefined)
                 mode = options.mode
         }
-
+        
+        //be vault tolerant for the columns. assume 0, 1 and 2 if possible
+        if(x1col == "")
+            x1col = 0
+        if(x2col == "")
+            x2col = 1
+        if(x3col == "")
+            x3col = 2
+        if(checkNumber("x1col",x1col))
+            x1col = parseFloat(x1col)
+        else x1col = Math.min(0,df[0].length-1)
+        if(checkNumber("x2col",x2col))
+            x2col = parseFloat(x2col)
+        else x2col = Math.min(1,df[0].length-1)
+        if(checkNumber("x3col",x3col))
+            x3col = parseFloat(x3col)
+        else x3col = Math.min(2,df[0].length-1)
+        if(x1col > df[0].length || x2col > df[0].length || x3col > df[0].length)
+            console.error("one of the colum indices is out of bounds. The maximum index in this dataframe is "+(df[0].length-1)+". x1col: "+x1col+" x2col:"+x2col+" x3col:"+x3col)
+        //detct the rightmost column index that contains numberes
+        let maximumColumn = 2 //to match the default settings of 0, 1 and 2, start at 2
+        for(;maximumColumn >= 0; maximumColumn--)
+            if(!isNaN(parseFloat(df[1][maximumColumn])))
+                break
+        x1col = Math.min(x1col,maximumColumn)
+        x2col = Math.min(x2col,maximumColumn)
+        x3col = Math.min(x3col,maximumColumn)
+        
 
         //remove the old mesh
         this.resetCalculation()
@@ -536,7 +583,6 @@ export class Plot
             this.scene.remove(this.plotmesh)
             this.plotmesh = undefined
         }
-
 
         //-------------------------//
         //     coloring labels     //    
@@ -553,7 +599,7 @@ export class Plot
             this.plotDataFrame(df, x1col, x2col, x3col, options)
             return
         }
-
+        
 
         //by this point only dfColors stays relevant. So the function above can be easily moved to a different class to clear up the code here
 
@@ -563,29 +609,36 @@ export class Plot
         //finds out by how much the values (as well as colors) to divide and for the colors also a displacement
 
 
-        //max in terms of "how far away is the farthest away point"
-        let x1maxDf = 1
-        let x2maxDf = 1
-        let x3maxDf = 1
-
         //normalize, so that the farthest away point is still within the xLen yLen zLen frame
         //TODO logarithmic normalizing
-        if(normalize)
+        if(normalizeX1)
         {
-            //not only normalize y, but also x and z. That means all datapoints values need to get into that xLen * zLen * yLen cube
-            //determine max for y-normalisation
+            maxX1 = 0
+            //determine max for normalisation
             for(let i = 0; i < df.length; i++)
             {
                 //max in terms of "how far away is the farthest away point"
                 //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                if(Math.abs(df[i][x1col]) > x1maxDf)
-                    x1maxDf = Math.abs(df[i][x1col])
-
-                if(Math.abs(df[i][x2col]) > x2maxDf)
-                    x2maxDf = Math.abs(df[i][x2col])
-
-                if(Math.abs(df[i][x3col]) > x3maxDf)
-                    x3maxDf = Math.abs(df[i][x3col])
+                if(Math.abs(df[i][x1col]) > maxX1)
+                    maxX1 = Math.abs(df[i][x1col])
+            }
+        }
+        if(normalizeX2)
+        {
+            maxX2 = 0
+            for(let i = 0; i < df.length; i++)
+            {
+                if(Math.abs(df[i][x2col]) > maxX2)
+                    maxX2 = Math.abs(df[i][x2col])
+            }
+        }
+        if(normalizeX3)
+        {
+            maxX3 = 0
+            for(let i = 0; i < df.length; i++)
+            {
+                if(Math.abs(df[i][x3col]) > maxX3)
+                    maxX3 = Math.abs(df[i][x3col])
             }
         }
 
@@ -621,15 +674,15 @@ export class Plot
             for(let x = 0; x < barHeights.length; x++)
                 barHeights[x] = new Array(this.zVerticesCount)
 
-            x2maxDf = 0 //reset max height, as it will be overwritten
-            let x2minDf = 0 //to calculate the heatmap, this is needed aswell
+            let minX2 = 0 //to calculate the heatmap, this is needed aswell
+                maxX2 = 0 //reset max height, as it will be overwritten
 
             //fill the barHeights array with the added heights of the bars
             for(let i = 0; i < df.length; i ++)
             {
                 //get coordinates that can fit into an array tis.x
-                let x = parseInt(df[i][x1col]/x1maxDf*this.xRes)
-                let z = parseInt(df[i][x3col]/x3maxDf*this.zRes)
+                let x = parseInt(df[i][x1col]/maxX1*this.xRes)
+                let z = parseInt(df[i][x3col]/maxX3*this.zRes)
 
                 let y = parseFloat(df[i][x2col]) //don't normalize yet
 
@@ -644,14 +697,16 @@ export class Plot
                         barHeights[x][z] = y
                     }
                     //get the new maximum and minimum
-                    if(barHeights[x][z] > x2maxDf)
-                        x2maxDf = barHeights[x][z]
-                    if(barHeights[x][z] < x2minDf)
-                        x2minDf = barHeights[x][z]
+                    if(barHeights[x][z] > maxX2)
+                        maxX2 = barHeights[x][z]
+                    if(barHeights[x][z] < minX2)
+                        minX2 = barHeights[x][z]
                 }
             }
             
-            let normalizationValue = Math.max(x2maxDf,Math.abs(x2minDf))
+            let normalizationValue = Math.max(maxX2,Math.abs(minX2))
+            if(!normalizeX2)
+                normalizationValue = 1
             if(normalizationValue == 0)
                 return console.error("your dataframe does not contain any information. The maximum amplitude in your barchart is 0 therefore")
 
@@ -669,7 +724,7 @@ export class Plot
                         shape.translate(x/this.xRes,y/2,z/this.zRes) //move it to the right position
 
                         //get a heatmap like color scheme
-                        let color = this.ColorManager.convertToHeat(y,x2minDf/normalizationValue,x2maxDf/normalizationValue)
+                        let color = this.ColorManager.convertToHeat(y,minX2/normalizationValue,maxX2/normalizationValue)
     
                         let plotmat = new THREE.MeshStandardMaterial({
                             color: color,
@@ -729,11 +784,12 @@ export class Plot
         {
             if(mode != "scatterplot" && mode != undefined)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
-            //Default
 
             //-------------------------//
             //       scatterplot       //    
             //-------------------------//
+                
+            //This is the default mode
 
             //plot it using circle sprites
             let geometry = new THREE.Geometry()
@@ -745,9 +801,9 @@ export class Plot
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
-                vertex.x = df[i][x1col]/x1maxDf
-                vertex.y = df[i][x2col]/x2maxDf
-                vertex.z = df[i][x3col]/x3maxDf
+                vertex.x = df[i][x1col]/maxX1
+                vertex.y = df[i][x2col]/maxX2
+                vertex.z = df[i][x3col]/maxX3
                 geometry.vertices.push(vertex)  
                 geometry.colors.push(dfColors[i])
             }
@@ -759,7 +815,7 @@ export class Plot
             //alphaTest = 0 not transparent infront of other sprites anymore
             //sizeAttenuation: false, sprites don't change size in distance and size is in px
             let material = new THREE.PointsMaterial({
-                size: 0.02,
+                size: dataPointSize,
                 map: sprite,
                 alphaTest: 0.7,
                 transparent: true,
@@ -1030,7 +1086,7 @@ export class Plot
      * @private
      * @param {string} color     hex string of the axes color. default black #000000
      */
-    createAxes(color="#000000")
+    createAxes(color="0x000000")
     {
         let colorObject = this.ColorManager.getColorObjectFromAnyString(color)
         if(colorObject != undefined)

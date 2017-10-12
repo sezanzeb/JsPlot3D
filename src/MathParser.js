@@ -34,7 +34,7 @@ export default class MathParser
         ]
 
         if (z < 0.5)
-            return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z))
+            return Math.PI / (Math.sin(Math.PI * z) * this.gamma(1 - z))
         else
         {
             z -= 1
@@ -87,7 +87,6 @@ export default class MathParser
         
         //for recursive calls, make sure that f is this.f
         formula = formula.replace(/f\(/g,"this.f(")
-        formula = formula.replace(/this\.this\./g,"this.") //in case there are two this. terms now
 
         //x1 and x2 are attributes of this class once eval2 gets called
         formula = formula.replace(/x1/g,"this.x1")
@@ -178,10 +177,12 @@ export default class MathParser
             }
         }
 
+
         //Math.Math. could be there a few times at this point. clear that
-        formula = formula.replace("Math.Math.","Math.")
+        formula = formula.replace(/(Math\.)+/g,"Math.")
+        formula = formula.replace(/(this\.)+/g,"this.") //in case there are two this.
         
-        //console.log("final parsed formula: "+formula)
+        console.log("final parsed formula: "+formula)
 
         return formula
     }

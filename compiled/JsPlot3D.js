@@ -109,17 +109,16 @@ var Plot = exports.Plot = function () {
      *                               - Plot(document.getElementById("foobar"))
      * @param {json}   options       at least one of backgroundClr or axesClr in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc
      */
-    function Plot(container, options) {
+    function Plot(container) {
         var _this = this;
+
+        var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
         _classCallCheck(this, Plot);
 
         //parameter checking
-        var backgroundColor = "#ffffff";
-        var axesColor = "#000000";
-        if (options == undefined) options = {};
-        if (options.backgroundColor != undefined) backgroundColor = options.backgroundColor;
-        if (options.axesColor != undefined) axesColor = options.axesColor;
+        var backgroundColor = 0xffffff;
+        var axesColor = 0x000000;
         if ((typeof container === "undefined" ? "undefined" : _typeof(container)) != "object") return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")");
 
         //some plotdata specific variables. I want setters and getter for all those at some point
@@ -127,6 +126,9 @@ var Plot = exports.Plot = function () {
         this.resetCalculation(); //configures the variables
         this.dataPointImage = "datapoint.png";
         this.ColorManager = new _ColorManager2.default(THREE);
+
+        if (options.backgroundColor != undefined) backgroundColor = options.backgroundColor;
+        if (options.axesColor != undefined) axesColor = options.axesColor;
 
         //check if dataPointImage is available
         var img = new Image();
@@ -137,7 +139,7 @@ var Plot = exports.Plot = function () {
 
         //three.js setup
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setClearColor(backgroundColor);
+        this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(backgroundColor));
         this.setContainer(container);
         this.scene = new THREE.Scene();
 
@@ -160,12 +162,15 @@ var Plot = exports.Plot = function () {
      * 
      * @param {string}  originalFormula string of formula
      * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed
+     * @param {number}  dataPointSize Default 0.02. In case mode is "scatterplot" it changes the size of the datapoints
      */
 
 
     _createClass(Plot, [{
         key: "plotFormula",
         value: function plotFormula(originalFormula, mode) {
+            var dataPointSize = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.02;
+
             if (originalFormula == undefined || originalFormula == "") return console.error("first param of plotFormula (originalFormula) is undefined or empty");
             if (typeof originalFormula != "string") return console.error("first param of plotFormula (originalFormula) should be string");
 
@@ -188,20 +193,21 @@ var Plot = exports.Plot = function () {
                     //line number in the new dataframe
                     var i = 0;
 
-                    for (var _x = 0; _x < this.xVerticesCount; _x++) {
+                    for (var _x3 = 0; _x3 < this.xVerticesCount; _x3++) {
                         for (var _z = 0; _z < this.zVerticesCount; _z++) {
-                            y = this.f(_x / this.xRes, _z / this.zRes); //calculate y. y = f(x1,x2)
-                            df[i] = [_x, y, _z]; //store the datapoint
+                            y = this.f(_x3 / this.xRes, _z / this.zRes); //calculate y. y = f(x1,x2)
+                            df[i] = [_x3, y, _z]; //store the datapoint
                             i++;
                         }
                     }
                     var options = {
                         mode: mode,
-                        colorCol: 1 //y
-
+                        colorCol: 1, //y
+                        normalizeX2: false,
+                        dataPointSize: dataPointSize
 
                         //continue plotting this DataFrame
-                    };plot.plotDataFrame(df, 0, 1, 2, options);
+                    };this.plotDataFrame(df, 0, 1, 2, options);
                 } else if (mode == "barchart") {
 
                 ////////  BARCHART ////////
@@ -212,26 +218,27 @@ var Plot = exports.Plot = function () {
 
                 //the three values that are going to be stored in the dataframe
                 var _y = 0;
-                var _x2 = 0;
+                var _x4 = 0;
                 var _z2 = 0;
 
                 //line number in the new dataframe
                 var _i = 0;
 
-                for (var _x3 = 0; _x3 < this.xVerticesCount; _x3++) {
+                for (var _x5 = 0; _x5 < this.xVerticesCount; _x5++) {
                     for (var _z3 = 0; _z3 < this.zVerticesCount; _z3++) {
-                        _y = this.f(_x3 / this.xRes, _z3 / this.zRes); //calculate y. y = f(x1,x2)
-                        _df[_i] = [_x3, _y, _z3]; //store the datapoint
+                        _y = this.f(_x5 / this.xRes, _z3 / this.zRes); //calculate y. y = f(x1,x2)
+                        _df[_i] = [_x5, _y, _z3]; //store the datapoint
                         _i++;
                     }
                 }
                 var _options = {
                     mode: mode,
-                    colorCol: 1 //y
-
+                    colorCol: 1, //y
+                    normalizeX2: false,
+                    dataPointSize: dataPointSize
 
                     //continue plotting this DataFrame
-                };plot.plotDataFrame(_df, 0, 1, 2, _options);
+                };this.plotDataFrame(_df, 0, 1, 2, _options);
             } else {
 
                 if (mode != "polygon" && mode != undefined) console.warn("mode \"" + mode + "\" unrecognized. Assuming \"polygon\"");
@@ -277,8 +284,8 @@ var Plot = exports.Plot = function () {
                 var _y2 = 0;
                 var vIndex = 0;
                 for (var _z4 = this.zVerticesCount - 1; _z4 >= 0; _z4--) {
-                    for (var _x4 = 0; _x4 < this.xVerticesCount; _x4++) {
-                        _y2 = this.f(_x4 / this.xRes, _z4 / this.xRes);
+                    for (var _x6 = 0; _x6 < this.xVerticesCount; _x6++) {
+                        _y2 = this.f(_x6 / this.xRes, _z4 / this.xRes);
                         this.plotmesh.geometry.vertices[vIndex].y = _y2;
                         this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff);
                         vIndex++;
@@ -296,9 +303,9 @@ var Plot = exports.Plot = function () {
          * plots a .csv string into the container
          *
          * @param {string}  sCsv        string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
-         * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
-         * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
-         * @param {number}  x3col       column index used for plotting the x3 axis (y)
+         * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
+         * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
+         * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
          * @param {object}  options     json object with one or more of the following parameters:
          * - mode {string}: "barchart" or "scatterplot"
          * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
@@ -388,16 +395,23 @@ var Plot = exports.Plot = function () {
 
                 //transform the sCsv string to a dataframe
                 var data = sCsv.split("\n");
-                data = data.slice(data.length - data.length * fraction);
+                data = data.slice(0, data.length - data.length * (1 - fraction));
                 var headerRow = "";
 
+                if (data[0] == "") //to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
+                    //This probably happens when the csv data starts one line below the opening bracket of the Element
+                    data = data.slice(-(data.length - 1));
+
                 //find out the separator automatically if the user didn't define it
-                if (options.separator == undefined) {
-                    if (data[0].indexOf(separator) == -1) separator = ";"; //try a different one
+                if (options.separator == undefined || data[0].indexOf(separator) == -1) {
+                    if (options.separator != undefined) console.error("the specified separator/delimiter was not found. Now trying to detect it. Please set separator=\"...\" according to your file format: \"" + data[0] + "\"");
+
+                    //in case of undefined or -1, assume ;, then try ,
+                    separator = ";";
+
+                    if (data[0].indexOf(separator) == -1) separator = ",";
 
                     if (data[0].indexOf(separator) == -1) return console.error("no csv separator/delimiter was detected. Please set separator=\"...\" according to your file format: \"" + data[0] + "\"");
-                } else {
-                    if (data[0].indexOf(separator) == -1) return console.error("haven't found any occurence of the separator '" + separator + "' in the csv format (\"" + data[0] + "\")");
                 }
 
                 if (options["header"] == undefined) {
@@ -444,13 +458,13 @@ var Plot = exports.Plot = function () {
                 //plot the dataframe.
                 options.header = false; //header is already removed
                 options.fraction = 1; //Fraction is now 1, because the fraction has already been taken into account
-                plot.plotDataFrame(data, x1col, x2col, x3col, options);
+                this.plotDataFrame(data, x1col, x2col, x3col, options);
             } else {
                 console.log("using cached dataframe");
                 //cached
                 //this.dfCache != undefined and checkstring is the same
                 //same data. Fraction is now 1, because the fraction has already been taken into account
-                plot.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, options);
+                this.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, options);
             }
         }
 
@@ -458,9 +472,9 @@ var Plot = exports.Plot = function () {
          * plots a dataframe on the canvas element which was defined in the constructor of Plot()
          *
          * @param {number[][]}  df      int[][] of datapoints. [row][column]
-         * @param {number}  x1col       column index used for transforming the x1 axis (x). default: -1 (use index)
-         * @param {number}  x2col       column index used for transforming the x2 axis (z). default: -1 (use index)
-         * @param {number}  x3col       column index used for plotting the x3 axis (y)
+         * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
+         * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
+         * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
          * @param {object}  options     json object with one or more of the following parameters:
          * - mode {string}: "barchart" or "scatterplot"
          * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
@@ -469,12 +483,19 @@ var Plot = exports.Plot = function () {
          *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
          *                      Integers that are used as class for labeled data would result in various different hues in the same way.
          *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
-         * - normalize {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then
+         * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
+         * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
+         * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
          * - title {string}: title of the data
          * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
          * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
          *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
          * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
+         * - maxX1 {number}: the maximum x1 value in the dataframe. The maximum value in the column that is used as x1. Default 1
+         * - maxX2 {number}: the maximum x2 value in the dataframe. The maximum value in the column that is used as x2. Default 1 (y)
+         * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
+         * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
+         * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
          */
 
     }, {
@@ -485,7 +506,6 @@ var Plot = exports.Plot = function () {
             var x3col = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 2;
             var options = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
 
-
             //---------------------------//
             //  parameter type checking  //
             //---------------------------//
@@ -493,35 +513,45 @@ var Plot = exports.Plot = function () {
             var header = false;
             var colorCol = -1;
             var mode = "scatterplot";
-            var normalize = true;
+            var normalizeX1 = true;
+            var normalizeX2 = true;
+            var normalizeX3 = true;
             var title = "";
             var fraction = 1;
             var labeled = false;
             var defaultColor = 0; //black
             var barchartPadding = 0.5 / this.xRes;
+            var dataPointSize = 0.02;
+            //max in terms of "how far away is the farthest away point"
+            var maxX1 = 1;
+            var maxX2 = 1;
+            var maxX3 = 1;
 
-            if (x1col == undefined || x1col == "") x1col = 0;
-            if (x2col == undefined || x2col == "") x2col = 1;
-            if (x3col == undefined || x3col == "") x3col = 2;
-
-            //check integrity of column indices
-            if (x1col >= df[0].length) return console.error("column with index " + x1col + " is not existant in the dataframe");
-            if (x2col >= df[0].length) return console.error("column with index " + x2col + " is not existant in the dataframe");
-            if (x3col >= df[0].length) return console.error("column with index " + x3col + " is not existant in the dataframe");
+            //when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
+            //it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
+            //because sometimes I am calculating a dataframe from a formula and then convert it to that [x][z] shape
+            //instead of calculating this shape right away
+            var dfIsA2DMap = false;
 
             //some helper functions
             var errorParamType = function errorParamType(varname, variable, expectedType) {
                 return console.error("expected '" + expectedType + "' but found '" + (typeof variable === "undefined" ? "undefined" : _typeof(variable)) + "' for " + varname + " (" + variable + ")");
             };
             var checkBoolean = function checkBoolean(varname, variable) {
-                if (variable == undefined) return; //not defined in the (optional) options, don't do anything then
+                if (variable == undefined) return false; //not defined in the (optional) options, don't do anything then
                 var a = variable == true || variable == false;
-                if (!a) errorParamType(varname, variable, "boolean");
+                if (!a) {
+                    errorParamType(varname, variable, "boolean");return false;
+                }
                 return a; //returns true (valid) or false
             };
             var checkNumber = function checkNumber(varname, variable) {
-                if (variable == undefined || variable == "") return; //not defined in the (optional) options, don't do anything then
-                if (typeof variable != "number" && isNaN(parseFloat(variable))) return errorParamType(varname, variable, "number");else return true; //returns true (valid) or false
+                //returns true if it is a number, false if it is either not defined or not a number
+                if (variable == undefined || variable === "") return false; //not defined in the (optional) options, don't do anything then
+                if (typeof variable != "number" && isNaN(parseFloat(variable))) {
+                    errorParamType(varname, variable, "number");return false;
+                }
+                return true; //returns true (valid) or false
             };
 
             //make sure options is defined
@@ -533,26 +563,47 @@ var Plot = exports.Plot = function () {
 
                 //check numbers. Overwrite if it's good. If not, default value will remain
                 if (options.colorCol != undefined && options.colorCol >= df[0].length) {
-                    console.error("column with index " + options.colorCol + ", used as colorCol, is not existant in the dataframe");
+                    console.error("column with index " + options.colorCol + ", used as colorCol, is not existant in the dataframe. Disabling coloration");
                     options.colorCol = -1;
                 }
                 if (checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction);
-                if (checkNumber("colorCol", options.colorCol)) colorCol = parseInt(options.colorCol);
                 if (checkNumber("barchartPadding", options.barchartPadding)) barchartPadding = parseInt(options.barchartPadding);
-                if (checkNumber("x1col", x1col)) x1col = parseFloat(x1col);
-                if (checkNumber("x2col", x2col)) x2col = parseFloat(x2col);
-                if (checkNumber("x3col", x3col)) x3col = parseFloat(x3col);
+
+                if (checkNumber("maxX1", options.maxX1)) maxX1 = parseFloat(options.maxX1);
+                if (checkNumber("maxX2", options.maxX2)) maxX2 = parseFloat(options.maxX2);
+                if (checkNumber("maxX3", options.maxX3)) maxX3 = parseFloat(options.maxX3);
+                if (checkNumber("colorCol", options.colorCol)) colorCol = parseFloat(options.colorCol);
+                if (checkNumber("dataPointSize", options.dataPointSize)) dataPointSize = parseFloat(options.dataPointSize);
 
                 //check booleans. Overwrite if it's good. If not, default value will remain
                 if (checkBoolean("labeled", options.labeled)) labeled = options.labeled;
-                if (checkBoolean("normalize", options.normalize)) normalize = options.normalize;
+                if (checkBoolean("normalizeX1", options.normalizeX1)) normalizeX1 = options.normalizeX1;
+                if (checkBoolean("normalizeX2", options.normalizeX2)) normalizeX2 = options.normalizeX2;
+                if (checkBoolean("normalizeX3", options.normalizeX3)) normalizeX3 = options.normalizeX3;
                 if (checkBoolean("header", options.header)) header = options.header;
+                if (checkBoolean("dfIsA2DMap", options.dfIsA2DMap)) dfIsA2DMap = options.dfIsA2DMap;
 
                 //check everything else
                 if (options.title != undefined) title = options.title;
                 if (options.defaultColor != undefined) defaultColor = options.defaultColor;
                 if (options.mode != undefined) mode = options.mode;
             }
+
+            //be vault tolerant for the columns. assume 0, 1 and 2 if possible
+            if (x1col == "") x1col = 0;
+            if (x2col == "") x2col = 1;
+            if (x3col == "") x3col = 2;
+            if (checkNumber("x1col", x1col)) x1col = parseFloat(x1col);else x1col = Math.min(0, df[0].length - 1);
+            if (checkNumber("x2col", x2col)) x2col = parseFloat(x2col);else x2col = Math.min(1, df[0].length - 1);
+            if (checkNumber("x3col", x3col)) x3col = parseFloat(x3col);else x3col = Math.min(2, df[0].length - 1);
+            if (x1col > df[0].length || x2col > df[0].length || x3col > df[0].length) console.error("one of the colum indices is out of bounds. The maximum index in this dataframe is " + (df[0].length - 1) + ". x1col: " + x1col + " x2col:" + x2col + " x3col:" + x3col);
+            //detct the rightmost column index that contains numberes
+            var maximumColumn = 2; //to match the default settings of 0, 1 and 2, start at 2
+            for (; maximumColumn >= 0; maximumColumn--) {
+                if (!isNaN(parseFloat(df[1][maximumColumn]))) break;
+            }x1col = Math.min(x1col, maximumColumn);
+            x2col = Math.min(x2col, maximumColumn);
+            x3col = Math.min(x3col, maximumColumn);
 
             //remove the old mesh
             this.resetCalculation();
@@ -584,24 +635,27 @@ var Plot = exports.Plot = function () {
             //finds out by how much the values (as well as colors) to divide and for the colors also a displacement
 
 
-            //max in terms of "how far away is the farthest away point"
-            var x1maxDf = 1;
-            var x2maxDf = 1;
-            var x3maxDf = 1;
-
             //normalize, so that the farthest away point is still within the xLen yLen zLen frame
             //TODO logarithmic normalizing
-            if (normalize) {
-                //not only normalize y, but also x and z. That means all datapoints values need to get into that xLen * zLen * yLen cube
-                //determine max for y-normalisation
+            if (normalizeX1) {
+                maxX1 = 0;
+                //determine max for normalisation
                 for (var i = 0; i < df.length; i++) {
                     //max in terms of "how far away is the farthest away point"
                     //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                    if (Math.abs(df[i][x1col]) > x1maxDf) x1maxDf = Math.abs(df[i][x1col]);
-
-                    if (Math.abs(df[i][x2col]) > x2maxDf) x2maxDf = Math.abs(df[i][x2col]);
-
-                    if (Math.abs(df[i][x3col]) > x3maxDf) x3maxDf = Math.abs(df[i][x3col]);
+                    if (Math.abs(df[i][x1col]) > maxX1) maxX1 = Math.abs(df[i][x1col]);
+                }
+            }
+            if (normalizeX2) {
+                maxX2 = 0;
+                for (var _i4 = 0; _i4 < df.length; _i4++) {
+                    if (Math.abs(df[_i4][x2col]) > maxX2) maxX2 = Math.abs(df[_i4][x2col]);
+                }
+            }
+            if (normalizeX3) {
+                maxX3 = 0;
+                for (var _i5 = 0; _i5 < df.length; _i5++) {
+                    if (Math.abs(df[_i5][x3col]) > maxX3) maxX3 = Math.abs(df[_i5][x3col]);
                 }
             }
 
@@ -633,46 +687,47 @@ var Plot = exports.Plot = function () {
                 var barHeights = new Array(this.xVerticesCount);
                 for (var x = 0; x < barHeights.length; x++) {
                     barHeights[x] = new Array(this.zVerticesCount);
-                }x2maxDf = 0; //reset max height, as it will be overwritten
-                var x2minDf = 0; //to calculate the heatmap, this is needed aswell
+                }var minX2 = 0; //to calculate the heatmap, this is needed aswell
+                maxX2 = 0; //reset max height, as it will be overwritten
 
                 //fill the barHeights array with the added heights of the bars
-                for (var _i4 = 0; _i4 < df.length; _i4++) {
+                for (var _i6 = 0; _i6 < df.length; _i6++) {
                     //get coordinates that can fit into an array tis.x
-                    var _x9 = parseInt(df[_i4][x1col] / x1maxDf * this.xRes);
-                    var z = parseInt(df[_i4][x3col] / x3maxDf * this.zRes);
+                    var _x11 = parseInt(df[_i6][x1col] / maxX1 * this.xRes);
+                    var z = parseInt(df[_i6][x3col] / maxX3 * this.zRes);
 
-                    var y = parseFloat(df[_i4][x2col]); //don't normalize yet
+                    var y = parseFloat(df[_i6][x2col]); //don't normalize yet
 
-                    if (barHeights[_x9] != undefined) //does the datapoint fit into the frame? TODO this should also plot when the datapoint is somewhere else or something
+                    if (barHeights[_x11] != undefined) //does the datapoint fit into the frame? TODO this should also plot when the datapoint is somewhere else or something
                         {
-                            if (barHeights[_x9][z] != undefined) {
-                                barHeights[_x9][z] += y;
+                            if (barHeights[_x11][z] != undefined) {
+                                barHeights[_x11][z] += y;
                             } else {
-                                barHeights[_x9][z] = y;
+                                barHeights[_x11][z] = y;
                             }
                             //get the new maximum and minimum
-                            if (barHeights[_x9][z] > x2maxDf) x2maxDf = barHeights[_x9][z];
-                            if (barHeights[_x9][z] < x2minDf) x2minDf = barHeights[_x9][z];
+                            if (barHeights[_x11][z] > maxX2) maxX2 = barHeights[_x11][z];
+                            if (barHeights[_x11][z] < minX2) minX2 = barHeights[_x11][z];
                         }
                 }
 
-                var normalizationValue = Math.max(x2maxDf, Math.abs(x2minDf));
+                var normalizationValue = Math.max(maxX2, Math.abs(minX2));
+                if (!normalizeX2) normalizationValue = 1;
                 if (normalizationValue == 0) return console.error("your dataframe does not contain any information. The maximum amplitude in your barchart is 0 therefore");
 
                 //now iterate over the barHeights array and plot the bars according to their stored height
-                for (var _x10 = 0; _x10 < barHeights.length; _x10++) {
-                    for (var _z5 = 0; _z5 < barHeights[_x10].length; _z5++) {
+                for (var _x12 = 0; _x12 < barHeights.length; _x12++) {
+                    for (var _z5 = 0; _z5 < barHeights[_x12].length; _z5++) {
                         //retreive the bar height and nomralize it
-                        var _y3 = barHeights[_x10][_z5] / normalizationValue; //now normalize
+                        var _y3 = barHeights[_x12][_z5] / normalizationValue; //now normalize
 
                         if (!isNaN(_y3) && _y3 != undefined) {
                             //create the bar
                             var shape = new THREE.CubeGeometry(1 / this.xRes - barchartPadding, Math.abs(_y3), 1 / this.zRes - barchartPadding);
-                            shape.translate(_x10 / this.xRes, _y3 / 2, _z5 / this.zRes); //move it to the right position
+                            shape.translate(_x12 / this.xRes, _y3 / 2, _z5 / this.zRes); //move it to the right position
 
                             //get a heatmap like color scheme
-                            var color = this.ColorManager.convertToHeat(_y3, x2minDf / normalizationValue, x2maxDf / normalizationValue);
+                            var color = this.ColorManager.convertToHeat(_y3, minX2 / normalizationValue, maxX2 / normalizationValue);
 
                             var plotmat = new THREE.MeshStandardMaterial({
                                 color: color,
@@ -723,11 +778,12 @@ var Plot = exports.Plot = function () {
 
             } else {
                 if (mode != "scatterplot" && mode != undefined) console.warn("mode \"" + mode + "\" unrecognized. Assuming \"scatterplot\"");
-                //Default
 
                 //-------------------------//
                 //       scatterplot       //    
                 //-------------------------//
+
+                //This is the default mode
 
                 //plot it using circle sprites
                 var _geometry = new THREE.Geometry();
@@ -736,13 +792,13 @@ var Plot = exports.Plot = function () {
                 _sprite.magFilter = THREE.LinearFilter;
                 _sprite.minFilter = THREE.LinearFilter;
 
-                for (var _i5 = 0; _i5 < df.length; _i5++) {
+                for (var _i7 = 0; _i7 < df.length; _i7++) {
                     var vertex = new THREE.Vector3();
-                    vertex.x = df[_i5][x1col] / x1maxDf;
-                    vertex.y = df[_i5][x2col] / x2maxDf;
-                    vertex.z = df[_i5][x3col] / x3maxDf;
+                    vertex.x = df[_i7][x1col] / maxX1;
+                    vertex.y = df[_i7][x2col] / maxX2;
+                    vertex.z = df[_i7][x3col] / maxX3;
                     _geometry.vertices.push(vertex);
-                    _geometry.colors.push(dfColors[_i5]);
+                    _geometry.colors.push(dfColors[_i7]);
                 }
 
                 //https://github.com/mrdoob/three.js/issues/1625
@@ -752,7 +808,7 @@ var Plot = exports.Plot = function () {
                 //alphaTest = 0 not transparent infront of other sprites anymore
                 //sizeAttenuation: false, sprites don't change size in distance and size is in px
                 var material = new THREE.PointsMaterial({
-                    size: 0.02,
+                    size: dataPointSize,
                     map: _sprite,
                     alphaTest: 0.7,
                     transparent: true,
@@ -1015,7 +1071,7 @@ var Plot = exports.Plot = function () {
     }, {
         key: "createAxes",
         value: function createAxes() {
-            var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "#000000";
+            var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "0x000000";
 
             var colorObject = this.ColorManager.getColorObjectFromAnyString(color);
             if (colorObject != undefined) color = colorObject;
@@ -1149,21 +1205,11 @@ var MathParser = function () {
 
     }, {
         key: "gamma",
-        value: function (_gamma) {
-            function gamma(_x) {
-                return _gamma.apply(this, arguments);
-            }
-
-            gamma.toString = function () {
-                return _gamma.toString();
-            };
-
-            return gamma;
-        }(function (z) {
+        value: function gamma(z) {
             var g = 7;
             var C = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716 * Math.pow(10, -6), 1.5056327351493116 * Math.pow(10, -7)];
 
-            if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));else {
+            if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * this.gamma(1 - z));else {
                 z -= 1;
 
                 var x = C[0];
@@ -1172,7 +1218,7 @@ var MathParser = function () {
                 }var t = z + g + 0.5;
                 return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
             }
-        })
+        }
 
         /**
          * Calculates a factorial
@@ -1213,7 +1259,6 @@ var MathParser = function () {
 
             //for recursive calls, make sure that f is this.f
             formula = formula.replace(/f\(/g, "this.f(");
-            formula = formula.replace(/this\.this\./g, "this."); //in case there are two this. terms now
 
             //x1 and x2 are attributes of this class once eval2 gets called
             formula = formula.replace(/x1/g, "this.x1");
@@ -1295,9 +1340,10 @@ var MathParser = function () {
             }
 
             //Math.Math. could be there a few times at this point. clear that
-            formula = formula.replace("Math.Math.", "Math.");
+            formula = formula.replace(/(Math\.)+/g, "Math.");
+            formula = formula.replace(/(this\.)+/g, "this."); //in case there are two this.
 
-            //console.log("final parsed formula: "+formula)
+            console.log("final parsed formula: " + formula);
 
             return formula;
         }
@@ -1545,7 +1591,7 @@ var ColorManager = function () {
             if (typeof color == "number") return new this.THREE.Color(color); //number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
             //numbers are supported by three.js by default
 
-            if (typeof color != "string") return console.error("getColorObjectFromAnyString expected String or Number as parameter but got " + (typeof color === "undefined" ? "undefined" : _typeof(color)));
+            if (typeof color != "number" && typeof color != "string") return console.error("getColorObjectFromAnyString expected String or Number as parameter but got " + (typeof color === "undefined" ? "undefined" : _typeof(color)));
 
             if (color.toLowerCase().indexOf("rgb") == 0) {
                 //remove "rgb", brackets and split it into an array of [r,g,b]

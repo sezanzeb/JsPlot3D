@@ -64,20 +64,22 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 
 **needed for a first release:**
 
-- add axis title and numbers
-- heatmapcolor it according to function height
+- add axis title and numbers (in the same color as axesColor)
+- heatmapcolor it according to function height (for polygons)
 - how is the performance for very large dataframes? base64 decoding the uplaoded file takes ages and I can't change that. what about the plotting and data processing?
 - write tests
 - make a nice live example
 - make it easy to use as a framework and make a doku for it with some examples
 - make a bundle without three.js, so that users don't link three.js twice if they already have it
-- make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
-- try to change xLen, yLen and zLen and fix errors
 - increase barchart performance. e.g. by adding the option to define the normalization ranges (min and max) yourself (so that the tool does has to calculate it on its own), and also when plotting formulas, data gets transformed to a dataframe and then transformed to a "x,z -> y" kind of 2D array, maybe there is a way to just directly calculate the 2D array, hand it over to PlotDataFrame, which then ignores the df variable. Also make sure to cache that aswell.
 
-**what else is there:**
-- csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire and use a wireframe material. For this, remove the scatterplot=true parameter, but rather store the mode inside the Plot object. Upon calling one of the Plot.Plot... functions read that mode variable and act accordingly. there would be setters and getters for the mode variable in that case (setModeScatterplot(), setModeMeshplot() and setModeWireplot()). Default would be scatterplot
-- csvplot: add a 3D barchart mode
+- set xRes and zRes to values that are not equal and fix errors
+- make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
+- try to change xLen, yLen and zLen (also to negative values) and fix errors
+
+**what else is there to do:**
+- add a isometric ortographic mode
+- csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire that goes through all the points, from the first point in the dataframe to the last
 - support writing the colum header name as x1col x2col x3col and colorCol
 - on submit csvform plot the scatterplot in examples/index.html
 - display box around the plot that has inverse culling, so that the viewer can look inside it. Display a grid texture on it's faces.

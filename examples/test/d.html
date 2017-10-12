@@ -1,0 +1,104 @@
+<h1>Calculation Tests</h1>
+
+<div class="container" id="JsPlot3DContainer1"></div>
+<div class="container" id="JsPlot3DContainer2"></div>
+<p>They all should be rainbowcolored from <font style="color:red;">red (top)</font> to <font style="color:blue;">blue (bottom)</font>, have
+    <font style="color:blue;">a blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and have the same sin wave shape</p>
+
+<div class="container" id="JsPlot3DContainer3"></div>
+<div class="container" id="JsPlot3DContainer4"></div>
+<p>They all should have: rainbowcolored dots from <font style="color:red;">red (top)</font> to <font style="color:blue;">blue (bottom)</font>, 
+    <font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and have the same sin wave shape</p>
+
+<div class="container" id="JsPlot3DContainer5"></div>
+<div class="container" id="JsPlot3DContainer6"></div>
+<p>Those should be barcharts. They all should have a <font style="color:blue;">blue background</font> and are sin wave shaped. They all should look the same. High bars should be 
+    <font style="color:red;">red</font>, negative bars should be <font style="color:blue;">blue</font></p>
+
+
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+
+<script>
+    let formula1 = "(sin(x1*8)+sin(x2*8))*(1/3.3!)"
+    let formula2 = "(cos(x1*8-pi/2)+cos(x2*8-pi/2))*(1/3.3!)"
+    let formula3 = "(Math.sin(this.x1*8)+Math.sin(this.x2*8))*(1/this.factorial(3.3))"
+    let formula4 = "(Math.cos(this.x1*8-Math.PI/2)+Math.cos(this.x2*8-Math.PI/2))*(1/this.factorial(3.3))"
+
+    window.onload = function() {
+
+        console.log()
+        console.log("plot1")
+        
+        var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"))
+        plot1.setBackgroundColor("rgb(0.15,0.35,0.7)")
+        plot1.setAxesColor("hsl(0.1667,1,0.5)")
+        plot1.plotFormula(formula1,"polygon")
+
+        console.log()
+        console.log("plot2")
+
+        var plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+            axesColor: "hsl(0.1667,1,0.5)"
+        })
+        plot2.plotFormula(formula2,"polygon")
+
+        console.log()
+        console.log("plot3")
+
+        var plot3 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer3"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+        })
+        plot3.setAxesColor("hsl(0.1667,1,0.5)")
+        plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
+        plot3.plotFormula(formula3,"scatterplot",0.035)
+
+        console.log()
+        console.log("plot4")
+
+        var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"))
+        plot4.setBackgroundColor("rgb(0.15,0.35,0.7)")
+        plot4.setAxesColor("hsl(0.1667,1,0.5)")
+        plot4.plotFormula(formula4,"scatterplot",0.035)
+
+        console.log()
+        console.log("plot5")
+
+        var plot3 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer5"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+        })
+        plot3.setAxesColor("hsl(0.1667,1,0.5)")
+        plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
+        plot3.plotFormula(formula3,"barchart")
+
+        console.log()
+        console.log("plot6")
+
+        var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer6"))
+        plot4.setBackgroundColor("rgb(0.15,0.35,0.7)")
+        plot4.setAxesColor("hsl(0.1667,1,0.5)")
+        plot4.plotFormula(formula4,"barchart")
+    }
+    
+</script>
+<style>
+
+    body
+    {
+        margin: 20px;
+        font-family: sans-serif;
+    }
+
+    .container
+    {
+        width:300px;
+        height:300px;
+        display:inline-block;
+        background:grey;
+    }
+
+    .hidden
+    {
+        display:none;
+    }
+</style>

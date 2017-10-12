@@ -243,7 +243,7 @@ export default class ColorManager
             return new this.THREE.Color(color) //number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
             //numbers are supported by three.js by default
 
-        if(typeof(color) != "string")
+        if(typeof(color) != "number" && typeof(color) != "string")
             return console.error("getColorObjectFromAnyString expected String or Number as parameter but got "+typeof(color))
 
         if(color.toLowerCase().indexOf("rgb") == 0)

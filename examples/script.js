@@ -59,8 +59,10 @@ function plotcsv()
     let clr = document.getElementById("clr").value
     plot.plotCsvString(decodedData,x1,x2,x3,{
         colorCol: clr,
-        normalize: true,
-        mode: "barchart",
+        normalizeX1: true,
+        normalizeX2: true,
+        normalizeX3: true,
+        mode: "scatterplot",
         title: "",
         fraction: 1,
         labeled: false
