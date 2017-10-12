@@ -248,8 +248,8 @@ var Plot = exports.Plot = function () {
 
                 //might need to recreate the geometry and the matieral
                 //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
-                if (this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry") {
-                    if (this.plotmesh != undefined) this.scene.remove(this.plotmesh);
+                if (!this.IsPlotmeshValid() || this.plotmesh.geometry.type != "PlaneGeometry") {
+                    this.disposeMesh(this.plotmesh);
 
                     //create plane, divided into segments
                     var planegeometry = new THREE.PlaneGeometry(this.xLen, this.zLen, this.xRes, this.zRes);
@@ -623,8 +623,7 @@ var Plot = exports.Plot = function () {
             //remove the old mesh
             this.resetCalculation();
             if (this.plotmesh != undefined) {
-                this.scene.remove(this.plotmesh);
-                this.plotmesh = undefined;
+                this.disposeMesh(this.plotmesh);
             }
 
             //-------------------------//
@@ -753,7 +752,8 @@ var Plot = exports.Plot = function () {
                             cubegroup.add(new THREE.Mesh(shape, plotmat));
                         }
                     }
-                }this.plotmesh = cubegroup;
+                }this.disposeMesh(this.plotmesh);
+                this.plotmesh = cubegroup;
                 this.scene.add(cubegroup);
                 this.benchmarkStamp("made a bar chart");
             } else if (mode == "polygon") {
@@ -831,9 +831,47 @@ var Plot = exports.Plot = function () {
                 });
                 //material.color.set(0x2faca3)
                 var particles = new THREE.Points(_geometry, material);
+                this.disposeMesh(this.plotmesh);
                 this.plotmesh = particles;
                 this.scene.add(particles);
                 this.benchmarkStamp("made a scatterplot");
+            }
+        }
+
+        /**
+         * if plotmesh is invalid it gets clered
+         * @return returns true if plotmesh is still valid and existant
+         */
+
+    }, {
+        key: "IsPlotmeshValid",
+        value: function IsPlotmeshValid() {
+            var invalid = this.redraw == true || this.plotmesh == undefined || this.plotmesh.geometry == undefined;
+            if (invalid) {
+                this.disposeMesh(this.plotmesh);
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * frees memory and removes the plotmesh (by making it available for the garbage collegtor)
+         */
+
+    }, {
+        key: "disposeMesh",
+        value: function disposeMesh(mesh) {
+            if (mesh != undefined) {
+                if (mesh.geometry != undefined) {
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                }
+
+                //recursively clear the children
+                for (var i = 0; i < mesh.children; i++) {
+                    this.disposeMesh(mesh.cildren[i]);
+                }this.scene.remove(mesh);
+                mesh = undefined;
             }
         }
 
@@ -858,7 +896,6 @@ var Plot = exports.Plot = function () {
     }, {
         key: "setAxesColor",
         value: function setAxesColor(color) {
-            if (this.axes != undefined) this.scene.remove(this.axes);
             this.axes = this.createAxes(color);
             this.render();
         }
@@ -906,8 +943,10 @@ var Plot = exports.Plot = function () {
         value: function setDimensions(dimensions) {
             if ((typeof dimensions === "undefined" ? "undefined" : _typeof(dimensions)) != "object") return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen");
 
-            if (dimensions.xRes != undefined) this.xRes = dimensions.xRes;
-            if (dimensions.zRes != undefined) this.zRes = dimensions.zRes;
+            if (dimensions.xRes <= 0 || dimensions.zRes <= 0) return console.error("xRes and zRes have to be positive. xRes:" + dimensions.xRes + " zRes:" + dimensions.zRes);
+
+            if (dimensions.xRes != undefined) this.xRes = parseInt(dimensions.xRes);
+            if (dimensions.zRes != undefined) this.zRes = parseInt(dimensions.zRes);
             if (dimensions.xLen != undefined) this.xLen = dimensions.xLen;
             if (dimensions.yLen != undefined) this.yLen = dimensions.yLen;
             if (dimensions.zLen != undefined) this.zLen = dimensions.zLen;
@@ -916,8 +955,7 @@ var Plot = exports.Plot = function () {
             this.zVerticesCount = this.zLen * this.zRes + 1;
 
             //vertices counts changed, so the mesh has to be recreated
-            this.scene.remove(this.plotmesh);
-            this.plotmesh = false; //trigger recreation next time .Plot...() gets called
+            this.redraw = true;
 
             //takes effect once the mesh gets created from new
         }
@@ -1087,6 +1125,8 @@ var Plot = exports.Plot = function () {
         key: "createAxes",
         value: function createAxes() {
             var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "0x000000";
+
+            this.disposeMesh(this.axes);
 
             var colorObject = this.ColorManager.getColorObjectFromAnyString(color);
             if (colorObject != undefined) color = colorObject;
@@ -1556,30 +1596,8 @@ var ColorManager = function () {
                             //now apply the filters and create a THREE color from the information stored in dfColors
                             for (var _i5 = 0; _i5 < df.length; _i5++) {
                                 var color = dfColors[_i5];
-                                //set color boundaries so that the colors are heatmap like
-                                var upperColorBoundary = 0; //equals red //what the highest value will get
-                                var lowerColorBoundary = 0.7; //equals blue //what the lowest value will get
-
-                                //------------------------//
-                                //     heatmap filter     //
-                                //------------------------//
-
-                                //assume the hue is stored in dfColors
-                                color = parseFloat(color);
-                                color = (color - clrMin) / (clrMax - clrMin); //normalize
-                                if (labeled) {
-                                    //labeled data (each class gets a different color)
-                                    //prevent two labels being both red (0 and 1 as hue)
-                                    color = color * (1 - 1 / numberOfLabels);
-                                    color = (color - 0.06) % 1; //shift the hue for more interesting colors
-                                } else {
-                                    //heatmap
-                                    //make sure all the colors are within the defined range
-                                    color = color * (1 - lowerColorBoundary - (1 - upperColorBoundary)) + lowerColorBoundary;
-                                }
-
                                 //store that color
-                                dfColors[_i5] = new this.THREE.Color(0).setHSL(color, 0.95, 0.55);
+                                dfColors[_i5] = this.convertToHeat(color, clrMin, clrMax);
                             }
                         }
                 } else {

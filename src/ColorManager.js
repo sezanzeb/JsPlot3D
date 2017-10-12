@@ -192,33 +192,8 @@ export default class ColorManager
                 for(let i = 0;i < df.length; i++)
                 {
                     let color = dfColors[i]
-                    //set color boundaries so that the colors are heatmap like
-                    let upperColorBoundary = 0 //equals red //what the highest value will get
-                    let lowerColorBoundary = 0.7 //equals blue //what the lowest value will get
-                        
-                    //------------------------//
-                    //     heatmap filter     //
-                    //------------------------//
-
-                    //assume the hue is stored in dfColors
-                    color = parseFloat(color)
-                    color = (color-clrMin)/(clrMax-clrMin) //normalize
-                    if(labeled)
-                    {
-                        //labeled data (each class gets a different color)
-                        //prevent two labels being both red (0 and 1 as hue)
-                        color = color*(1-1/numberOfLabels)
-                        color = (color-0.06)%1 //shift the hue for more interesting colors
-                    }
-                    else
-                    {
-                        //heatmap
-                        //make sure all the colors are within the defined range
-                        color = color * (1 - lowerColorBoundary - (1-upperColorBoundary)) + lowerColorBoundary
-                    }
-                    
                     //store that color
-                    dfColors[i] = new this.THREE.Color(0).setHSL(color,0.95,0.55)
+                    dfColors[i] = this.convertToHeat(color,clrMin,clrMax)
                 }
             }
         }

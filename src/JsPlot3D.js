@@ -167,10 +167,9 @@ export class Plot
 
             //might need to recreate the geometry and the matieral
             //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
-            if(this.plotmesh == undefined || this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != "PlaneGeometry")
+            if(!this.IsPlotmeshValid() || this.plotmesh.geometry.type != "PlaneGeometry")
             {
-                if(this.plotmesh != undefined)
-                    this.scene.remove(this.plotmesh)
+                this.disposeMesh(this.plotmesh)
 
                 //create plane, divided into segments
                 let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
@@ -597,8 +596,7 @@ export class Plot
         this.resetCalculation()
         if(this.plotmesh != undefined)
         {
-            this.scene.remove(this.plotmesh)
-            this.plotmesh = undefined
+            this.disposeMesh(this.plotmesh)
         }
 
         //-------------------------//
@@ -752,6 +750,7 @@ export class Plot
                     }
                 }
 
+            this.disposeMesh(this.plotmesh)
             this.plotmesh = cubegroup
             this.scene.add(cubegroup)
             this.benchmarkStamp("made a bar chart")
@@ -800,7 +799,7 @@ export class Plot
         {
             if(mode != "scatterplot" && mode != undefined)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
-
+                
             //-------------------------//
             //       scatterplot       //    
             //-------------------------//
@@ -839,12 +838,53 @@ export class Plot
             })
             //material.color.set(0x2faca3)
             let particles = new THREE.Points(geometry, material)
+            this.disposeMesh(this.plotmesh)
             this.plotmesh = particles
             this.scene.add(particles)
             this.benchmarkStamp("made a scatterplot")
         }
     }
 
+
+
+    /**
+     * if plotmesh is invalid it gets clered
+     * @return returns true if plotmesh is still valid and existant
+     */
+    IsPlotmeshValid()
+    {
+        let invalid = (this.redraw == true || this.plotmesh == undefined || this.plotmesh.geometry == undefined)
+        if(invalid)
+        {
+            this.disposeMesh(this.plotmesh)
+            return false
+        }
+        return true
+    }
+
+
+
+    /**
+     * frees memory and removes the plotmesh (by making it available for the garbage collegtor)
+     */
+    disposeMesh(mesh)
+    {
+        if(mesh != undefined)
+        {
+            if(mesh.geometry != undefined)
+            {
+                mesh.geometry.dispose()
+                mesh.material.dispose()
+            }
+            
+            //recursively clear the children
+            for(let i = 0;i < mesh.children; i++)
+                this.disposeMesh(mesh.cildren[i])
+
+            this.scene.remove(mesh)
+            mesh = undefined
+        }
+    }
 
 
     /**
@@ -869,8 +909,6 @@ export class Plot
      */
     setAxesColor(color)
     {
-        if(this.axes != undefined)
-            this.scene.remove(this.axes)
         this.axes = this.createAxes(color)
         this.render()
     }
@@ -920,10 +958,13 @@ export class Plot
         if(typeof(dimensions) != "object")
             return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen")
 
+        if(dimensions.xRes <= 0 || dimensions.zRes <= 0)
+            return console.error("xRes and zRes have to be positive. xRes:"+dimensions.xRes+" zRes:"+dimensions.zRes)
+
         if(dimensions.xRes != undefined)
-            this.xRes = dimensions.xRes
+            this.xRes = parseInt(dimensions.xRes)
         if(dimensions.zRes != undefined)
-            this.zRes = dimensions.zRes
+            this.zRes = parseInt(dimensions.zRes)
         if(dimensions.xLen != undefined)
             this.xLen = dimensions.xLen
         if(dimensions.yLen != undefined)
@@ -935,8 +976,7 @@ export class Plot
         this.zVerticesCount = this.zLen*this.zRes+1
 
         //vertices counts changed, so the mesh has to be recreated
-        this.scene.remove(this.plotmesh)
-        this.plotmesh = false //trigger recreation next time .Plot...() gets called
+        this.redraw = true
 
         //takes effect once the mesh gets created from new
     }
@@ -1104,6 +1144,8 @@ export class Plot
      */
     createAxes(color="0x000000")
     {
+        this.disposeMesh(this.axes)
+
         let colorObject = this.ColorManager.getColorObjectFromAnyString(color)
         if(colorObject != undefined)
             color = colorObject
