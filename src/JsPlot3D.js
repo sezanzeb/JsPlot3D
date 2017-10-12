@@ -58,7 +58,6 @@ export class Plot
         this.createLight()
         this.createAxes(axesColor)
         this.createArcCamera()
-        this.render()
 
         //this.enableBenchmarking()
 
@@ -203,14 +202,25 @@ export class Plot
             //https://github.com/mrdoob/three.js/issues/972
             let y = 0
             let vIndex = 0
-            for(let z = this.zVerticesCount-1; z >= 0; z--)
-                for(let x = 0; x < this.xVerticesCount; x++)
+
+            //to counter the need for dividing each iteration
+            let x1Actual = 0 //x
+            let x3Actual = (this.zVerticesCount-1)/this.zRes //z
+            let x1ActualStep = 1/this.xRes
+            let x3ActualStep = 1/this.zRes
+            for(let z = this.zVerticesCount-1; z >= 0; z-=1)
+            {
+                for(let x = 0; x < this.xVerticesCount; x+=1)
                 {
-                    y = this.f(x/this.xRes,z/this.xRes)
+                    y = this.f(x1Actual,x3Actual)
                     this.plotmesh.geometry.vertices[vIndex].y = y
                     this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
                     vIndex ++
+                    x1Actual += x1ActualStep
                 }
+                x1Actual = 0
+                x3Actual -= x3ActualStep
+            }
                 
             //normals need to be recomputed so that the lighting works after the transformation
             this.plotmesh.geometry.computeFaceNormals()
@@ -872,10 +882,11 @@ export class Plot
         if(mesh != undefined)
         {
             if(mesh.geometry != undefined)
-            {
                 mesh.geometry.dispose()
+            if(mesh.material != undefined)
                 mesh.material.dispose()
-            }
+            if(mesh.texture != undefined)
+                mesh.texture.dispose()
             
             //recursively clear the children
             for(let i = 0;i < mesh.children; i++)
@@ -898,7 +909,7 @@ export class Plot
             this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(color))
         else
             this.renderer.setClearColor(color)
-        this.render()
+        //this.render()
     }
 
     
@@ -910,7 +921,7 @@ export class Plot
     setAxesColor(color)
     {
         this.axes = this.createAxes(color)
-        this.render()
+        //this.render()
     }
 
     
@@ -1192,33 +1203,48 @@ export class Plot
         this.scene.add(box)*/
     }
 
-
+    
+    
 
     /**
-     * function that is used when calculating the x3 values f(x1, x2)
+     * function that is used when calculating the x3 values f(x1, x3)
      * @private
      * 
      * @param {number} x1        x1 value in the coordinate system
-     * @param {number} x2        x2 value in the coordinate system
+     * @param {number} x3        x3 value in the coordinate system
      */
-    f(x1, x2)
+    f(x1, x3)
     {
-        if(x1 < 0 || x2 < 0 || x1 > this.xLen || x2 > this.zLen)
+        return this.MathParser.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
+    }
+
+
+
+    /**
+     * helper for f(x1,x3) in case there is recursion
+     * @private
+     * 
+     * @param {number} x1        x1 value in the coordinate system
+     * @param {number} x3        x3 value in the coordinate system
+     */
+    frec(x1, x3)
+    {
+        if(x1 < 0 || x3 < 0 || x1 > this.xLen || x3 > this.zLen)
             return 0
 
         //checking for a point if it has been calculated already increases the performance and
         //reduces the number of recursions.
         
-        let val = this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x2*this.zRes)]
+        let val = this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x3*this.zRes)]
 
         if(val == undefined) //has this point has already been calculated before?
         {
             if(!this.stopRecursion)
                 //bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
                 //another solution would be probably if I would just hand the variables over to MathParser
-                val = this.MathParser.eval2(this.parsedFormula, x1, x2, this.f.bind(this))
+                val = this.MathParser.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
             
-            this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x2*this.zRes)] = val
+            this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x3*this.zRes)] = val
         }
 
         //val might return NaN for Math.sqrt(-1)

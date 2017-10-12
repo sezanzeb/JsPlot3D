@@ -9,7 +9,7 @@ export default class MathParser
      * @param {String} c Code to be evaluated 
      * @param {Number} x1 first parameter of f(x1,x2)
      * @param {Number} x2 second parameter of f(x1,x2)
-     * @param {Function} f function f(x1,x2) as object. e.g. function(x1,x2){return x1+x2}
+     * @param {Function} f function f(x1,x2) as object. e.g. function(x1,x2){return x1+x2}, Needed for recursive calls
      */
     eval2(c, x1, x2, f)
     {
