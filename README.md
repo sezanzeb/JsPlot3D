@@ -7,7 +7,7 @@ It is written in ES6 syntax and compiled using webpack.
 default branch: "threejs"
 
 
-## Building 3DPlotBundle.js
+## Building JsPlot3D.js
 
     npm install
     npm start

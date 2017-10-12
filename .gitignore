@@ -58,4 +58,4 @@ typings/
 .env
 
 # ignore bundle
-3DPlotBundle.js
+compiled/JsPlot3D.js
