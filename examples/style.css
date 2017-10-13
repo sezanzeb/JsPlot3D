@@ -6,7 +6,7 @@ body
     text-align: center;
 }
 
-.jsP3D_labels
+.jsP3D_legend
 {
     margin: 10px 0px 0px 0px;
     border: 1px solid #fff;
@@ -17,12 +17,27 @@ body
     margin-left: 20px;
 }
 
-.jsP3D_labelColor {
+.jsP3D_legend h1
+{
+    margin: 0px 0px 5px;
+    font-size: 20px;
+    border-bottom: 1px solid white;
+    padding: 5px 0px 7px;
+}
+
+.jsP3D_labelColor
+{
     width: 10px;
     height: 10px;
     display: block;
     border-radius: 100%;
     margin-right: 10px;
+}
+
+.jsP3D_axesTitleLegend
+{
+    width: 100%;
+    margin-top: 4px;
 }
 
 #main
@@ -71,7 +86,7 @@ small p
     padding: 12px 15px;
 }
 
-.indices 
+.indices
 {
     margin-left: 6px;
     width:50px;

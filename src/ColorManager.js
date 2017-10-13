@@ -2,7 +2,7 @@ export default class ColorManager
 {
     /**
      * handles a few color related tasks
-     * @param {object} THREE three.js framework object. TODO make a better description on how to get this object 
+     * @param {object} THREE three.js framework object. TODO make a better description on how to get this object
      */
     constructor(THREE)
     {
@@ -29,12 +29,12 @@ export default class ColorManager
         //heatmap
         //make sure all the colors are within the defined range
         value = value * (1 - lowerColorBoundary - (1-upperColorBoundary)) + lowerColorBoundary
-        
+
         //return that color
         return new this.THREE.Color(0).setHSL(value,0.95,0.55)
     }
 
-    
+
     /**
      * returns dfColors. An array, indexes are the same as the vertices of the
      * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
@@ -150,7 +150,7 @@ export default class ColorManager
                         for(let i = 0; i < df.length; i++)
                             dfColors[i] =  new this.THREE.Color(df[i][colorCol])
                     }
-                    else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0) 
+                    else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0)
                     {
                         for(let i = 0; i < df.length; i++)
                         {
@@ -164,9 +164,9 @@ export default class ColorManager
                         //nothing worked, print a warning
 
                         console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
-                            "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" (might be false "+
-                            "because plotCsvString() already removed the headers). Possible formats for this column are numbers, hex values "+
-                            "\"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". Now assuming labeled = true and restarting.")
+                            "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" Possible formats "+
+                            "for this column are numbers, hex values \"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". "+
+                            "Now assuming labeled = true and restarting.")
 
                         //restart. Tell the Plot class to restart
                         return -1
@@ -208,7 +208,7 @@ export default class ColorManager
                     //store that color
                     dfColors[i] = this.convertToHeat(color,clrMin,clrMax)
                 }
-                
+
                 //CASE 3 dfColors now contains a heatmap
                 return {labelColorMap,dfColors}
             }
@@ -230,7 +230,7 @@ export default class ColorManager
             //colorCol is -1
             for(let i = 0; i < df.length; i++)
                 dfColors[i] = this.getColorObjectFromAnyString(defaultColor)
-                
+
             //CASE 5 dfColors now contains all the same color
             return {labelColorMap,dfColors}
         }
@@ -240,7 +240,7 @@ export default class ColorManager
 
     /**
      * converts the param color to a this.THREE.Color object
-     * @param {any} color examples: "rgb(0,0.5,1)" "hsl(0.3,0.4,0.7)" 0xff6600 "#72825a" 
+     * @param {any} color examples: "rgb(0,0.5,1)" "hsl(0.3,0.4,0.7)" 0xff6600 "#72825a"
      */
     getColorObjectFromAnyString(color)
     {
@@ -262,7 +262,7 @@ export default class ColorManager
             //hex strings are supported by three.js right away
             return new this.THREE.Color(color)
         }
-        else if(color.toLowerCase().indexOf("hsl") == 0) 
+        else if(color.toLowerCase().indexOf("hsl") == 0)
         {
             //remove "hsl", brackets and split it into an array of [r,g,b]
             let hsl = color.substring(4,color.length-1).split(",")

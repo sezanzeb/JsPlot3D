@@ -2,7 +2,7 @@
 
 <div class="container" id="JsPlot3DContainer1"></div>
 <div id="JsPlot3DContainer1Legend"></div>
-<p>3 Classes should be visible in 3 different colors (blue, green and red), 
+<p>3 Classes should be visible in 3 different colors (blue, green and red),
 <font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font>.<br/>
 Below the 3D Space there should be a legend, consisting of three rows that say "tree", "flower" and "painting". To the left colored dots.</p>
 
@@ -10,7 +10,7 @@ Below the 3D Space there should be a legend, consisting of three rows that say "
 <div class="container" id="JsPlot3DContainer3"></div><br/>
 <div class="container" id="JsPlot3DContainer4"></div>
 <div class="container" id="JsPlot3DContainer5"></div>
-<p>They should be colored from black to white</font>, 
+<p>They should be colored from black to white</font>,
 <font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and look the same.</p>
 
 
@@ -89,7 +89,7 @@ Below the 3D Space there should be a legend, consisting of three rows that say "
 
         console.log()
         console.log("plot1")
-        
+
         var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"))
         plot1.setBackgroundColor("rgb(0.15,0.35,0.7)")
         plot1.setAxesColor("hsl(0.1667,1,0.5)")
@@ -153,19 +153,29 @@ Below the 3D Space there should be a legend, consisting of three rows that say "
             filterColor: false
         })
     }
-    
+
 </script>
 <style>
 
-    .jsP3D_labels
+    .jsP3D_legend
     {
         margin: 10px 0px 0px 0px;
-        border: 1px solid #ddd;
+        border: 1px solid black;
         padding: 5px 10px;
         border-radius: 2px;
+        display:inline-block;
     }
 
-    .jsP3D_labelColor {
+    .jsP3D_legend h1
+    {
+        margin: 0px 0px 5px;
+        font-size: 20px;
+        border-bottom: 1px solid white;
+        padding: 5px 0px;
+    }
+
+    .jsP3D_labelColor
+    {
         width: 10px;
         height: 10px;
         display: block;

@@ -2,8 +2,10 @@ var plot = new JSPLOT3D.Plot(document.getElementById("threecanvas"), {
     backgroundColor:"#33404c",
     axesColor:"#ffffff"
 })
+plot.createLegend(document.getElementById("Legend"))
 var decodedData = ""
 var cached = false
+var name = ""
 
 //plot the formula
 document.getElementById("formulaForm").addEventListener("submit",function(e)
@@ -34,13 +36,14 @@ document.getElementById("submitcsv").addEventListener("click",function(e)
             if(!cached)
             {
                 decodedData = atob(e.target.result.split("base64,")[1])
+                name = file.name
                 cached = true
             }
             else
             {
                 console.log("using cached data")
             }
-            
+
             plotcsv()
         }
     }
@@ -63,11 +66,9 @@ function plotcsv()
         normalizeX2: true,
         normalizeX3: true,
         mode: "scatterplot",
-        title: "",
+        title: name,
         fraction: 1,
         labeled: false,
-        header: true,
         hueOffset: 0.3
     })
-    plot.createLegend(document.getElementById("Legend"))
 }

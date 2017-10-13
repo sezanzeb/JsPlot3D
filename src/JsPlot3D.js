@@ -16,7 +16,7 @@ export class Plot
     /**
      * Creates a Plot instance, so that a single canvas can be rendered. After calling this constructor, rendering can
      * be done using plotFormula(s), plotCsvString(s) or plotDataFrame(df)
-     * 
+     *
      * @param {object} container     html div DOM element which can then be selected using
      *                               - Plot(document.getElementById("foobar"))
      * @param {json}   options       at least one of backgroundClr or axesClr in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc
@@ -52,7 +52,7 @@ export class Plot
         this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(backgroundColor))
         this.scene = new THREE.Scene()
         this.setContainer(container)
-        
+
         //boundaries and dimensions of the plot data
         this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
         this.createLight()
@@ -61,7 +61,7 @@ export class Plot
 
         this.legend = {}
         this.legend.element = document.createElement("div")
-        this.legend.element.className = "JsPlot3DLegend"
+        this.legend.element.className = "jsP3D_legend"
         this.legend.title = ""
         this.legend.x1title = ""
         this.legend.x2title = ""
@@ -76,7 +76,7 @@ export class Plot
 
     /**
      * appends the legend to a specific container. Make sure tostyle it because otherwise the colored span elements will not be visible.
-     * @param {DOM} container 
+     * @param {DOM} container
      */
     createLegend(container)
     {
@@ -97,13 +97,13 @@ export class Plot
 
     /**
      * plots a formula into the container
-     * 
+     *
      * @param {string}  originalFormula string of formula
      * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed. Default: "polygon"
      * @param {number}  elementSize (optional). In case mode is "scatterplot" it changes the size of the datapoints. In the case of "barchart" it changes the padding between the bars between 0 and 1.
      */
     plotFormula(originalFormula, mode="polygon", elementSize)
-    {       
+    {
         if(originalFormula == undefined || originalFormula == "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
         if(typeof(originalFormula) != "string")
@@ -111,7 +111,7 @@ export class Plot
 
         this.resetCalculation()
         this.parsedFormula = this.MathParser.parse(originalFormula)
-        
+
         if(mode == "scatterplot") //3D-Plane
         {
 
@@ -180,7 +180,7 @@ export class Plot
                 normalizeX2: false,
                 barchartPadding: elementSize
             }
-            
+
             //continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
         }
@@ -251,20 +251,20 @@ export class Plot
                 x1Actual = 0
                 x3Actual -= x3ActualStep
             }
-                
+
             //normals need to be recomputed so that the lighting works after the transformation
             this.plotmesh.geometry.computeFaceNormals()
             this.plotmesh.geometry.computeVertexNormals()
             this.plotmesh.geometry.__dirtyNormals = true
             //make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
-            
+
             this.makeSureItRenders()
         }
     }
-    
-    
-    
+
+
+
     /**
      * plots a .csv string into the container
      *
@@ -276,7 +276,7 @@ export class Plot
      * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - mode {string}: "barchart" or "scatterplot"
-     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information. 
+     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
      *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
      *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
      *                      Integers that are used as class for labeled data would result in various different hues in the same way.
@@ -294,7 +294,7 @@ export class Plot
      * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
-     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated 
+     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
      *                      as if it was a color. (converted to hexadecimal then). Default false
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
@@ -304,7 +304,7 @@ export class Plot
     plotCsvString(sCsv, x1col, x2col, x3col, options)
     {
         //---------------------------//
-        //  parameter type checking  //    
+        //  parameter type checking  //
         //---------------------------//
 
         //a more complete checking will be done in plotDataFrame once the dataframe is generated.
@@ -364,7 +364,7 @@ export class Plot
         this.benchmarkStamp("start")
 
         //-------------------------//
-        //         caching         //    
+        //         caching         //
         //-------------------------//
 
         //still the same data?
@@ -380,13 +380,19 @@ export class Plot
         //now check if the checksum changed. If yes, remake the dataframe from the input
         if(this.dfCache == undefined || this.dfCache.checkstring != checkstring)
         {
+
+            //-------------------------//
+            //       creating df       //
+            //-------------------------//
+            //and caching it afterwards
+
             //new csv arrived:
 
             //transform the sCsv string to a dataframe
             let data = sCsv.split("\n")
-            data = data.slice(0,data.length-data.length*(1-fraction))
-            let headerRow = ""
-            
+            if(fraction <= 1)
+                data = data.slice(0,data.length-data.length*(1-fraction))
+
             if(data[0] == "") //to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
             //This probably happens when the csv data starts one line below the opening bracket of the Element
                 data = data.slice(-(data.length-1))
@@ -401,52 +407,20 @@ export class Plot
 
                 if(data[0].indexOf(separator) == -1)
                     separator = ","
-                    
+
                 if(data[0].indexOf(separator) == -1)
                     return console.error("no csv separator/delimiter was detected. Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
 
-                
+
                 console.warn("the specified separator/delimiter was not found. Tried to detect it and came up with \""+separator+"\". Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
             }
 
-            if(options["header"] == undefined)
+            for(let i = 0;i < data.length; i ++)
             {
-                //find out automatically if they are headers or not
-                //take x1col, check first line type (string/NaN?) then second line type (number/!NaN?)
-                //if both are yes, it's probably header = true
-                if(isNaN(data[0].split(separator)[x1col]) && !isNaN(data[1].split(separator)[x1col]))
-                {
-                    console.log("detected headers, first csv line is not going to be plotted therefore. To prevent this, set header=false")
-                    header = true
-                }
-            }
-
-            if(header)
-            {
-                headerRow = data[0]
-                //remove leading and ending whitespaces in headers
-                for(let j = 0;j < headerRow.length; j++)
-                   headerRow[j].trim()
-
-                //start at line index 1 to skip the header
-                for(let i = 1;i < data.length; i ++)
-                {
-                    data[i-1] = data[i].split(separator) //overwrite the header (-1)
-                    //remove leading and ending whitespaces in data
-                    for(let j = 0;j < data[i].length; j++)
-                        data[i][j].trim()
-                }
-                data.pop() //because there will be one undefined value in the array
-            }
-            else
-            {
-                for(let i = 0;i < data.length; i ++)
-                {
-                    data[i] = data[i].split(separator)
-                    //remove leading and ending whitespaces in data
-                    for(let j = 0;j < data[i].length; j++)
-                        data[i][j].trim()
-                }
+                data[i] = data[i].split(separator)
+                //remove leading and ending whitespaces in data
+                for(let j = 0;j < data[i].length; j++)
+                    data[i][j].trim()
             }
 
             //cache the dataframe. If the same dataframe is used next time, don't parse it again
@@ -457,8 +431,8 @@ export class Plot
             this.benchmarkStamp("created the dataframe and cached it")
 
             //plot the dataframe.
-            options.header = false //header is already removed
             options.fraction = 1 //Fraction is now 1, because the fraction has already been taken into account
+
 
             this.plotDataFrame(data, x1col, x2col, x3col, options)
         }
@@ -471,9 +445,9 @@ export class Plot
             this.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, options)
         }
     }
-    
 
-    
+
+
     /**
      * plots a dataframe on the canvas element which was defined in the constructor of Plot()
      *
@@ -484,7 +458,7 @@ export class Plot
      * @param {object}  options     json object with one or more of the following parameters:
      * - mode {string}: "barchart" or "scatterplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
-     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information. 
+     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
      *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
      *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
      *                      Integers that are used as class for labeled data would result in various different hues in the same way.
@@ -502,7 +476,7 @@ export class Plot
      * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
-     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated 
+     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
      *                      as if it was a color. (converted to hexadecimal then). Default false
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
@@ -537,6 +511,7 @@ export class Plot
         let maxX3=1
         let hueOffset=0
 
+
         //when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
         //it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
         //because sometimes I am calculating a dataframe from a formula and then convert it to that [x][z] shape
@@ -550,7 +525,7 @@ export class Plot
                 return false//not defined in the (optional) options, don't do anything then
             let a = (variable == true || variable == false)
             if(!a)
-            { errorParamType(varname, variable, "boolean"); return false }   
+            { errorParamType(varname, variable, "boolean"); return false }
             return(a) //returns true (valid) or false
         }
         let checkNumber = (varname, variable) => { //returns true if it is a number, false if it is either not defined or not a number
@@ -616,7 +591,7 @@ export class Plot
                 dfIsA2DMap = options.dfIsA2DMap
             if(checkBoolean("filterColor",options.filterColor))
                 filterColor = options.filterColor
-                
+
             //check everything else
             if(options.title != undefined)
                 title = options.title
@@ -631,7 +606,9 @@ export class Plot
             if(options.x3title != undefined)
                 x3title = options.x3title
         }
-        
+
+
+
 
         if(checkNumber("x1col",x1col))
             x1col = parseFloat(x1col)
@@ -654,7 +631,39 @@ export class Plot
             x2col = Math.min(x2col,maximumColumn)
             x3col = Math.min(x3col,maximumColumn)
         }
-        
+
+
+
+
+        if(options.header == undefined)
+        {
+            //find out automatically if they are headers or not
+            //take x1col, check first line type (string/NaN?) then second line type (number/!NaN?)
+            //if both are yes, it's probably header = true
+            if(isNaN(df[0][x1col]) && !isNaN(df[1][x1col]))
+            {
+                console.log("detected headers, first csv line is not going to be plotted therefore. To prevent this, set header=false")
+                header = true
+            }
+        }
+
+        if(header)
+        {
+            let headerRow = df[0]
+            console.log(headerRow)
+            //still set to default values?
+            if(x1title == "x1")
+                x1title = headerRow[x1col]
+            if(x2title == "x2")
+                x2title = headerRow[x2col]
+            if(x3title == "x3")
+                x3title = headerRow[x3col]
+            //remove the header from the dataframe. Usually you would just change the starting pointer for
+            //the array. don't know if something like that exists in javascript
+            df = df.slice(1,df.length)
+        }
+
+
 
         //remove the old mesh (deprecated, IsPlotmeshValid() now takes care of that)
         /*this.resetCalculation()
@@ -664,27 +673,32 @@ export class Plot
         }*/
 
         //-------------------------//
-        //     coloring labels     //    
+        //     coloring labels     //
         //-------------------------//
         //creates an array "dfColors" that holds the color information
         //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
 
         let colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
-        let dfColors = colorMap.dfColors
         if(colorMap == -1)
         {
-            //ColorManager tells us to restart
+            //colorManager wants us to restart using labeled = true
             labeled = true
             options.labeled = labeled
-            this.plotDataFrame(df, x1col, x2col, x3col, options)
-            return
+            colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
         }
+        let dfColors = colorMap.dfColors
 
         //update the legend with the label color information
         if(colorMap.labelColorMap != {})
         {
+            //open legend, add title
             let legendColorHTML = ""
-            legendColorHTML += "<table class=\"jsP3D_labels\">" //can't append to innerHTML directly for some funny reason
+            if(title != undefined && title != "")
+                legendColorHTML += "<h1>"+title+"</h1>"
+
+
+            //label colors:
+            legendColorHTML += "<table class=\"jsP3D_labelColorLegend\">" //can't append to innerHTML directly for some funny reason
             for(let key in colorMap.labelColorMap)
             {
                 legendColorHTML += "<tr>"
@@ -693,13 +707,25 @@ export class Plot
                 legendColorHTML += "</tr>"
             }
             legendColorHTML += "</table>"
+
+            //axes titles:
+            legendColorHTML += "<table class=\"jsP3D_axesTitleLegend\">"
+            if(x1title != undefined)
+                legendColorHTML += "<tr><td>x:</td><td>"+x1title+"</td></tr>"
+            if(x2title != undefined)
+                legendColorHTML += "<tr><td>y:</td><td>"+x2title+"</td></tr>"
+            if(x3title != undefined)
+                legendColorHTML += "<tr><td>z:</td><td>"+x3title+"</td></tr>"
+            legendColorHTML += "</table>"
+
+            //closing tag of the legend
             this.legend.element.innerHTML = legendColorHTML
         }
 
         //by this point only dfColors stays relevant. So the function above can be easily moved to a different class to clear up the code here
 
         //-------------------------//
-        //       normalizing       //    
+        //       normalizing       //
         //-------------------------//
         //finds out by how much the values (as well as colors) to divide and for the colors also a displacement
 
@@ -738,13 +764,13 @@ export class Plot
         }
 
         this.benchmarkStamp("normalized the data")
-        
+
         if(mode == "barchart")
         {
             //-------------------------//
-            //        Bar Chart        //    
+            //        Bar Chart        //
             //-------------------------//
-            
+
             //if needed, reconstruct the barchart
             if(!this.IsPlotmeshValid())
             {
@@ -756,7 +782,7 @@ export class Plot
                 let barZWidth = 1/this.zRes
                 if(barchartPadding > barXWidth || barchartPadding > barZWidth)
                     console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth,barZWidth))
-                    
+
                 for(let x = 0; x < this.xVerticesCount; x++)
                     for(let z = 0; z < this.zVerticesCount; z++)
                     {
@@ -764,7 +790,7 @@ export class Plot
                         //unfortunatelly i have to approximate a height of 0 by using 0.001
                         let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding,0.001,1/this.zRes-barchartPadding)
                         //shape.translate(x/this.xRes,0,z/this.zRes) //move it to the right position
-    
+
                         let plotmat = new THREE.MeshStandardMaterial({
                             color: 0,
                             emissive: 0,
@@ -774,12 +800,12 @@ export class Plot
                             //faces that point to the top receive the light from the bottom without DoubleSide
                             //(even when changing the culling side depending on y < 0)
                             })
-    
+
                         let bar = new THREE.Mesh(shape,plotmat)
                         bar.position.set(x/this.xRes,0,z/this.zRes)
                         cubegroup.add(bar)
                     }
-                
+
                 this.plotmesh = cubegroup
                 this.scene.add(cubegroup)
                 this.redraw = false
@@ -823,15 +849,15 @@ export class Plot
                         minX2 = barHeights[x][z]
                 }
             }
-            
+
             // 1 divided because it's used for scaling (hopefully gpu accelerated better way of normalizing)
             let normalizationValue = 1/Math.max(maxX2,Math.abs(minX2))
-            
+
             if(!normalizeX2)
                 normalizationValue = 1
             if(normalizationValue == 0)
                 return console.error("your dataframe does not contain any information. The maximum amplitude in your barchart is 0 therefore")
-            
+
             //update all the children
             for(let i = 0;i < this.plotmesh.children.length; i++)
             {
@@ -841,12 +867,13 @@ export class Plot
                 let y = barHeights[x][z]
                 if(y != 0 && y != undefined)
                 {
+                    //color it according to the heatmap color
                     let color = this.ColorManager.convertToHeat(y,minX2,maxX2)
-        
                     bar.material.visible = true
                     bar.material.color.set(color)
                     bar.material.emissive.set(color)
 
+                    //those are the vertex of the barchart that surround the top face
                     bar.geometry.vertices[0].y = y
                     bar.geometry.vertices[1].y = y
                     bar.geometry.vertices[4].y = y
@@ -863,11 +890,11 @@ export class Plot
         {
 
             //-------------------------//
-            //       3D-Mesh Plot      //    
+            //       3D-Mesh Plot      //
             //-------------------------//
 
             //I unfortinatelly think this can't work
-            
+
             //(as long as the datapoint coordinates are not grid like.)
             //if they are, the code would have to detect the resolution and then an easy algorithm can be run over the
             //datapoints to connect triangles with the nearest vertices and leave those out that are not existant
@@ -890,7 +917,7 @@ export class Plot
         {
 
             //-------------------------//
-            //        lineplot         //    
+            //        lineplot         //
             //-------------------------//
 
             //iterate over dataframe datapoints, connect the latest point with the new one
@@ -903,13 +930,13 @@ export class Plot
         {
             if(mode != "scatterplot" && mode != undefined)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
-                
+
             window.setTimeout(()=>this.render(),32)
             //-------------------------//
-            //       scatterplot       //    
+            //       scatterplot       //
             //-------------------------//
-            
-            //This is the default mode  
+
+            //This is the default mode
 
             //plot it using circle sprites
             let geometry = new THREE.Geometry()
@@ -924,7 +951,7 @@ export class Plot
                 vertex.x = df[i][x1col]/maxX1
                 vertex.y = df[i][x2col]/maxX2
                 vertex.z = df[i][x3col]/maxX3
-                geometry.vertices.push(vertex)  
+                geometry.vertices.push(vertex)
                 geometry.colors.push(dfColors[i])
             }
 
@@ -983,7 +1010,7 @@ export class Plot
                 mesh.material.dispose()
             if(mesh.texture != undefined)
                 mesh.texture.dispose()
-            
+
             //recursively clear the children
             for(let i = 0;i < mesh.children; i++)
                 this.disposeMesh(mesh.cildren[i])
@@ -996,7 +1023,7 @@ export class Plot
 
     /**
      * changes the background color and triggers a rerender
-     * @param {string} color 
+     * @param {string} color
      */
     setBackgroundColor(color)
     {
@@ -1008,7 +1035,7 @@ export class Plot
         //this.render()
     }
 
-    
+
 
     /**
      * Creates new axes with the defined color and triggers a rerender
@@ -1020,7 +1047,7 @@ export class Plot
         //this.render()
     }
 
-    
+
 
    /**
      * sets the container of this plot
@@ -1037,7 +1064,7 @@ export class Plot
 
         this.container.appendChild(this.renderer.domElement)
     }
-    
+
 
 
     /**
@@ -1052,9 +1079,9 @@ export class Plot
 
 
     /**
-     * 
+     *
      * @param {object} dimensions json object can contain the following:
-     *                            - xRes number of vertices for the x-axis  
+     *                            - xRes number of vertices for the x-axis
      *                            - zRes number of vertices for the z-axis
      *                            - xLen length of the x-axis. This is for the frame for data normalisation and formula plotting
      *                            - yLen length of the y-axis. This is for the frame for data normalisation and formula plotting
@@ -1079,7 +1106,7 @@ export class Plot
             this.yLen = dimensions.yLen
         if(dimensions.zLen != undefined)
             this.zLen = dimensions.zLen
-            
+
         this.xVerticesCount = this.xLen*this.xRes+1
         this.zVerticesCount = this.zLen*this.zRes+1
 
@@ -1121,8 +1148,8 @@ export class Plot
 
 
 
-    /** 
-     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started 
+    /**
+     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started
      * @private
      */
     resetCalculation()
@@ -1137,7 +1164,7 @@ export class Plot
 
 
 
-    /** 
+    /**
      * updates what is visible on the screen.
      */
     render()
@@ -1149,16 +1176,16 @@ export class Plot
 
     /**
      * tells this object to animate this.
-     * @example 
-     * 
+     * @example
+     *
      * //animation
-     * 
+     *
      *    var i = 0;
      *    plot.animate(function() {
      *        i += 0.01;
      *        plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart");
      *    }.bind(this))
-     * @param {function} animationFunc 
+     * @param {function} animationFunc
      */
     animate(animationFunc)
     {
@@ -1184,7 +1211,7 @@ export class Plot
 
 
 
-    /** 
+    /**
      * enables benchmarking. Results will be printed into the console.
      * To disable it, use: disableBenchmarking(). To print a timestamp to the console, use  this.benchmarkStamp("foobar")
      */
@@ -1197,7 +1224,7 @@ export class Plot
 
 
 
-    /** 
+    /**
      * disables benchmarking. To enable it, use: enableBenchmarking(). To print a timestamp to the console, use  this.benchmarkStamp("foobar")
      */
     disableBenchmarking()
@@ -1216,7 +1243,7 @@ export class Plot
     {
         if(this.benchmark == undefined)
             return
-            
+
         if(this.benchmark.recentTime == -1)
             this.benchmark.recentTime = window.performance.now()
 
@@ -1228,7 +1255,7 @@ export class Plot
     }
 
 
-    /** Creates the camera 
+    /** Creates the camera
      * @private
      */
     createArcCamera()
@@ -1244,7 +1271,7 @@ export class Plot
         //let zoom = 1000
         //let camera = new THREE.OrthographicCamera(width/-zoom, width/zoom, height/-zoom, height/zoom, near, far)
         camera.position.set(0.5,0.6,2)
-        
+
         let controls = new OrbitControls(camera, this.renderer.domElement)
         controls.enableKeys = true
         controls.target.set(0.5,0.5,0.5)
@@ -1265,7 +1292,7 @@ export class Plot
 
 
     /**
-     * takes care of creating the light 
+     * takes care of creating the light
      * @private
      */
     createLight()
@@ -1279,7 +1306,7 @@ export class Plot
         this.scene.add(directionalLight2)
     }
 
-    
+
 
     /**
      * creates the axes that point into the three x, y and z directions as wireframes
@@ -1319,30 +1346,39 @@ export class Plot
         let axes = new THREE.Mesh(geom, axesMat)
         this.scene.add(axes)
 
-        this.axes = axes
 
-        //a box that adds a few dashed lines to the sides for more orientation (unfinished)
-        //needs to be aligned to xLen, yLen and zLen. Maybe the three planes x1*x2, x2*x3 and x1*x3 should get such dashed lines
-        //not sure yet
-        /*let boxgeom = new THREE.BoxGeometry(1,1,1)
-        boxgeom.translate(0.5,0.5,0.5)
-        let boxmat = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            side: THREE.BackSide,
-            opacity: 0.1,
-            transparent: true
-        })
-        let box = new THREE.Mesh(boxgeom,boxmat)
-        this.scene.add(box)*/
+        //arrows
+
+        let arrowMat = new THREE.MeshBasicMaterial({
+            color: color
+        });
+
+        let arrowGeom = new THREE.ConeGeometry(0.03,0.1,12)
+        let arrowMesh1 = new THREE.Mesh(arrowGeom, arrowMat)
+        let arrowMesh2 = new THREE.Mesh(arrowGeom, arrowMat)
+        let arrowMesh3 = new THREE.Mesh(arrowGeom, arrowMat)
+
+        arrowMesh1.rotateZ(-Math.PI/2)
+        arrowMesh3.rotateX(Math.PI/2)
+
+        arrowMesh1.position.set(this.xLen,0,0)
+        arrowMesh2.position.set(0,this.yLen,0)
+        arrowMesh3.position.set(0,0,this.zLen)
+
+        this.scene.add(arrowMesh1)
+        this.scene.add(arrowMesh2)
+        this.scene.add(arrowMesh3)
+
+        this.axes = axes
     }
 
-    
-    
+
+
 
     /**
      * function that is used when calculating the x3 values f(x1, x3)
      * @private
-     * 
+     *
      * @param {number} x1        x1 value in the coordinate system
      * @param {number} x3        x3 value in the coordinate system
      */
@@ -1356,7 +1392,7 @@ export class Plot
     /**
      * helper for f(x1,x3) in case there is recursion
      * @private
-     * 
+     *
      * @param {number} x1        x1 value in the coordinate system
      * @param {number} x3        x3 value in the coordinate system
      */
@@ -1367,7 +1403,7 @@ export class Plot
 
         //checking for a point if it has been calculated already increases the performance and
         //reduces the number of recursions.
-        
+
         let val = this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x3*this.zRes)]
 
         if(val == undefined) //has this point has already been calculated before?
@@ -1376,7 +1412,7 @@ export class Plot
                 //bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
                 //another solution would be probably if I would just hand the variables over to MathParser
                 val = this.MathParser.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
-            
+
             this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x3*this.zRes)] = val
         }
 
