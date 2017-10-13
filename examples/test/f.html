@@ -9,17 +9,13 @@
         axesColor: 0xffff00
     })
     
-    plot.setDimensions({xRes: 5, zRes: 5})
+    plot.setDimensions({xRes: 20, zRes: 20})
     var i = 1;
-
-    window.setInterval(function()
-    {
-        //plot
+    plot.animate(function() {
         plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart")
-
         i += 0.01
-
-    },33.3333) //30fps
+    }.bind(this))
+    
 </script>
 <style>
 
@@ -27,6 +23,11 @@
     {
         margin: 20px;
         font-family: sans-serif;
+    }
+
+    div,canvas
+    {
+        background: #2659b2;
     }
 
 </style>

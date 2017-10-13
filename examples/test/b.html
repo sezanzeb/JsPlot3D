@@ -10,20 +10,10 @@
     })
     
     var i = 1;
-
-    window.setInterval(function()
-    {
-        //using the setter should not break the animation
-        plot.setDimensions({xRes: parseInt((i*5)%5+10), zRes: parseInt((i*5)%5+10)})
-        plot.setBackgroundColor(0x2266aa)
-        plot.setAxesColor("#ffff00")
-
-        //plot
+    plot.animate(function() {
         plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)")
-
         i += 0.01
-
-    },33.3333) //30fps
+    }.bind(this))
 </script>
 <style>
 
@@ -31,6 +21,11 @@
     {
         margin: 20px;
         font-family: sans-serif;
+    }
+
+    div,canvas
+    {
+        background: #2659b2;
     }
 
 </style>

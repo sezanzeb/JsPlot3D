@@ -3,6 +3,7 @@ const THREE = require("three")
 const OrbitControls = require('three-orbit-controls')(THREE)
 import MathParser from "./MathParser.js"
 import ColorManager from "./ColorManager.js"
+import FormatConverter from "./FormatConverter.js"
 
 
 
@@ -60,10 +61,16 @@ export class Plot
         this.createArcCamera()
 
         //this.enableBenchmarking()
-
-        window.setInterval(()=>this.render(),32)
     }
-    
+
+
+    makeSureItRenders()
+    {
+        //sometimes it renders sometimes it does not (static images)
+        //super problematic. Make sure it gets rendered:
+        for(let i = 0;i < 5; i++)
+            window.setTimeout(()=>this.render(),i*33)
+    }
 
 
     /**
@@ -192,6 +199,7 @@ export class Plot
 
                 this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
                 this.scene.add(this.plotmesh)
+                this.redraw = false //it's very important to to this
             }
             //if not, go ahead and manipulate the vertices
 
@@ -228,7 +236,7 @@ export class Plot
             this.plotmesh.geometry.__dirtyNormals = true
             //make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
-
+            this.makeSureItRenders()
         }
     }
     
@@ -602,12 +610,12 @@ export class Plot
         x3col = Math.min(x3col,maximumColumn)
         
 
-        //remove the old mesh
-        this.resetCalculation()
+        //remove the old mesh (deprecated, IsPlotmeshValid() now takes care of that)
+        /*this.resetCalculation()
         if(this.plotmesh != undefined)
         {
             this.disposeMesh(this.plotmesh)
-        }
+        }*/
 
         //-------------------------//
         //     coloring labels     //    
@@ -674,23 +682,46 @@ export class Plot
             //        Bar Chart        //    
             //-------------------------//
             
-            //plot it using circle sprites
-            let geometry = new THREE.Geometry()
-            let sprite = new THREE.TextureLoader().load(this.dataPointImage)
-            //https://github.com/mrdoob/three.js/issues/1625
-            sprite.magFilter = THREE.LinearFilter
-            sprite.minFilter = THREE.LinearFilter
+            //if needed, reconstruct the barchart
+            if(!this.IsPlotmeshValid())
+            {
+                console.log("create")
+                //plot it using circle sprites
+                let cubegroup = new THREE.Group()
 
-            let cubegroup = new THREE.Group()
-
-            //dimensions of the bars
-            let barXWidth = 1/this.xRes
-            let barZWidth = 1/this.zRes
-            if(barchartPadding > barXWidth || barchartPadding > barZWidth)
-                console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth,barZWidth))
-
-
-            //bars shouldn't overlap but rather fit to the grid. For this a few steps have to be undertaken:
+                //dimensions of the bars
+                let barXWidth = 1/this.xRes
+                let barZWidth = 1/this.zRes
+                if(barchartPadding > barXWidth || barchartPadding > barZWidth)
+                    console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth,barZWidth))
+                    
+                for(let x = 0; x < this.xVerticesCount; x++)
+                    for(let z = 0; z < this.zVerticesCount; z++)
+                    {
+                        //create the bar
+                        //unfortunatelly i have to approximate a height of 0 by using 0.001
+                        let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding,0.001,1/this.zRes-barchartPadding)
+                        //shape.translate(x/this.xRes,0,z/this.zRes) //move it to the right position
+    
+                        let plotmat = new THREE.MeshStandardMaterial({
+                            color: 0,
+                            emissive: 0,
+                            roughness: 1,
+                            visible: false,
+                            side: THREE.DoubleSide //without doubleside the lightening is wrong.
+                            //faces that point to the top receive the light from the bottom without DoubleSide
+                            //(even when changing the culling side depending on y < 0)
+                            })
+    
+                        let bar = new THREE.Mesh(shape,plotmat)
+                        bar.position.set(x/this.xRes,0,z/this.zRes)
+                        cubegroup.add(bar)
+                    }
+                
+                this.plotmesh = cubegroup
+                this.scene.add(cubegroup)
+                this.redraw = false
+            }
 
 
             //now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
@@ -702,11 +733,14 @@ export class Plot
                 maxX2 = 0 //reset max height, as it will be overwritten
 
             //fill the barHeights array with the added heights of the bars
+            //maxX1 and maxX3 are the results of the normalization that happens for plot mode
+            let factorX1 = maxX1/this.xRes
+            let factorX3 = maxX3/this.zRes
             for(let i = 0; i < df.length; i ++)
             {
-                //get coordinates that can fit into an array tis.x
-                let x = parseInt(df[i][x1col]/maxX1*this.xRes)
-                let z = parseInt(df[i][x3col]/maxX3*this.zRes)
+                //get coordinates that can fit into an array
+                let x = parseInt(df[i][x1col]/factorX1)
+                let z = parseInt(df[i][x3col]/factorX3)
 
                 let y = parseFloat(df[i][x2col]) //don't normalize yet
 
@@ -728,43 +762,40 @@ export class Plot
                 }
             }
             
-            let normalizationValue = Math.max(maxX2,Math.abs(minX2))
+            // 1 divided because it's used for scaling (hopefully gpu accelerated better way of normalizing)
+            let normalizationValue = 1/Math.max(maxX2,Math.abs(minX2))
+            
             if(!normalizeX2)
                 normalizationValue = 1
             if(normalizationValue == 0)
                 return console.error("your dataframe does not contain any information. The maximum amplitude in your barchart is 0 therefore")
-
-            //now iterate over the barHeights array and plot the bars according to their stored height
-            for(let x = 0; x < barHeights.length; x++)
-                for(let z = 0; z < barHeights[x].length; z++)
+            
+            //update all the children
+            for(let i = 0;i < this.plotmesh.children.length; i++)
+            {
+                let bar = this.plotmesh.children[i]
+                let x = parseInt(bar.position.x*this.xRes)
+                let z = parseInt(bar.position.z*this.zRes)
+                let y = barHeights[x][z]
+                if(y != 0 && y != undefined)
                 {
-                    //retreive the bar height and nomralize it
-                    let y = barHeights[x][z]/normalizationValue //now normalize
-                    
-                    if(!isNaN(y) && y != undefined)
-                    {
-                        //create the bar
-                        let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding,Math.abs(y),1/this.zRes-barchartPadding)
-                        shape.translate(x/this.xRes,y/2,z/this.zRes) //move it to the right position
+                    let color = this.ColorManager.convertToHeat(y,minX2,maxX2)
+        
+                    bar.material.visible = true
+                    bar.material.color.set(color)
+                    bar.material.emissive.set(color)
 
-                        //get a heatmap like color scheme
-                        let color = this.ColorManager.convertToHeat(y,minX2/normalizationValue,maxX2/normalizationValue)
-    
-                        let plotmat = new THREE.MeshStandardMaterial({
-                            color: color,
-                            emissive: color,
-                            roughness: 1,
-                            })
-    
-                        cubegroup.add(new THREE.Mesh(shape,plotmat))
-                    }
+                    bar.geometry.vertices[0].y = y
+                    bar.geometry.vertices[1].y = y
+                    bar.geometry.vertices[4].y = y
+                    bar.geometry.vertices[5].y = y
+                    bar.scale.set(1,normalizationValue,1)
+                    bar.geometry.verticesNeedUpdate = true
+                    //no need to recompute normals, because they still face in the same direction
                 }
+            }
 
-            this.disposeMesh(this.plotmesh)
-            this.plotmesh = cubegroup
-            this.scene.add(cubegroup)
             this.benchmarkStamp("made a bar chart")
-
         }
         else if(mode == "polygon")
         {
@@ -786,9 +817,10 @@ export class Plot
             //because edges should not cross each other. It would be ridiculously complex and I really don't have the time for that during my studies
 
             //one could also:
-            //1. align the scattered datapoints to a grid (interpolated, that means add the datapoints y-value to nearby grid positions mulitplied with the distance)
+            //1. align the scattered datapoints to a grid (interpolated, that means add the datapoints y-value to nearby grid positions mulitplied with (1-distance))
             //2. connect triangles when datapoints are directly next to each other (go clockwise around the grid positions that are one step away)
             //3. datapoints that are still don't connected to anything receive a circle sprite OR connect themself to the 2 nearest vertices
+            //the grid resolution would determine how well the polygon can connect
 
 
         }
@@ -810,10 +842,11 @@ export class Plot
             if(mode != "scatterplot" && mode != undefined)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
                 
+            window.setTimeout(()=>this.render(),32)
             //-------------------------//
             //       scatterplot       //    
             //-------------------------//
-                
+            
             //This is the default mode  
 
             //plot it using circle sprites
@@ -853,6 +886,7 @@ export class Plot
             this.scene.add(particles)
             this.benchmarkStamp("made a scatterplot")
         }
+        this.makeSureItRenders()
     }
 
 
@@ -863,7 +897,7 @@ export class Plot
      */
     IsPlotmeshValid()
     {
-        let invalid = (this.redraw == true || this.plotmesh == undefined || this.plotmesh.geometry == undefined)
+        let invalid = (this.redraw == true || this.plotmesh == undefined || (this.plotmesh.geometry == undefined && this.plotmesh.children == undefined))
         if(invalid)
         {
             this.disposeMesh(this.plotmesh)
@@ -1041,12 +1075,48 @@ export class Plot
 
 
     /** 
-     * updates what is visible on the screen. This needs to be called after a short delay of a few ms after the plot was updated 
-     * @example window.setTimeout(()=>this.render(),10) //(es6 syntax)
+     * updates what is visible on the screen.
      */
     render()
     {
         this.renderer.render(this.scene, this.camera)
+    }
+
+
+
+    /**
+     * tells this object to animate this.
+     * @example 
+     * 
+     * //animation
+     * 
+     *    var i = 0;
+     *    plot.animate(function() {
+     *        i += 0.01;
+     *        plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart");
+     *    }.bind(this))
+     * @param {function} animationFunc 
+     */
+    animate(animationFunc)
+    {
+        this.animationFunc = animationFunc
+        this.callAnimation()
+    }
+
+
+
+    /**
+     * executes the animation. Use animate(...) if you want to set up an animation
+     * @private
+     */
+    callAnimation()
+    {
+        if(this.animationFunc != undefined)
+        {
+            this.animationFunc()
+            this.render()
+        }
+        requestAnimationFrame(()=>this.callAnimation())
     }
 
 

@@ -524,9 +524,10 @@
         console.log()
         console.log("plot1")
         
-        var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"))
-        plot1.setBackgroundColor("rgb(0.15,0.35,0.7)")
-        plot1.setAxesColor("hsl(0.1667,1,0.5)")
+        var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+            axesColor: "hsl(0.1667,1,0.5)"
+        })
         plot1.plotCsvString(data,0,1,2,{
             defaultColor: "rgb(0.1,1,0.3)",
             mode: "barchart"
@@ -551,8 +552,8 @@
 
         var plot3 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer3"), {
             backgroundColor: "rgb(0.15,0.35,0.7)",
+            axesColor: "hsl(0.1667,1,0.5)"
         })
-        plot3.setAxesColor("hsl(0.1667,1,0.5)")
         plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
         plot3.plotCsvString(data,0,1,2,{
             defaultColor: "rgb(0.1,1,0.3)",
@@ -566,9 +567,10 @@
         console.log()
         console.log("plot4")
 
-        var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"))
-        plot4.setBackgroundColor("rgb(0.15,0.35,0.7)")
-        plot4.setAxesColor("hsl(0.1667,1,0.5)")
+        var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+            axesColor: "hsl(0.1667,1,0.5)"
+        })
         plot4.plotCsvString(data,"tree","flower","rock",{
             defaultColor: "rgb(0.1,1,0.3)",
             mode: "barchart",
@@ -578,9 +580,10 @@
         console.log()
         console.log("plot5")
 
-        var plot5 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer5"))
-        plot5.setBackgroundColor("rgb(0.15,0.35,0.7)")
-        plot5.setAxesColor("hsl(0.1667,1,0.5)")
+        var plot5 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer5"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+            axesColor: "hsl(0.1667,1,0.5)"
+        })
         plot5.plotCsvString(data,0,1,2,{
             defaultColor: "rgb(0.1,1,0.3)",
             header: "tomato",
@@ -591,9 +594,10 @@
         console.log()
         console.log("plot6")
 
-        var plot6 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer6"))
-        plot6.setBackgroundColor("rgb(0.15,0.35,0.7)")
-        plot6.setAxesColor("hsl(0.1667,1,0.5)")
+        var plot6 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer6"), {
+            backgroundColor: "rgb(0.15,0.35,0.7)",
+            axesColor: "hsl(0.1667,1,0.5)"
+        })
         plot6.plotCsvString(data,0,1,30,{
             defaultColor: "rgb(0.1,1,0.3)",
             mode: "barchart"
@@ -614,11 +618,16 @@
         width:300px;
         height:300px;
         display:inline-block;
-        background:grey;
     }
 
     .hidden
     {
         display:none;
     }
+
+    div,canvas
+    {
+        background: #2659b2;
+    }
+    
 </style>
