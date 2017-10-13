@@ -53,6 +53,7 @@ export default class ColorManager
 
         //take care that all the labels are numbers
         let map = {}
+        let labelColorMap = {} //store label names together with the used color
         let dfColors = new Array(df.length) //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
 
         //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
@@ -108,6 +109,17 @@ export default class ColorManager
                     dfColors[i] = parseFloat(map[label])
                     findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
                 }
+
+                //how much distance between each hue:
+                let hueDistance = 1/(numberOfLabels)
+                for(let i = 0; i < dfColors.length; i++)
+                {
+                    dfColors[i] = new this.THREE.Color(0).setHSL(dfColors[i]*hueDistance,0.95,0.55)
+                    labelColorMap[df[i][colorCol]] = dfColors[i] //store the label name together with the color
+                }
+
+                //CASE 1 dfColors now contains labels
+                return {labelColorMap,dfColors}
             }
             else
             {
@@ -160,8 +172,8 @@ export default class ColorManager
                         return -1
                     }
 
-                    //dfColors now contains THREE.Color objects
-                    return dfColors
+                    //CASE 2 dfColors now contains colors created from RGB, # and HSL strings
+                    return {labelColorMap,dfColors}
                 }
                 else
                 {
@@ -177,13 +189,14 @@ export default class ColorManager
                     {
                         dfColors[i] = parseFloat(df[i][colorCol])
                         if(!filterColor)
-                            dfColors[i] = new this.THREE.Color(parseInt(df[i][colorCol]))
+                            dfColors[i] = parseInt(df[i][colorCol])
                         else
                             findHighestAndLowest(dfColors[i]) //update clrMin and clrMax
                     }
+
+                    //This is just a preparation for CASE 3 and CASE 4
                 }
             }
-
 
             //manipulate the color
             if(filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
@@ -195,6 +208,21 @@ export default class ColorManager
                     //store that color
                     dfColors[i] = this.convertToHeat(color,clrMin,clrMax)
                 }
+                
+                //CASE 3 dfColors now contains a heatmap
+                return {labelColorMap,dfColors}
+            }
+            else
+            {
+                for(let i = 0;i < df.length; i++)
+                {
+                    let color = dfColors[i]
+                    //store that color
+                    dfColors[i] = this.getColorObjectFromAnyString(color)
+                }
+
+                //CASE 4 dfColors now contains many colors, copied from the dataframe
+                return {labelColorMap,dfColors}
             }
         }
         else
@@ -202,9 +230,10 @@ export default class ColorManager
             //colorCol is -1
             for(let i = 0; i < df.length; i++)
                 dfColors[i] = this.getColorObjectFromAnyString(defaultColor)
+                
+            //CASE 5 dfColors now contains all the same color
+            return {labelColorMap,dfColors}
         }
-        
-        return dfColors
     }
 
 

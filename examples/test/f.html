@@ -1,6 +1,6 @@
 <h1>Calculated Animated Barchart</h1>
 <div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
-<p>Bars should change their color upon changing their height. The highest bar is red, the lowest is blue. Others range from turqoise over yellow to orange</p>
+<p>Bars should change their color upon changing their height. The highest bar is red, the lowest is blue. The bars inbetween turqoise, green, yellow and orange. There is no space between the bars.</p>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
     var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"),
@@ -9,10 +9,10 @@
         axesColor: 0xffff00
     })
     
-    plot.setDimensions({xRes: 20, zRes: 20})
+    plot.setDimensions({xRes: 5, zRes: 5})
     var i = 1;
     plot.animate(function() {
-        plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart")
+        plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart",0)
         i += 0.01
     }.bind(this))
     

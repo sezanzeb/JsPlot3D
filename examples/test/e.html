@@ -1,8 +1,10 @@
 <h1>Labeled and Colored Data</h1>
 
 <div class="container" id="JsPlot3DContainer1"></div>
+<div id="JsPlot3DContainer1Legend"></div>
 <p>3 Classes should be visible in 3 different colors (blue, green and red), 
-<font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font>.</p>
+<font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font>.<br/>
+Below the 3D Space there should be a legend, consisting of three rows that say "tree", "flower" and "painting". To the left colored dots.</p>
 
 <div class="container" id="JsPlot3DContainer2"></div>
 <div class="container" id="JsPlot3DContainer3"></div><br/>
@@ -97,6 +99,7 @@
             labeled: true,
             colorCol: 4
         })
+        plot1.createLegend(document.getElementById("JsPlot3DContainer1Legend"))
 
         console.log()
         console.log("plot2")
@@ -154,6 +157,22 @@
 </script>
 <style>
 
+    .jsP3D_labels
+    {
+        margin: 10px 0px 0px 0px;
+        border: 1px solid #ddd;
+        padding: 5px 10px;
+        border-radius: 2px;
+    }
+
+    .jsP3D_labelColor {
+        width: 10px;
+        height: 10px;
+        display: block;
+        border-radius: 100%;
+        margin-right: 10px;
+    }
+
     body
     {
         margin: 20px;
@@ -172,7 +191,7 @@
         display:none;
     }
 
-    div,canvas
+    .container,canvas
     {
         background: #2659b2;
     }

@@ -23,7 +23,6 @@ export class Plot
      */
     constructor(container, options={})
     {
-
         //parameter checking
         let backgroundColor = 0xffffff
         let axesColor = 0x000000
@@ -41,6 +40,7 @@ export class Plot
         if(options.axesColor != undefined)
             axesColor = options.axesColor
 
+
         //check if dataPointImage is available
         let img = new Image()
         img.onerror = ()=>console.warn(this.dataPointImage+" does not exist. Scatterplots will not be visible")
@@ -50,9 +50,8 @@ export class Plot
         //three.js setup
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
         this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(backgroundColor))
-        this.setContainer(container)
         this.scene = new THREE.Scene()
-        
+        this.setContainer(container)
         
         //boundaries and dimensions of the plot data
         this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
@@ -60,27 +59,49 @@ export class Plot
         this.createAxes(axesColor)
         this.createArcCamera()
 
+        this.legend = {}
+        this.legend.element = document.createElement("div")
+        this.legend.element.className = "JsPlot3DLegend"
+        this.legend.title = ""
+        this.legend.x1title = ""
+        this.legend.x2title = ""
+        this.legend.x3title = ""
+        this.legend.colors = {}
+
         //this.enableBenchmarking()
     }
 
 
+
+    /**
+     * appends the legend to a specific container
+     * @param {DOM} container 
+     */
+    createLegend(container)
+    {
+        container.appendChild(this.legend.element)
+    }
+
+    /**
+     * sometimes it renders sometimes it does not (static images)
+     * super problematic. Make sure it gets rendered by using some timeouted renders
+     */
     makeSureItRenders()
     {
-        //sometimes it renders sometimes it does not (static images)
-        //super problematic. Make sure it gets rendered:
         for(let i = 0;i < 5; i++)
-            window.setTimeout(()=>this.render(),i*33)
+            window.setTimeout(()=>this.render(),100+i*33)
     }
+
 
 
     /**
      * plots a formula into the container
      * 
      * @param {string}  originalFormula string of formula
-     * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed
-     * @param {number}  dataPointSize Default 0.02. In case mode is "scatterplot" it changes the size of the datapoints
+     * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed. Default: "polygon"
+     * @param {number}  elementSize (optional). In case mode is "scatterplot" it changes the size of the datapoints. In the case of "barchart" it changes the padding between the bars between 0 and 1.
      */
-    plotFormula(originalFormula, mode, dataPointSize=0.02)
+    plotFormula(originalFormula, mode="polygon", elementSize)
     {       
         if(originalFormula == undefined || originalFormula == "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
@@ -119,7 +140,7 @@ export class Plot
                 mode: mode,
                 colorCol: 1, //y
                 normalizeX2: false,
-                dataPointSize: dataPointSize
+                dataPointSize: elementSize
             }
 
             //continue plotting this DataFrame
@@ -156,7 +177,7 @@ export class Plot
                 mode: mode,
                 colorCol: 1, //y
                 normalizeX2: false,
-                dataPointSize: dataPointSize
+                barchartPadding: elementSize
             }
             
             //continue plotting this DataFrame
@@ -236,6 +257,7 @@ export class Plot
             this.plotmesh.geometry.__dirtyNormals = true
             //make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
+            
             this.makeSureItRenders()
         }
     }
@@ -273,6 +295,9 @@ export class Plot
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated 
      *                      as if it was a color. (converted to hexadecimal then). Default false
+     * - x1title {string}: title of the x1 axis
+     * - x2title {string}: title of the x2 axis
+     * - x3title {string}: title of the x3 axis
      */
     plotCsvString(sCsv, x1col, x2col, x3col, options)
     {
@@ -477,6 +502,9 @@ export class Plot
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated 
      *                      as if it was a color. (converted to hexadecimal then). Default false
+     * - x1title {string}: title of the x1 axis
+     * - x2title {string}: title of the x2 axis
+     * - x3title {string}: title of the x3 axis
      */
     plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={})
     {
@@ -497,6 +525,9 @@ export class Plot
         let barchartPadding=0.5/this.xRes
         let dataPointSize=0.02
         let filterColor=true
+        let x1title="x1"
+        let x2title="x2"
+        let x3title="x3"
         //max in terms of "how far away is the farthest away point"
         let maxX1=1
         let maxX2=1
@@ -544,7 +575,12 @@ export class Plot
             if(checkNumber("fraction",options.fraction))
                 fraction = parseFloat(options.fraction)
             if(checkNumber("barchartPadding",options.barchartPadding))
-                barchartPadding = parseInt(options.barchartPadding)
+                barchartPadding = parseFloat(options.barchartPadding)/this.xRes
+            if(barchartPadding >= 1)
+            {
+                barchartPadding = 0
+                console.error("barchartPadding is invalid. maximum of 1 and minimum of 0 accepted. Now continuing with barchartPadding = "+barchartPadding)
+            }
 
             if(checkNumber("maxX1",options.maxX1))
                 maxX1 = parseFloat(options.maxX1)
@@ -556,6 +592,8 @@ export class Plot
                 colorCol = parseFloat(options.colorCol)
             if(checkNumber("dataPointSize",options.dataPointSize))
                 dataPointSize = parseFloat(options.dataPointSize)
+            if(dataPointSize <= 0)
+                console.error("datapoint size is <= 0. It will be invisible")
 
             //check booleans. Overwrite if it's good. If not, default value will remain
             if(checkBoolean("labeled",options.labeled))
@@ -580,8 +618,15 @@ export class Plot
                 defaultColor = options.defaultColor
             if(options.mode != undefined)
                 mode = options.mode
+            if(options.x1title != undefined)
+                x1title = options.x1title
+            if(options.x2title != undefined)
+                x2title = options.x2title
+            if(options.x3title != undefined)
+                x3title = options.x3title
         }
         
+
         //be vault tolerant for the columns. assume 0, 1 and 2 if possible
         if(x1col == "")
             x1col = 0
@@ -623,7 +668,8 @@ export class Plot
         //creates an array "dfColors" that holds the color information
         //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
 
-        let dfColors = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor)
+        let colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor)
+        let dfColors = colorMap.dfColors
         if(dfColors == -1)
         {
             //ColorManager tells us to restart
@@ -631,6 +677,22 @@ export class Plot
             options.labeled = labeled
             this.plotDataFrame(df, x1col, x2col, x3col, options)
             return
+        }
+
+        //update the legend with the label color information
+        if(colorMap.labelColorMap != {})
+        {
+            let legendColorHTML = ""
+            legendColorHTML += "<table class=\"jsP3D_labels\">" //can't append to innerHTML directly for some funny reason
+            for(let key in colorMap.labelColorMap)
+            {
+                legendColorHTML += "<tr>"
+                legendColorHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + colorMap.labelColorMap[key].getHexString() + ";\"></span></td>"
+                legendColorHTML += "<td>" + key + "</td>"
+                legendColorHTML += "</tr>"
+            }
+            legendColorHTML += "</table>"
+            this.legend.element.innerHTML = legendColorHTML
         }
 
         //by this point only dfColors stays relevant. So the function above can be easily moved to a different class to clear up the code here
@@ -685,7 +747,6 @@ export class Plot
             //if needed, reconstruct the barchart
             if(!this.IsPlotmeshValid())
             {
-                console.log("create")
                 //plot it using circle sprites
                 let cubegroup = new THREE.Group()
 
@@ -972,6 +1033,7 @@ export class Plot
 
         this.container = container
         this.renderer.setSize(container.offsetWidth,container.offsetHeight)
+
         this.container.appendChild(this.renderer.domElement)
     }
     
