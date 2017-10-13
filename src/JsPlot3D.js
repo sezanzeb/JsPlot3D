@@ -69,12 +69,13 @@ export class Plot
         this.legend.colors = {}
 
         //this.enableBenchmarking()
+        this.render()
     }
 
 
 
     /**
-     * appends the legend to a specific container
+     * appends the legend to a specific container. Make sure tostyle it because otherwise the colored span elements will not be visible.
      * @param {DOM} container 
      */
     createLegend(container)
@@ -298,6 +299,7 @@ export class Plot
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
+     * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      */
     plotCsvString(sCsv, x1col, x2col, x3col, options)
     {
@@ -505,6 +507,7 @@ export class Plot
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
+     * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      */
     plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={})
     {
@@ -518,20 +521,21 @@ export class Plot
         let normalizeX1=true
         let normalizeX2=true
         let normalizeX3=true
-        let title=""
-        let fraction=1
+        let title="" //TODO
+        let fraction=1 //TODO
         let labeled=false
         let defaultColor=0 //black
         let barchartPadding=0.5/this.xRes
         let dataPointSize=0.02
         let filterColor=true
-        let x1title="x1"
-        let x2title="x2"
-        let x3title="x3"
+        let x1title="x1" //TODO
+        let x2title="x2" //TODO
+        let x3title="x3" //TODO
         //max in terms of "how far away is the farthest away point"
         let maxX1=1
         let maxX2=1
         let maxX3=1
+        let hueOffset=0
 
         //when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
         //it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
@@ -582,6 +586,8 @@ export class Plot
                 console.error("barchartPadding is invalid. maximum of 1 and minimum of 0 accepted. Now continuing with barchartPadding = "+barchartPadding)
             }
 
+            if(checkNumber("hueOffset",options.hueOffset))
+                hueOffset = parseFloat(options.hueOffset)
             if(checkNumber("maxX1",options.maxX1))
                 maxX1 = parseFloat(options.maxX1)
             if(checkNumber("maxX2",options.maxX2))
@@ -627,13 +633,6 @@ export class Plot
         }
         
 
-        //be vault tolerant for the columns. assume 0, 1 and 2 if possible
-        if(x1col == "")
-            x1col = 0
-        if(x2col == "")
-            x2col = 1
-        if(x3col == "")
-            x3col = 2
         if(checkNumber("x1col",x1col))
             x1col = parseFloat(x1col)
         else x1col = Math.min(0,df[0].length-1)
@@ -644,15 +643,17 @@ export class Plot
             x3col = parseFloat(x3col)
         else x3col = Math.min(2,df[0].length-1)
         if(x1col > df[0].length || x2col > df[0].length || x3col > df[0].length)
+        {
             console.error("one of the colum indices is out of bounds. The maximum index in this dataframe is "+(df[0].length-1)+". x1col: "+x1col+" x2col:"+x2col+" x3col:"+x3col)
-        //detct the rightmost column index that contains numberes
-        let maximumColumn = 2 //to match the default settings of 0, 1 and 2, start at 2
-        for(;maximumColumn >= 0; maximumColumn--)
-            if(!isNaN(parseFloat(df[1][maximumColumn])))
-                break
-        x1col = Math.min(x1col,maximumColumn)
-        x2col = Math.min(x2col,maximumColumn)
-        x3col = Math.min(x3col,maximumColumn)
+            //detct the rightmost column index that contains numberes
+            let maximumColumn = 2 //to match the default settings of 0, 1 and 2, start at 2
+            for(;maximumColumn >= 0; maximumColumn--)
+                if(!isNaN(parseFloat(df[1][maximumColumn])))
+                    break
+            x1col = Math.min(x1col,maximumColumn)
+            x2col = Math.min(x2col,maximumColumn)
+            x3col = Math.min(x3col,maximumColumn)
+        }
         
 
         //remove the old mesh (deprecated, IsPlotmeshValid() now takes care of that)
@@ -668,9 +669,9 @@ export class Plot
         //creates an array "dfColors" that holds the color information
         //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
 
-        let colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor)
+        let colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
         let dfColors = colorMap.dfColors
-        if(dfColors == -1)
+        if(colorMap == -1)
         {
             //ColorManager tells us to restart
             labeled = true

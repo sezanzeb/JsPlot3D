@@ -43,7 +43,7 @@ export default class ColorManager
      * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
      * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains this.THREE.Color objects
      */
-    getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true)
+    getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true,hueOffset=0)
     {
         let numberOfLabels = 0
         //let numberOfLabels = df.length
@@ -114,7 +114,7 @@ export default class ColorManager
                 let hueDistance = 1/(numberOfLabels)
                 for(let i = 0; i < dfColors.length; i++)
                 {
-                    dfColors[i] = new this.THREE.Color(0).setHSL(dfColors[i]*hueDistance,0.95,0.55)
+                    dfColors[i] = new this.THREE.Color(0).setHSL(dfColors[i]*hueDistance+hueOffset,0.95,0.55)
                     labelColorMap[df[i][colorCol]] = dfColors[i] //store the label name together with the color
                 }
 

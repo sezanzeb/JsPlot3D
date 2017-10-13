@@ -22,7 +22,7 @@ document.getElementById("fileup").addEventListener("change",function(e)
 //plot the csv file
 document.getElementById("submitcsv").addEventListener("click",function(e)
 {
-    //read file only if it has changed
+    //read file only if it has changed (event on fileup "change")
     if(!cached)
     {
         let reader = new FileReader()
@@ -65,6 +65,9 @@ function plotcsv()
         mode: "scatterplot",
         title: "",
         fraction: 1,
-        labeled: false
+        labeled: false,
+        header: true,
+        hueOffset: 0.3
     })
+    plot.createLegend(document.getElementById("Legend"))
 }

@@ -6,6 +6,25 @@ body
     text-align: center;
 }
 
+.jsP3D_labels
+{
+    margin: 10px 0px 0px 0px;
+    border: 1px solid #fff;
+    padding: 5px 10px;
+    border-radius: 2px;
+    position: absolute;
+    top: 40px;
+    margin-left: 20px;
+}
+
+.jsP3D_labelColor {
+    width: 10px;
+    height: 10px;
+    display: block;
+    border-radius: 100%;
+    margin-right: 10px;
+}
+
 #main
 {
     margin:30px auto;

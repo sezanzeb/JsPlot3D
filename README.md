@@ -28,7 +28,7 @@ Take a look into the sourcode of the files in examples, especially in examples/t
 
 <p align="center">
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/barchart.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/scatterplot.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/labeledLegend.png"/>
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/polygon.png"/>
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/barchart2.png"/>
   <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/scatterplot2.png"/>
@@ -36,6 +36,8 @@ Take a look into the sourcode of the files in examples, especially in examples/t
 
 
 ## Live Example
+
+I'm going to put a live example online once all high priority features are complete. In the meantime you can use it like this:
 
 first, you need to build. See above.
 
@@ -51,7 +53,7 @@ Example for f(x1,x2):
 
 It has to be in JavaScript syntax, but some common functions are also supported in regular mathematical syntax. the ^ XOR Operator does not work anymore this way though
 
-Take "example.csv" in the root directory of this repository or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions
+Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions
 
 
 ## Todo
@@ -59,9 +61,9 @@ Take "example.csv" in the root directory of this repository or get a .csv datase
 **needed for a first release:**
 
 - add axis title and numbers (in the same color as axesColor)
-- create a legend and put it into the innerHTML of a legendContainer or something. In ColorManager when creating the dfColors array there should be a map returned that maps a color (using the colored sprite) to an axis (x1,x2,x3) and the columnname
+- add the overall title to the legend
 
-- make a nice live example
+- make a nice live example on a webspace
 - make it easy to use as a framework and make a doku for it with some examples
 - make a bundle without three.js, so that users don't link three.js twice if they already have it
 
