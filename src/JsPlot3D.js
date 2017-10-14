@@ -83,8 +83,12 @@ export class Plot
      * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed. Default: "polygon"
      * @param {number}  elementSize (optional). In case mode is "scatterplot" it changes the size of the datapoints. In the case of "barchart" it changes the padding between the bars between 0 and 1.
      */
-    plotFormula(originalFormula, mode="polygon", elementSize)
+    plotFormula(originalFormula, options = {})
     {
+        let mode
+        if(options.mode != undefined)
+            mode = options.mode
+
         if(originalFormula == undefined || originalFormula == "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
         if(typeof(originalFormula) != "string")
@@ -118,12 +122,8 @@ export class Plot
                     i++
                 }
             }
-            let options = {
-                mode: mode,
-                colorCol: 1, //y
-                normalizeX2: false,
-                dataPointSize: elementSize
-            }
+
+            options.colorCol = 1 //y result of the evaluated formula
 
             //continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
@@ -135,7 +135,7 @@ export class Plot
             ////////  BARCHART ////////
 
 
-            //if scatterplot, create a dataframe and send it to plotDataFrame
+            //if barchart, create a dataframe and send it to plotDataFrame
             let df = new Array(this.xVerticesCount * this.zVerticesCount)
 
             //the three values that are going to be stored in the dataframe
@@ -146,21 +146,17 @@ export class Plot
             //line number in the new dataframe
             let i = 0
 
-            for(let x = 0; x < this.xVerticesCount; x++)
+            for(let x = 0; x <= this.xVerticesCount; x++)
             {
-                for(let z = 0; z < this.zVerticesCount; z++)
+                for(let z = 0; z <= this.zVerticesCount; z++)
                 {
                     y = this.f(x/this.xRes,z/this.zRes) //calculate y. y = f(x1,x2)
                     df[i] = [x,y,z] //store the datapoint
                     i++
                 }
             }
-            let options = {
-                mode: mode,
-                colorCol: 1, //y
-                normalizeX2: false,
-                barchartPadding: elementSize
-            }
+
+            options.colorCol = 1 //y result of the evaluated formula
 
             //continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
@@ -178,7 +174,6 @@ export class Plot
             //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
             if(!this.IsPlotmeshValid("PlaneGeometry"))
             {
-                this.disposeMesh(this.plotmesh)
 
                 //create plane, divided into segments
                 let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
@@ -218,9 +213,9 @@ export class Plot
             let x3Actual = (this.zVerticesCount-1)/this.zRes //z
             let x1ActualStep = 1/this.xRes
             let x3ActualStep = 1/this.zRes
-            for(let z = this.zVerticesCount-1; z >= 0; z-=1)
+            for(let z = this.zVerticesCount; z >= 0; z--)
             {
-                for(let x = 0; x < this.xVerticesCount; x+=1)
+                for(let x = 0; x <= this.xVerticesCount; x++)
                 {
                     y = this.f(x1Actual,x3Actual)
                     this.plotmesh.geometry.vertices[vIndex].y = y
@@ -254,8 +249,8 @@ export class Plot
      * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
      * @param {object}  options     json object with one or more of the following parameters:
      * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
-     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - mode {string}: "barchart" or "scatterplot"
+     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
      *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
      *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
@@ -280,6 +275,9 @@ export class Plot
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
+     * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
+     * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      */
     plotCsvString(sCsv, x1col, x2col, x3col, options)
     {
@@ -451,9 +449,9 @@ export class Plot
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
-     * - maxX1 {number}: the maximum x1 value in the dataframe. The maximum value in the column that is used as x1. Default 1
-     * - maxX2 {number}: the maximum x2 value in the dataframe. The maximum value in the column that is used as x2. Default 1 (y)
-     * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
+     * - x1frac {number}: by how much to divide the datapoints x1 value
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y)
+     * - x3frac {number}: by how much to divide the datapoints x3 value
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
@@ -464,7 +462,9 @@ export class Plot
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
      * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      */
+                
     plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={})
     {
         //to optimize for performance, use:
@@ -498,13 +498,14 @@ export class Plot
         let x1title="x1"
         let x2title="x2"
         let x3title="x3"
-        //max in terms of "how far away is the farthest away point"
-        let maxX1=1
-        let maxX2=1
-        let maxX3=1
         let hueOffset=0
         let keepOldPlot=false
         let updateCache=true
+        let barSizeThreshold=0
+        let x1frac=1
+        let x2frac=1
+        let x3frac=1
+        //let normalizationSmoothing=0
 
         if(this.dfCache == undefined)
             this.resetCache()
@@ -560,16 +561,20 @@ export class Plot
 
             if(checkNumber("hueOffset",options.hueOffset))
                 hueOffset = parseFloat(options.hueOffset)
-            if(checkNumber("maxX1",options.maxX1))
-                maxX1 = parseFloat(options.maxX1)
-            if(checkNumber("maxX2",options.maxX2))
-                maxX2 = parseFloat(options.maxX2)
-            if(checkNumber("maxX3",options.maxX3))
-                maxX3 = parseFloat(options.maxX3)
+            if(checkNumber("x1frac",options.x1frac))
+                x1frac = parseFloat(options.x1frac)
+            if(checkNumber("x2frac",options.x2frac))
+                x2frac = parseFloat(options.x2frac)
+            if(checkNumber("x3frac",options.x3frac))
+                x3frac = parseFloat(options.x3frac)
             if(checkNumber("colorCol",options.colorCol))
                 colorCol = parseFloat(options.colorCol)
             if(checkNumber("dataPointSize",options.dataPointSize))
                 dataPointSize = parseFloat(options.dataPointSize)
+            if(checkNumber("barSizeThreshold",options.barSizeThreshold))
+                barSizeThreshold = parseFloat(options.barSizeThreshold)
+            //if(checkNumber("normalizationSmoothing",options.normalizationSmoothing))
+            //    normalizationSmoothing = parseFloat(options.normalizationSmoothing)
             if(dataPointSize <= 0)
                 console.error("datapoint size is <= 0. It will be invisible")
 
@@ -607,8 +612,8 @@ export class Plot
                 x2title = options.x2title
             if(options.x3title != undefined)
                 x3title = options.x3title
-        }
 
+        }
 
 
 
@@ -640,6 +645,8 @@ export class Plot
         //-------------------------//
         //         Caching         //
         //-------------------------//
+        //used for addDataPoint to store what was plotted the last time
+        //also used to store the material in some cases so that it does not have to be recreated each time
 
         //now that the script arrived here, store the options to make easy redraws possible
         //update cache
@@ -757,35 +764,95 @@ export class Plot
 
         //normalize, so that the farthest away point is still within the xLen yLen zLen frame
         //TODO logarithmic normalizing
+ 
         if(normalizeX1)
         {
-            maxX1 = 0
+            let maxX1 = 0
+            let minX1 = 0
             //determine max for normalisation
             for(let i = 0; i < df.length; i++)
             {
-                //max in terms of "how far away is the farthest away point"
                 //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                if(Math.abs(df[i][x1col]) > maxX1)
-                    maxX1 = Math.abs(df[i][x1col])
+                if(parseFloat(df[i][x1col]) > maxX1)
+                    maxX1 = df[i][x1col]
+                if(parseFloat(df[i][x1col]) < minX1)
+                    minX1 = df[i][x1col]
             }
+
+            //take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+            if(keepOldPlot)
+                for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                {
+                    //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
+                    if(parseFloat(this.dfCache.dataframe[i][x1col]) > maxX1)
+                        maxX1 = this.dfCache.dataframe[i][x1col]
+                    if(parseFloat(this.dfCache.dataframe[i][x1col]) < minX1)
+                        minX1 = this.dfCache.dataframe[i][x1col]
+                }
+            //a hybrid solution of checking the distance between the points and checking the |value|
+            let a = Math.max(Math.abs(maxX1),Math.abs(minX1)) //based on largest |value|
+            let b = Math.abs(maxX1-minX1) //based on distance between min and max
+            x1frac = Math.max(a,b)*x1frac //hybrid. The multiplication by x1frac is to take the user defined options.x1frac value into account
+            
         }
-        if(normalizeX2)
+        
+        if(mode != "barchart") //barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (and also old datapoints, depending on keepOldPlot)
         {
-            maxX2 = 0
-            for(let i = 0; i < df.length; i++)
+            if(normalizeX2)
             {
-                if(Math.abs(df[i][x2col]) > maxX2)
-                    maxX2 = Math.abs(df[i][x2col])
+                let maxX2 = df[0][x2col]
+                let minX2 = df[0][x2col]
+                for(let i = 0; i < df.length; i++)
+                {
+                    if(parseFloat(df[i][x2col]) > maxX2)
+                        maxX2 = df[i][x2col]
+                    if(parseFloat(df[i][x2col]) < minX2)
+                        minX2 = df[i][x2col]
+                }
+
+                //take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+                if(keepOldPlot)
+                    for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                    {
+                        //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
+                        if(parseFloat(this.dfCache.dataframe[i][x2col]) > maxX2)
+                            maxX2 = this.dfCache.dataframe[i][x2col]
+                        if(parseFloat(this.dfCache.dataframe[i][x2col]) < minX2)
+                            minX2 = this.dfCache.dataframe[i][x2col]
+                    }
+                //a hybrid solution of checking the distance between the points and checking the |value|
+                let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
+                let b = Math.abs(maxX2-minX2) //based on distance between min and max
+                x2frac = Math.max(a,b)*x2frac //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
             }
         }
+
         if(normalizeX3)
         {
-            maxX3 = 0
+            let maxX3 = 0
+            let minX3 = 0
             for(let i = 0; i < df.length; i++)
             {
-                if(Math.abs(df[i][x3col]) > maxX3)
-                    maxX3 = Math.abs(df[i][x3col])
+                if(parseFloat(df[i][x3col]) > maxX3)
+                    maxX3 = df[i][x3col]
+                if(parseFloat(df[i][x3col]) < minX3)
+                    minX3 = df[i][x3col]
             }
+            
+            //take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+            if(keepOldPlot)
+                for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                {
+                    //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
+                    if(parseFloat(this.dfCache.dataframe[i][x3col]) > maxX3)
+                        maxX3 = this.dfCache.dataframe[i][x3col]
+                    if(parseFloat(this.dfCache.dataframe[i][x3col]) < minX3)
+                        minX3 = this.dfCache.dataframe[i][x3col]
+                }
+            //a hybrid solution of checking the distance between the points and checking the |value|
+            let a = Math.max(Math.abs(maxX3),Math.abs(minX3)) //based on largest |value|
+            let b = Math.abs(maxX3-minX3) //based on distance between min and max
+            x3frac = Math.max(a,b)*x3frac //hybrid. The multiplication by x3frac is to take the user defined options.x3frac value into account
         }
 
         this.benchmarkStamp("normalized the data")
@@ -797,9 +864,12 @@ export class Plot
             //        Bar Chart        //
             //-------------------------//
 
+            //this.dfCache.previousX2frac = 1 //for normalizationSmoothing. Assume that the data does not need to be normalized at first
+
             //if needed, reconstruct the barchart
             if(!this.IsPlotmeshValid("Group"))
             {
+                
                 //plot it using circle sprites
                 let cubegroup = new THREE.Group()
 
@@ -813,9 +883,17 @@ export class Plot
                     for(let z = 0; z < this.zVerticesCount; z++)
                     {
                         //create the bar
-                        //unfortunatelly i have to approximate a height of 0 by using 0.001
-                        let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding,0.001,1/this.zRes-barchartPadding)
-                        //shape.translate(x/this.xRes,0,z/this.zRes) //move it to the right position
+                        //I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
+                        let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding,1,1/this.zRes-barchartPadding)
+                        //manually set the height to 0:
+                        shape.vertices[0].y = 0
+                        shape.vertices[1].y = 0
+                        shape.vertices[2].y = 0
+                        shape.vertices[3].y = 0
+                        shape.vertices[4].y = 0
+                        shape.vertices[5].y = 0
+                        shape.vertices[6].y = 0
+                        shape.vertices[7].y = 0
 
                         let plotmat = new THREE.MeshStandardMaterial({
                             color: 0,
@@ -834,52 +912,109 @@ export class Plot
 
                 this.plotmesh = cubegroup
                 this.scene.add(cubegroup)
+                
+                //now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
+                let barHeights = new Array(this.xVerticesCount)
+                for(let x = 0; x < barHeights.length; x++)
+                {
+                    barHeights[x] = new Array(this.zVerticesCount)
+                    for(let z = 0; z < barHeights[x].length; z++)
+                        barHeights[x][z] = 0
+                }
+                this.dfCache.barHeights = barHeights
             }
 
-            //now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
-            let barHeights = new Array(this.xVerticesCount)
-            for(let x = 0; x < barHeights.length; x++)
-                barHeights[x] = new Array(this.zVerticesCount)
+
+            if(!keepOldPlot)
+            {
+                for(let x = 0; x < this.dfCache.barHeights.length; x++)
+                {
+                    for(let z = 0; z < this.dfCache.barHeights[x].length; z++)
+                    this.dfCache.barHeights[x][z] = 0
+                }
+            }
+            
 
             //fill the barHeights array with the added heights of the bars
             //maxX1 and maxX3 are the results of the normalization that happens for plot mode
-            let factorX1 = maxX1/this.xRes
-            let factorX3 = maxX3/this.zRes
+            let factorX1 = x1frac/(this.xRes-1)
+            let factorX3 = x3frac/(this.zRes-1)
             for(let i = 0; i < df.length; i ++)
             {
+
+                //INTERPOLATE
+
                 //get coordinates that can fit into an array
                 //TODO interpolate. When x and z is at (in case of parseFloat) e.g. 2.5,1. Add one half to 2,1 and the other hald to 3,1 
-                let x = parseInt(df[i][x1col]/factorX1)
-                let z = parseInt(df[i][x3col]/factorX3)
+                let x_float = parseFloat(df[i][x1col])/factorX1
+                let z_float = parseFloat(df[i][x3col])/factorX3
+
+                let x_le = Math.floor(x_float) //left
+                let z_ba = Math.floor(z_float) //back
+
+                //does the datapoint fit into the frame? TODO this should also plot when the datapoint is somewhere else or something
+                let addToHeights = function(x, y, z)
+                {
+                    /**
+                     *       a +----------+ b
+                     *         |     |    |
+                     *         |-----+    |
+                     *         |     e    |
+                     *         |          |
+                     *       c +----------+ d
+                     */
+                    //example: calculate how much to add of y to pixel d. e has the coordinates x_float and z_float
+                    //calculate the area of the rectangle (called let oppositeSquare) between a (coordinates x and z) and e and multiply that by y
+                    //that result can be added to [value y of d]
+                    //small rectangle => small area => small change for d
+                    //large rectangle => large area => change value at d by a lot
+                    
+                    let oppositeSquareArea = Math.abs(1-Math.abs(x-x_float))*(1-Math.abs(z-z_float))
+
+                    //make sure x and z are not out of bounds
+                    if(this.dfCache.barHeights[x] != undefined)
+                        if(this.dfCache.barHeights[x][z] != undefined)
+                            this.dfCache.barHeights[x][z] += y*oppositeSquareArea //initialized with 0, now +=
+                            //+=, because otherwise it won't interpolate. It has to add the value to the existing value
+
+                }.bind(this)
+
 
                 let y = parseFloat(df[i][x2col]) //don't normalize yet
 
-                if(barHeights[x] != undefined) //does the datapoint fit into the frame? TODO this should also plot when the datapoint is somewhere else or something
+                //if x_float and z_float it somewhere inbewteen
+                if(x_float != x_le || z_float != z_ba)
                 {
-                    if(barHeights[x][z] != undefined)
-                    {
-                        barHeights[x][z] += y
-                    }
-                    else
-                    {
-                        barHeights[x][z] = y
-                    }
+                    let x_ri = x_le+1 //right
+                    let z_fr = z_ba+1 //front
+
+                    addToHeights(x_le, y, z_ba)
+                    addToHeights(x_ri, y, z_ba)
+                    addToHeights(x_le, y, z_fr)
+                    addToHeights(x_ri, y, z_fr)
+                }
+                else
+                {
+                    //otherwise I can just plot it a little bit cheaper,
+                    //when x_float and z_float perfectly aligns with the grid
+                    addToHeights(x_le, y, z_ba)
                 }
             }
+            //from here on it's outside an loop. Some time to do some precalculations
+
 
 
             //find the highest bar
-            let minX2 = 0 //to calculate the heatmap, this is needed aswell
-            maxX2 = 0 //reset max height, as it will be overwritten
+            //even in case of normalizeX2 being false, do this, so that the heatmapcolor can be created
+            let minX2 = this.dfCache.barHeights[0][0]
+            let maxX2 = this.dfCache.barHeights[0][0]
             for(let i = 0;i < this.plotmesh.children.length; i++)
             {
                 let bar = this.plotmesh.children[i]
                 let x = parseInt(bar.position.x*this.xRes)
                 let z = parseInt(bar.position.z*this.zRes)
-                let y = barHeights[x][z]
-                //was this bar mentioned in df?
-                if(y == undefined)
-                    y = bar.geometry.vertices[0].y
+                let y = this.dfCache.barHeights[x][z]
+                
                 //find the highest bar
                 if(y > maxX2)
                     maxX2 = y
@@ -887,44 +1022,66 @@ export class Plot
                     minX2 = y
             }
 
-            let norm = 1
+
+
             if(normalizeX2 == true)
-                norm = (maxX2-minX2)
-            
+            {
+                let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
+                let b = Math.abs(maxX2-minX2) //based on distance between min and max
+                x2frac = Math.max(a,b)*x2frac //hybrid. The multiplication by x1frac is to take the user defined options.x2frac value into account
+
+                //a lower value of normalizationSmoothing will result in faster jumping around plots. 0 Means no smoothing this happens, because 
+                //sometimes the plot might be close to 0 everywhere. This is not visible because of the normalization though one the sign
+                //changes, it will immediatelly jump to be normalized with a different sign. To prevent this one can smoothen the variable x2frac
+                //x2frac = (x2frac + normalizationSmoothing*this.dfCache.previousX2frac)/(normalizationSmoothing+1)
+                //this.dfCache.previousX2frac = x2frac
+                //this is a little bit too experimental at the moment. Once everything runs properly stable it's worth thinking about it
+            }
+
             //now color the children & normalize
             for(let i = 0;i < this.plotmesh.children.length; i++)
             {
                 let bar = this.plotmesh.children[i]
                 let x = parseInt(bar.position.x*this.xRes)
                 let z = parseInt(bar.position.z*this.zRes)
-                let y = barHeights[x][z]
+                let y = this.dfCache.barHeights[x][z]
 
                 //was this bar mentioned in df?
                 if(y != 0 && y != undefined)
                 {
-                    y = y/norm
-                    //make it visible if it's not zero
+                    y = y/x2frac
+                    //hide that bar if it's smaller than or equal to the threshold
+                    //y is now normalized (|y| is never larger than 1), so barSizeThreshold acts like a percentage value
+                    if(Math.abs(y) > barSizeThreshold)
+                    {
+                        //make it visible if it's not zero
 
-                    //color it according to the heatmap color
-                    bar.material.visible = true
+                        //color it according to the heatmap color
+                        bar.material.visible = true
 
-                    //those are the vertex of the barchart that surround the top face
-                    bar.geometry.vertices[0].y = y
-                    bar.geometry.vertices[1].y = y
-                    bar.geometry.vertices[4].y = y
-                    bar.geometry.vertices[5].y = y
-                    bar.geometry.verticesNeedUpdate = true
-                    //no need to recompute normals, because they still face in the same direction
+                        //those are the vertex of the barchart that surround the top face
+                        bar.geometry.vertices[0].y = y
+                        bar.geometry.vertices[1].y = y
+                        bar.geometry.vertices[4].y = y
+                        bar.geometry.vertices[5].y = y
+                        bar.geometry.verticesNeedUpdate = true
+                        //no need to recompute normals, because they still face in the same direction
+                    }
+                    else
+                    {
+                        bar.material.visible = false
+                    }
                 }
                 else
                 {
                     //make sure that old bar gets colored aswell
-                    y = bar.geometry.vertices[0].y/norm
+                    y = bar.geometry.vertices[0].y/x2frac
                     if(!keepOldPlot)
                         bar.material.visible = false
                 }
 
-                let color = this.ColorManager.convertToHeat(y*norm,minX2,maxX2)
+                //y was divided by x2frac recently
+                let color = this.ColorManager.convertToHeat(y*x2frac,minX2,maxX2)
                 bar.material.color.set(color)
                 bar.material.emissive.set(color)
             }
@@ -939,7 +1096,7 @@ export class Plot
             //       3D-Mesh Plot      //
             //-------------------------//
 
-            //I unfortinatelly think this can't work
+            //I unfortunatelly think this can't work
 
             //(as long as the datapoint coordinates are not grid like.)
             //if they are, the code would have to detect the resolution and then an easy algorithm can be run over the
@@ -989,7 +1146,7 @@ export class Plot
             //plot it using circle sprites
             let material
             let geometry = new THREE.Geometry()
-            if(!this.IsPlotmeshValid("Geometry"))
+            if(!this.IsPlotmeshValid("scatterplot"))
             {
                 let sprite = new THREE.TextureLoader().load(this.dataPointImage)
                 //https://github.com/mrdoob/three.js/issues/1625
@@ -1026,9 +1183,9 @@ export class Plot
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
-                vertex.x = df[i][x1col]/maxX1
-                vertex.y = df[i][x2col]/maxX2
-                vertex.z = df[i][x3col]/maxX3
+                vertex.x = df[i][x1col]/x1frac
+                vertex.y = df[i][x2col]/x2frac
+                vertex.z = df[i][x3col]/x3frac
                 geometry.vertices.push(vertex)
                 geometry.colors.push(dfColors[i])
             }
@@ -1037,6 +1194,7 @@ export class Plot
                 this.disposeMesh(this.plotmesh)
 
             this.plotmesh = particles
+            particles.name = "scatterplot"
             this.scene.add(particles)
             this.benchmarkStamp("made a scatterplot")
         }
@@ -1052,6 +1210,17 @@ export class Plot
      */
     addDataPoint(newDatapoint,options)
     {
+        //performance friendly default values
+        let normalizeX1 = false
+        let normalizeX2 = false
+        let normalizeX3 = false
+
+        if(options.normalizeX1 != undefined)
+            normalizeX1 = options.normalizeX1
+        if(options.normalizeX2 != undefined)
+            normalizeX2 = options.normalizeX2
+        if(options.normalizeX3 != undefined)
+            normalizeX3 = options.normalizeX3
 
         //create the datapoint datastructur (an array) from this
         if(typeof(newDatapoint) == "string")
@@ -1074,15 +1243,12 @@ export class Plot
             if(newDatapoint.length != this.dfCache.dataframe[0].length)
                 return console.error("the new datapoint does not match the number of column in the cached dataframe ("+newDatapoint.length+" != "+this.dfCache.dataframe[0].length+")")
         }
-
+        
         //because of keepOldPlot, only hand the newDatapoint over to plotDataFrame
         this.plotDataFrame([newDatapoint],
             this.dfCache.x1col,
             this.dfCache.x2col,
             this.dfCache.x3col,{
-                normalizeX1: false,
-                normalizeX2: false,
-                normalizeX3: false,
                 keepOldPlot: true,
                 header: false,
                 updateCache: false,
@@ -1095,7 +1261,10 @@ export class Plot
                 title: options.title,
                 x1title: options.x1title,
                 x2title: options.x2title,
-                x3title: options.x3title
+                x3title: options.x3title,
+                normalizeX1: normalizeX1,
+                normalizeX2: normalizeX2,
+                normalizeX3: normalizeX3
             },
             true)
 
@@ -1107,10 +1276,12 @@ export class Plot
     /**
      * appends the legend to a specific container. Make sure tostyle it because otherwise the colored span elements will not be visible.
      * @param {DOM} container
+     * @return returns the dom element of the legend
      */
     createLegend(container)
     {
         container.appendChild(this.legend.element)
+        return(this.legend.element)
     }
 
 
@@ -1123,8 +1294,12 @@ export class Plot
     {
         //if animated, don't render it here. In callAnimation it's going to render
         if(this.animationFunc == undefined)
+        {
             for(let i = 0;i < 5; i++)
                 window.setTimeout(()=>this.render(),100+i*33)
+            for(let i = 0;i < 5; i++)
+                window.setTimeout(()=>this.render(),(100+5*33)+i*66)
+        }
     }
 
 
@@ -1133,13 +1308,18 @@ export class Plot
      * if plotmesh is invalid it gets clered
      * @return returns true if plotmesh is still valid and existant
      */
-    IsPlotmeshValid(geometryType)
+    IsPlotmeshValid(check)
     {
+        let obj = this.plotmesh
+
+        if(obj == undefined)
+            return false
+            
         //it either has children because it's a group it has a geometry. if both are undefined, it's not valid anymore.
-        let invalid = (this.redraw == true || this.plotmesh == undefined || this.plotmesh == undefined && (this.plotmesh.geometry == undefined || this.plotmesh.geometry.type != geometryType))
+        let invalid = (this.redraw == true || obj.name != check && (obj.geometry != undefined && obj.geometry.type != check))
         if(invalid)
         {
-            this.disposeMesh(this.plotmesh)
+            this.disposeMesh(obj)
             this.redraw = false //now that the mesh is missing, it will be redrawn
             return false
         }
@@ -1170,7 +1350,7 @@ export class Plot
      * frees memory and removes the plotmesh (by making it available for the garbage collegtor)
      */
     disposeMesh(mesh)
-    {
+    {            
         if(mesh != undefined)
         {
             if(mesh.geometry != undefined)
@@ -1184,8 +1364,8 @@ export class Plot
             for(let i = 0;i < mesh.children; i++)
                 this.disposeMesh(mesh.cildren[i])
 
-            this.scene.remove(mesh) //cause(d) issues (once) (plots won't show anything on addDataPoint())
-
+            this.scene.remove(mesh)
+            
             mesh = undefined
         }
     }
@@ -1277,8 +1457,8 @@ export class Plot
         if(dimensions.zLen != undefined)
             this.zLen = dimensions.zLen
 
-        this.xVerticesCount = this.xLen*this.xRes+1
-        this.zVerticesCount = this.zLen*this.zRes+1
+        this.xVerticesCount = this.xLen*this.xRes
+        this.zVerticesCount = this.zLen*this.zRes
 
         //vertices counts changed, so the mesh has to be recreated
         this.redraw = true

@@ -2,13 +2,18 @@
 <div class="container" id="JsPlot3DContainer1"></div>
 <div class="container" id="JsPlot3DContainer2"></div>
 <div class="container" id="JsPlot3DContainer3"></div>
-<p>The following 3 are supposed to throw some errors but still manage to plot:</p>
+<p>
+    The previous 3 were not displaying bars that are very thin. The following 3 are supposed to throw some errors but still manage to plot.<br/> 
+    They will display small bars aswell. Still, there should be plenty of space around the x and z arrows (1,0,0) and (0,0,1) without any bars, not even thin ones.
+</p>
 <div class="container" id="JsPlot3DContainer4"></div>
 <div class="container" id="JsPlot3DContainer5"></div>
 <div class="container" id="JsPlot3DContainer6"></div>
-<p>They all should look the same. <front style="color:blue;">blue background</front>, <font style="color:#aaaa00;">yellow axes</font>, 
-    colorful bars from from <font style="color:red;">red (highest)</font> to <font style="color:blue;">blue (lowest)</font>. <br/>They are supposed to throw some errors into the console.
-    Between the bars there is some distance</p>
+<p>
+    They all should look the same (besides the missing thin bars) <front style="color:blue;">blue background</front>, <font style="color:#aaaa00;">yellow axes</font>, 
+    colorful bars from from <font style="color:red;">red (highest)</font> to <font style="color:blue;">blue (lowest)</font>. <br/>
+    Between the bars there is supposed to be some distance.
+</p>
 
 
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
@@ -531,7 +536,8 @@
         })
         plot1.plotCsvString(data,0,1,2,{
             defaultColor: "rgb(0.1,1,0.3)",
-            mode: "barchart"
+            mode: "barchart",
+            barSizeThreshold: 0.1
         })
 
         console.log()
@@ -545,7 +551,8 @@
             defaultColor: "rgb(0.1,1,0.3)",
             separator: ";",
             header: true,
-            mode: "barchart"
+            mode: "barchart",
+            barSizeThreshold: 0.1
         })
 
         console.log()
@@ -562,7 +569,8 @@
             mode: "barchart",
             normalize: false,
             colorCol: -1,
-            maxX2: 0.19991472060830104
+            maxX2: 0.19991472060830104,
+            barSizeThreshold: 0.1
         })
 
         console.log()

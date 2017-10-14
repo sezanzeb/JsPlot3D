@@ -63,15 +63,13 @@ Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on
 
 **needed for a first release:**
 
-- make it possible to download data online and display it (basically just do an xmlhttp request to fetch an array/csv of data). This should also work from within the animate function, so that some sort of monitoring can be achived. Add a parameter on how many datapoints maximum to show and add the newly arrived datapoints to the current daraframe and remove those that are old and don't fit into the size-boundary anymore.
-
 - normalize the scatterplot in a way that the maximum distance between max and min is 1
 - interpolate the bar heights
 - set xRes and zRes to values that are not equal and fix errors
 - make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
 - try to change xLen, yLen and zLen (also to negative values) and fix errors
 
-- make a nice live example on a webspace
+- make a nice live example on a webspace.
 - make it easy to use as a framework and make a doku for it with some examples
 - make a bundle without three.js, so that users don't link three.js twice if they already have it
 

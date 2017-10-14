@@ -7,17 +7,19 @@ export default class MathParser
      * runs eval
      * 
      * @param {String} c Code to be evaluated 
-     * @param {Number} x1 first parameter of f(x1,x2)
-     * @param {Number} x2 second parameter of f(x1,x2)
-     * @param {Function} f function f(x1,x2) as object. e.g. function(x1,x2){return x1+x2}, Needed for recursive calls
+     * @param {Number} x1 first parameter of f(x1,x3) (x)
+     * @param {Number} x3 second parameter of f(x1,x3) (z)
+     * @param {Function} f function f(x1,x3) as object. e.g. function(x1,x3){return x1+x3}, Needed for recursive calls
      */
-    eval2(c, x1, x2, f)
+    eval2(c, x1, x3, f)
     {
         this.x1 = x1
-        this.x2 = x2
+        this.x3 = x3
         this.f = f
         return eval(c)
     }
+
+    
 
     /**
      * thanks to https://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
@@ -83,14 +85,14 @@ export default class MathParser
      */
     parse(formula)
     {
-        //regex for numbers of x1 and x2: (x1|x2|\d+(\.\d+){0,1})
+        //regex for numbers of x1 and x3: (x1|x3|\d+(\.\d+){0,1})
         
         //for recursive calls, make sure that f is this.f
         formula = formula.replace(/f\(/g,"this.f(")
 
-        //x1 and x2 are attributes of this class once eval2 gets called
+        //x1 and x3 are attributes of this class once eval2 gets called
         formula = formula.replace(/x1/g,"this.x1")
-        formula = formula.replace(/x2/g,"this.x2")
+        formula = formula.replace(/x3/g,"this.x3")
 
         //remove whitespaces for easier regex replaces
         formula = formula.replace(/\s+/g,"")

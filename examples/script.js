@@ -69,6 +69,7 @@ function plotcsv()
         title: name,
         fraction: 1,
         labeled: false,
-        hueOffset: 0.3
+        hueOffset: 0.3,
+        keepOldPlot: false
     })
 }

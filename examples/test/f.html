@@ -1,21 +1,112 @@
 <h1>Calculated Animated Barchart</h1>
-<div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
-<p>Bars should change their color upon changing their height. The highest bar is red, the lowest is blue. The bars inbetween turqoise, green, yellow and orange. There is no space between the bars.</p>
+<div class="container" id="JsPlot3DContainer1" style="width:300px; height:300px;"></div>
+<div class="container" id="JsPlot3DContainer2" style="width:300px; height:300px;"></div>
+<div class="container" id="JsPlot3DContainer3" style="width:300px; height:300px;"></div>
+<div class="container" id="JsPlot3DContainer4" style="width:300px; height:300px;"></div>
+<p>
+    Bars should change their color upon changing their height. The highest bar is red, the lowest is blue. The bars inbetween turqoise, green, yellow and orange.<br/>
+    There is no space between the bars. They are supposed to move in a wave shape.<br/>
+    <b>- The first plot</b> inverts from time to time due to the plot approximating y(x,z) = 0 at some point. Once the sign flips, the whole plot flips and gets normalized<br/>
+    <b>- The fourth plot</b> is supposed to be very flat<br/>
+    Plot 2 and 3 don't have anything too suspicious about them by default. The waves behave differently, but that's all.<br/>
+    The features used here are kind of experimental. There is smoothing of the normalization factor involved and normalizing the barcharts while keepOldPlot is still on also<br/>
+    results in some rather unusual results.
+</p>
+<p>
+    The background is blue. There are no  axes visible.
+</p>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
-    var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"),
-    {
-        backgroundColor: "#2266aa",
-        axesColor: 0xffff00
-    })
-    
-    plot.setDimensions({xRes: 5, zRes: 5})
-    var i = 1;
-    plot.animate(function() {
-        plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart",0)
-        i += 0.01
+
+    var speed = 0.02
+
+    var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"),
+        {
+            backgroundColor: "#2266aa",
+            axesColor: 0xffff00
+        })
+    plot1.removeAxes()
+    plot1.setDimensions({xRes: 5, zRes: 5})
+    var i1 = 1;
+    plot1.animate(function() {
+        plot1.plotFormula("(sin(2*x1+i1)+sin(2*x3+i1))*0.001",{
+            mode: "barchart",
+            normalizeX2: true,
+            barchartPadding: 0,
+            keepOldPlot: true,
+        },0)
+        i1 += speed
+    }.bind(this))
+
+
+
+    var plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"),
+        {
+            backgroundColor: "#2266aa",
+            axesColor: 0xffff00
+        })
+    plot2.removeAxes()
+    plot2.setDimensions({xRes: 5, zRes: 5})
+    var i2 = 1;
+    //make sure to either set normalizeX2: true or multiply the formula with something very small in case of barchart.
+    //the bars are the sum of alle previously calculated results
+    plot2.animate(function() {
+        plot2.plotFormula("(sin(2*x1+i2)+sin(2*x3+i2))*0.008",{
+            mode: "barchart",
+            normalizeX2: false,
+            barchartPadding: 0,
+            keepOldPlot: true
+        },0)
+        i2 += speed
     }.bind(this))
     
+
+
+
+    var plot3 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer3"),
+        {
+            backgroundColor: "#2266aa",
+            axesColor: 0xffff00
+        })
+    plot3.removeAxes()
+    plot3.setDimensions({xRes: 5, zRes: 5})
+    var i3 = 1;
+    //make sure to either set normalizeX2: true or multiply the formula with something very small in case of barchart.
+    //the bars are the sum of alle previously calculated results
+    plot3.animate(function() {
+        plot3.plotFormula("(sin(2*x1+i3)+sin(2*x3+i3))",{
+            mode: "barchart",
+            normalizeX2: true,
+            barchartPadding: 0,
+            keepOldPlot: false
+        },0)
+        i3 += speed
+    }.bind(this))
+    
+
+
+
+    var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"),
+        {
+            backgroundColor: "#2266aa",
+            axesColor: 0xffff00
+        })
+    plot4.removeAxes()
+    plot4.setDimensions({xRes: 5, zRes: 5})
+    var i4 = 1;
+    //make sure to either set normalizeX2: true or multiply the formula with something very small in case of barchart.
+    //the bars are the sum of alle previously calculated results
+    plot4.animate(function() {
+        plot4.plotFormula("(sin(2*x1+i4)+sin(2*x3+i4))*0.03",{
+            mode: "barchart",
+            normalizeX2: false,
+            barchartPadding: 0,
+            keepOldPlot: false
+        },0)
+        i4 += speed
+    }.bind(this))
+
+
 </script>
 <style>
 
@@ -25,9 +116,10 @@
         font-family: sans-serif;
     }
 
-    div,canvas
+    .container
     {
         background: #2659b2;
+        display:inline-block;
     }
 
 </style>
