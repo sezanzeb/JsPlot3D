@@ -65,7 +65,7 @@ function plotcsv()
         normalizeX1: true,
         normalizeX2: true,
         normalizeX3: true,
-        mode: "scatterplot",
+        mode: "barchart",
         title: name,
         fraction: 1,
         labeled: false,

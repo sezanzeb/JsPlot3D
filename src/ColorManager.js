@@ -21,7 +21,7 @@ export default class ColorManager
     {
         //set color boundaries so that the colors are heatmap like
         let upperColorBoundary = 0 //equals red //what the highest value will get
-        let lowerColorBoundary = 0.7 //equals blue with a faint purple tone //what the lowest value will get
+        let lowerColorBoundary = 0.65 //equals blue with a faint purple tone //what the lowest value will get
 
         value = parseFloat(value)
         value = (value-min)/(max-min) //normalize
@@ -45,40 +45,42 @@ export default class ColorManager
      */
     getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true,hueOffset=0)
     {
-        let numberOfLabels = 0
-        //let numberOfLabels = df.length
-        //the color gets divided by (1-1/numberOfLabels) so that red does not appear twice.
-        //e.g. 3 labels would be red, turqoise, red. if numberOfLabels would get initialized with 0, that formula would diverge to -inf
-        //1 would make that term zero, so that the color would diverge to inf. a high number converges that term to 1, so the color won't be touched
 
-        //take care that all the labels are numbers
-        let map = {}
-        let labelColorMap = {} //store label names together with the used color
         let dfColors = new Array(df.length) //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
-
-        //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
-        //no need to check if it's numbers or not, because dfColors carries only numbers
-        //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
-        let clrMax
-        let clrMin
-        //the following function just updates clrMax and clrMin, only available within the function that wraps this (getColorMap(...))
-        let findHighestAndLowest = (value) =>
-        {
-            if(filterColor && colorCol != -1)
-            {
-                if(value > clrMax)
-                    clrMax = value
-                if(value < clrMin)
-                    clrMin = value
-            }
-        }
-
-        //now take care about if the user says it's labeled or not, if it's numbers, hex, rgb, hsl or strings
-        //store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
-
-        //parameter. Does the dataset hold classes/labels?
+        
         if(colorCol != -1) //does the user even want colors?
         {
+            let numberOfLabels = 0
+            //let numberOfLabels = df.length
+            //the color gets divided by (1-1/numberOfLabels) so that red does not appear twice.
+            //e.g. 3 labels would be red, turqoise, red. if numberOfLabels would get initialized with 0, that formula would diverge to -inf
+            //1 would make that term zero, so that the color would diverge to inf. a high number converges that term to 1, so the color won't be touched
+
+            //take care that all the labels are numbers
+            let map = {}
+            let labelColorMap = {} //store label names together with the used color
+
+            //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
+            //no need to check if it's numbers or not, because dfColors carries only numbers
+            //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
+            let clrMax
+            let clrMin
+            //the following function just updates clrMax and clrMin, only available within the function that wraps this (getColorMap(...))
+            let findHighestAndLowest = (value) =>
+            {
+                if(filterColor && colorCol != -1)
+                {
+                    if(value > clrMax)
+                        clrMax = value
+                    if(value < clrMin)
+                        clrMin = value
+                }
+            }
+
+            //now take care about if the user says it's labeled or not, if it's numbers, hex, rgb, hsl or strings
+            //store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
+
+            //parameter. Does the dataset hold classes/labels?
             if(labeled) //get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
             {
 
@@ -130,7 +132,7 @@ export default class ColorManager
                 //#, rgb and hex
 
                 //if it is a string value
-                if(isNaN(parseInt(df[0][colorCol])))
+                if(typeof(df[0][colorCol]) == "string" && isNaN(parseInt(df[0][colorCol])))
                 {
                     filterColor = false //don't apply normalization and heatmapfilters to it
 
@@ -232,7 +234,7 @@ export default class ColorManager
                 dfColors[i] = this.getColorObjectFromAnyString(defaultColor)
 
             //CASE 5 dfColors now contains all the same color
-            return {labelColorMap,dfColors}
+            return {labelColorMap:{}, dfColors}
         }
     }
 

@@ -1,4 +1,4 @@
-# JsPlot3D
+<p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/title.png"/></p>
 
 Plots functions and .csv files. Scatterplot is also supported. It will plot using three.js. Processing happens client side.
 
@@ -24,15 +24,26 @@ JsPlot3D.js will then be created in compiled/ automatically
 Take a look into the sourcode of the files in examples, especially in examples/test. There are 4 files a.html, b.html, c.html and d.html which contain a few examples.
 
 
-## Screenshots
+## images
 
 <p align="center">
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/barchart.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/labeledLegend.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/polygon.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/barchart2.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/screenshots/scatterplot2.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/barchart.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/labeledLegend.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/polygon.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/barchart2.png"/>
+  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/scatterplot2.png"/>
 </p>
+
+## Features
+
+- optimized for animations
+- scatterplots
+- coloring datalabels
+- heatmaps
+- validates and plots formulas (supports polygons as output)
+- barcharts
+- creating legends
+- reads .csv files
 
 
 ## Live Example
@@ -60,18 +71,21 @@ Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on
 
 **needed for a first release:**
 
-- add axis title and numbers (in the same color as axesColor)
-- add the overall title to the legend
+- make it possible to download data online and display it (basically just do an xmlhttp request to fetch an array/csv of data). This should also work from within the animate function, so that some sort of monitoring can be achived. Add a parameter on how many datapoints maximum to show and add the newly arrived datapoints to the current daraframe and remove those that are old and don't fit into the size-boundary anymore.
+
+- interpolate the bar heights
+- upon changing the .csv file in examples/index.html the old bars keep being there
+- set xRes and zRes to values that are not equal and fix errors
+- make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
+- try to change xLen, yLen and zLen (also to negative values) and fix errors
 
 - make a nice live example on a webspace
 - make it easy to use as a framework and make a doku for it with some examples
 - make a bundle without three.js, so that users don't link three.js twice if they already have it
 
-- set xRes and zRes to values that are not equal and fix errors
-- make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
-- try to change xLen, yLen and zLen (also to negative values) and fix errors
-
 **what else is there to do:**
+
+- calculate the average color per bar (which are sums of y values that are near that grid position) depending on colorCol. At the moment it only dyes according to the y-height
 - how is the performance for very large dataframes? base64 decoding the uplaoded file takes ages and I can't change that. what about the plotting and data processing?
 - increase barchart performance. e.g. by adding the option to define the normalization ranges (min and max) yourself (so that the tool does has to calculate it on its own), and also when plotting formulas, data gets transformed to a dataframe and then transformed to a "x,z -> y" kind of 2D array, maybe there is a way to just directly calculate the 2D array, hand it over to PlotDataFrame, which then ignores the df variable. Also make sure to cache that aswell.
 - add an utility that lets you convert csvs and json objects to dataframes according to a configuration. Then the user can input that into PlotDataFrame. This approach would result in a more clean overall tool i think.
@@ -96,3 +110,5 @@ Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on
 ## Attribution
 
 iris.csv Dataset by Ronald Fisher
+
+Codystar font by Neapolitan Principal design https://fonts.google.com/specimen/Codystar, released under the Open Font License

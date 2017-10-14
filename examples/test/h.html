@@ -1,0 +1,35 @@
+<h1>Building up a Scatterplot Step by Step</h1>
+<div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
+<p>Evenly distributed yellow-orange-red datapoints on a dark blue background and lime axes</p>
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+<script>
+    var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"),
+    {
+        backgroundColor: "#12365a",
+        axesColor: 0x66ff00
+    })
+
+    plot.animate(function() {
+        let randr = 1
+        let randg = Math.abs(Math.random())
+        let randb = 0
+        plot.addDataPoint([Math.abs(Math.random()),Math.abs(Math.random()),Math.abs(Math.random())],{
+            color: "rgb(" + randr + "," + randg + "," + randb + ")"
+        })
+    })
+    
+</script>
+<style>
+
+    body
+    {
+        margin: 20px;
+        font-family: sans-serif;
+    }
+
+    div,canvas
+    {
+        background: #2659b2;
+    }
+
+</style>

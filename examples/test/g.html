@@ -1,0 +1,71 @@
+<h1>Building up a Barchart Step by Step</h1>
+<div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
+<div id="JsPlot3DContainerLegend"></div>
+<p>Evenly distributed heatmapcolored bars on a dark blue background and lime axes. Lowest bar is blue, highest is red.<br/>
+    They are all positive in their height. <b>No axes should be visible.</b> A legend should be displayed below the canvas.<br/>
+    The labels should say: "rainbow", "random x", "random y", "random z"</p>
+<p><i><small>The difference to f.html is, that this is not a formula that involves some random factor. Here, a new random datapoint is sent to plot each frame.</small></i></p>
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+<script>
+    
+    var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"), {backgroundColor: "#12365a"})
+    plot.createLegend(document.getElementById("JsPlot3DContainerLegend"))
+    plot.removeAxes()
+
+    plot.setDimensions({xRes:5,zRes:5})
+
+    plot.animate(function() {
+        let randr = 1
+        let randg = Math.abs(Math.random())
+        let randb = 0
+        plot.addDataPoint([Math.abs(Math.random()),Math.abs(Math.random()),Math.abs(Math.random())],{
+            mode: "barchart",
+            barchartPadding: 0,
+            title: "rainbow",
+            x1title: "random x",
+            x2title: "random y",
+            x3title: "random z"
+        })
+    }.bind(this))
+    
+</script>
+<style>
+
+    body
+    {
+        margin: 20px;
+        font-family: sans-serif;
+    }
+
+    canvas
+    {
+        background: #2659b2;
+    }
+    
+    .jsP3D_legend
+    {
+        margin: 10px 0px 0px 0px;
+        border: 1px solid black;
+        padding: 5px 10px;
+        border-radius: 2px;
+        display:inline-block;
+    }
+
+    .jsP3D_legend h1
+    {
+        margin: 0px 0px 5px;
+        font-size: 20px;
+        border-bottom: 1px solid white;
+        padding: 5px 0px;
+    }
+
+    .jsP3D_labelColor
+    {
+        width: 10px;
+        height: 10px;
+        display: block;
+        border-radius: 100%;
+        margin-right: 10px;
+    }
+
+</style>
