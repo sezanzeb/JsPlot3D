@@ -24,16 +24,6 @@ JsPlot3D.js will then be created in compiled/ automatically
 Take a look into the sourcode of the files in examples, especially in examples/test. There are 4 files a.html, b.html, c.html and d.html which contain a few examples.
 
 
-## images
-
-<p align="center">
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/barchart.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/labeledLegend.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/polygon.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/barchart2.png"/>
-  <img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/scatterplot2.png"/>
-</p>
-
 ## Features
 
 - optimized for animations
