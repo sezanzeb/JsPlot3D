@@ -1,5 +1,7 @@
 <p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/title.png"/></p>
 
+**unstable**
+
 Plots functions and .csv files. Scatterplot is also supported. It will plot using three.js. Processing happens client side.
 
 It is written in ES6 syntax and compiled using webpack.
@@ -63,8 +65,8 @@ Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on
 
 - make it possible to download data online and display it (basically just do an xmlhttp request to fetch an array/csv of data). This should also work from within the animate function, so that some sort of monitoring can be achived. Add a parameter on how many datapoints maximum to show and add the newly arrived datapoints to the current daraframe and remove those that are old and don't fit into the size-boundary anymore.
 
+- normalize the scatterplot in a way that the maximum distance between max and min is 1
 - interpolate the bar heights
-- upon changing the .csv file in examples/index.html the old bars keep being there
 - set xRes and zRes to values that are not equal and fix errors
 - make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
 - try to change xLen, yLen and zLen (also to negative values) and fix errors
