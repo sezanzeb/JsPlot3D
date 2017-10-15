@@ -74,8 +74,36 @@ export class Plot
      * plots a formula into the container
      *
      * @param {string}  originalFormula string of formula
-     * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed. Default: "polygon"
-     * @param {number}  elementSize (optional). In case mode is "scatterplot" it changes the size of the datapoints. In the case of "barchart" it changes the padding between the bars between 0 and 1.
+     * @param {object} options
+     * - mode {string}: "barchart" or "scatterplot"
+     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
+     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
+     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
+     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
+     * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
+     * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
+     * - title {string}: title of the data
+     * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
+     * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
+     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
+     * - x1frac {number}: by how much to divide the datapoints x1 value
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y)
+     * - x3frac {number}: by how much to divide the datapoints x3 value
+     * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
+     * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
+     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
+     *                      as if it was a color. (converted to hexadecimal then). Default false
+     * - x1title {string}: title of the x1 axis
+     * - x2title {string}: title of the x2 axis
+     * - x3title {string}: title of the x3 axis
+     * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
+     * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
+     * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0  
      */
     plotFormula(originalFormula, options={})
     {
@@ -279,9 +307,9 @@ export class Plot
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
-     * - maxX1 {number}: the maximum x1 value in the dataframe. The maximum value in the column that is used as x1. Default 1
-     * - maxX2 {number}: the maximum x2 value in the dataframe. The maximum value in the column that is used as x2. Default 1 (y)
-     * - maxX3 {number}: the maximum x3 value in the dataframe. The maximum value in the column that is used as x3. Default 1
+     * - x1frac {number}: by how much to divide the datapoints x1 value
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y)
+     * - x3frac {number}: by how much to divide the datapoints x3 value
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
@@ -717,6 +745,12 @@ export class Plot
             x1col = Math.min(x1col,maximumColumn)
             x2col = Math.min(x2col,maximumColumn)
             x3col = Math.min(x3col,maximumColumn)
+        }
+
+
+        if(fraction < 1)
+        {
+            df = df.slice(0,df.length*fraction)
         }
 
 
@@ -1303,6 +1337,34 @@ export class Plot
     /**
      * repeats the drawing using dfCache, but adds a new datapoint to it
      * @param {any} newDatapoint String or Array
+     * @param {object} options
+     * - mode {string}: "barchart" or "scatterplot"
+     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
+     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
+     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
+     * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
+     * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
+     * - title {string}: title of the data
+     * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
+     * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
+     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
+     * - x1frac {number}: by how much to divide the datapoints x1 value
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y)
+     * - x3frac {number}: by how much to divide the datapoints x3 value
+     * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
+     * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
+     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
+     *                      as if it was a color. (converted to hexadecimal then). Default false
+     * - x1title {string}: title of the x1 axis
+     * - x2title {string}: title of the x2 axis
+     * - x3title {string}: title of the x3 axis
+     * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
+     * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
+     * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      */
     addDataPoint(newDatapoint,options={})
     {
