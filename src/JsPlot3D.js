@@ -174,7 +174,6 @@ export class Plot
             //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
             if(!this.IsPlotmeshValid("PlaneGeometry"))
             {
-
                 //create plane, divided into segments
                 let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
                 //move it
@@ -248,6 +247,8 @@ export class Plot
      * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
      * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
      * @param {object}  options     json object with one or more of the following parameters:
+     * - csvIsInGoodShape {boolean}: true if the .csv file is in a good shape. No quotation marks around numbers, no leading and ending whitespaces, no broken numbers (0.123b8),
+     *                          all lines have the same number of columns. true results in more performance. Default: false. If false, the function will try to fix it as good as it can.
      * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
      * - mode {string}: "barchart" or "scatterplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
@@ -290,9 +291,10 @@ export class Plot
 
         //default config
         let separator=","
-        let header=false
         let title=""
         let fraction=1
+        let csvIsInGoodShape=false
+        let header=true //assume header=true for now so that the parsing is not making false assumptions because it looks at headers
 
         //some helper functions
         let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
@@ -324,7 +326,9 @@ export class Plot
             if(checkNumber("fraction",options.fraction))
                 fraction = parseFloat(options.fraction)
 
-            //check booleans. Overwrite if it's good. If not, default value will remain
+            //check booleans
+            if(checkBoolean("csvIsInGoodShape",options.csvIsInGoodShape))
+                csvIsInGoodShape = options.csvIsInGoodShape
             if(checkBoolean("header",options.header))
                 header = options.header
 
@@ -353,7 +357,7 @@ export class Plot
             samples = samples + sCsv[i]
 
         //take everything into account that changes how the dataframe looks after the processing
-        let checkstring = title+sCsv.length+samples+fraction+header+separator
+        let checkstring = title+sCsv.length+samples+fraction+separator
 
         //now check if the checksum changed. If yes, remake the dataframe from the input
         if(this.dfCache == undefined || this.dfCache.checkstring != checkstring)
@@ -380,25 +384,84 @@ export class Plot
             //find out the separator automatically if the user didn't define it
             if(options.separator == undefined || data[0].indexOf(separator) == -1)
             {
-                //in case of undefined or -1, assume ;, then try ,
+                //in case of undefined or -1, assume ;
                 separator = ";"
 
                 if(data[0].indexOf(separator) == -1)
                     separator = ","
 
                 if(data[0].indexOf(separator) == -1)
+                    separator = /[\s\t]{2,}/g //tabbed data
+
+                if(data[0].search(separator) == -1)
                     return console.error("no csv separator/delimiter was detected. Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
 
 
                 console.warn("the specified separator/delimiter was not found. Tried to detect it and came up with \""+separator+"\". Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
             }
 
-            for(let i = 0;i < data.length; i ++)
+            if(!csvIsInGoodShape)
             {
-                data[i] = data[i].split(separator)
-                //remove leading and ending whitespaces in data
-                for(let j = 0;j < data[i].length; j++)
-                    data[i][j].trim()
+                //check 5% of the columns to get the highest number of columns available
+                let columnCount = 0
+                for(let i = 0;i < Math.min(data.length,data.length*0.05+10);i++)
+                {
+                    columnCount = Math.max(columnCount,data[i].split(separator).length)
+                }
+
+                for(let i = 0;i < data.length; i ++)
+                {
+                    data[i] = data[i].trim().split(separator)
+                    
+                    //make sure every row has the same number of columns
+                    data[i] = data[i].slice(0,columnCount)
+                    data[i] = data[i].concat(new Array(columnCount-data[i].length))
+
+                    //remove leading and ending whitespaces in data
+                    for(let j = 0;j < data[i].length; j++)
+                    {
+
+                        //make sure every column has stored a value
+                        if(data[i][j] == undefined)
+                        {
+                            data[i][j] = 0
+                        }
+                        else
+                        {
+                            //remove quotation marks
+                            if(data[i][j][0] == "\"")
+                                if(data[i][j][data[i][j].length-1] == "\"")
+                                    data[i][j] = data[i][j].slice(1,-1)
+
+                                //parse if possible. if not leave it as it is
+                                let parsed = parseFloat(data[i][j])
+                                if(!isNaN(parsed))
+                                    data[i][j] = parsed //number
+                                else
+                                    data[i][j].trim() //string
+                        }
+                    }
+                }
+            }
+            else
+            {
+                //The user trusts the csv and wants maximum performance
+                let startLine = 0
+                if(header)
+                    startLine = 1
+
+                //split lines into columns
+                for(let line = 0;line < data.length; line ++)
+                    data[line] = data[line].split(separator)
+
+                //iterate over columns
+                for(let col = 0;col < data[0].length; col++)
+                {
+                    //check if that line can be parsed
+                    if(!isNaN(parseFloat(data[startLine][col]))) //if parsable as number 
+                        for(let line = 0;line < data.length; line ++) //continue like so for all following datapoints/rows
+                            data[line][col] = parseFloat(data[line][col])
+                }
             }
 
             //cache the dataframe. If the same dataframe is used next time, don't parse it again
@@ -632,7 +695,7 @@ export class Plot
             //detct the rightmost column index that contains numberes
             let maximumColumn = 2 //to match the default settings of 0, 1 and 2, start at 2
             for(;maximumColumn >= 0; maximumColumn--)
-                if(!isNaN(parseFloat(df[1][maximumColumn])))
+                if(!isNaN((df[1][maximumColumn])))
                     break
             x1col = Math.min(x1col,maximumColumn)
             x2col = Math.min(x2col,maximumColumn)
@@ -773,9 +836,9 @@ export class Plot
             for(let i = 0; i < df.length; i++)
             {
                 //in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                if(parseFloat(df[i][x1col]) > maxX1)
+                if((df[i][x1col]) > maxX1)
                     maxX1 = df[i][x1col]
-                if(parseFloat(df[i][x1col]) < minX1)
+                if((df[i][x1col]) < minX1)
                     minX1 = df[i][x1col]
             }
 
@@ -804,9 +867,9 @@ export class Plot
                 let minX2 = df[0][x2col]
                 for(let i = 0; i < df.length; i++)
                 {
-                    if(parseFloat(df[i][x2col]) > maxX2)
+                    if((df[i][x2col]) > maxX2)
                         maxX2 = df[i][x2col]
-                    if(parseFloat(df[i][x2col]) < minX2)
+                    if((df[i][x2col]) < minX2)
                         minX2 = df[i][x2col]
                 }
 
@@ -833,9 +896,9 @@ export class Plot
             let minX3 = 0
             for(let i = 0; i < df.length; i++)
             {
-                if(parseFloat(df[i][x3col]) > maxX3)
+                if((df[i][x3col]) > maxX3)
                     maxX3 = df[i][x3col]
-                if(parseFloat(df[i][x3col]) < minX3)
+                if((df[i][x3col]) < minX3)
                     minX3 = df[i][x3col]
             }
             
@@ -867,9 +930,8 @@ export class Plot
             //this.dfCache.previousX2frac = 1 //for normalizationSmoothing. Assume that the data does not need to be normalized at first
 
             //if needed, reconstruct the barchart
-            if(!this.IsPlotmeshValid("Group"))
+            if(!this.IsPlotmeshValid("barchart"))
             {
-                
                 //plot it using circle sprites
                 let cubegroup = new THREE.Group()
 
@@ -910,6 +972,7 @@ export class Plot
                         cubegroup.add(bar)
                     }
 
+                cubegroup.name = "barchart"
                 this.plotmesh = cubegroup
                 this.scene.add(cubegroup)
                 
@@ -946,8 +1009,8 @@ export class Plot
 
                 //get coordinates that can fit into an array
                 //TODO interpolate. When x and z is at (in case of parseFloat) e.g. 2.5,1. Add one half to 2,1 and the other hald to 3,1 
-                let x_float = parseFloat(df[i][x1col])/factorX1
-                let z_float = parseFloat(df[i][x3col])/factorX3
+                let x_float = (df[i][x1col])/factorX1
+                let z_float = (df[i][x3col])/factorX3
 
                 let x_le = Math.floor(x_float) //left
                 let z_ba = Math.floor(z_float) //back
@@ -980,7 +1043,7 @@ export class Plot
                 }.bind(this)
 
 
-                let y = parseFloat(df[i][x2col]) //don't normalize yet
+                let y = (df[i][x2col]) //don't normalize yet
 
                 //if x_float and z_float it somewhere inbewteen
                 if(x_float != x_le || z_float != z_ba)
@@ -1186,6 +1249,14 @@ export class Plot
                 vertex.x = df[i][x1col]/x1frac
                 vertex.y = df[i][x2col]/x2frac
                 vertex.z = df[i][x3col]/x3frac
+
+                //doesn't do anything. I suspect three.js handles invalid vertex already by skipping them
+                /*if(isNaN(vertex.x) || isNaN(vertex.y) || isNaN(vertex.z))
+                {
+                    console.log("skip")
+                    continue
+                }*/
+
                 geometry.vertices.push(vertex)
                 geometry.colors.push(dfColors[i])
             }
@@ -1280,6 +1351,8 @@ export class Plot
      */
     createLegend(container)
     {
+        if(container == null || container == undefined)
+            return console.error("container for createLegend not found")
         container.appendChild(this.legend.element)
         return(this.legend.element)
     }
@@ -1305,7 +1378,8 @@ export class Plot
 
 
     /**
-     * if plotmesh is invalid it gets clered
+     * if plotmesh is invalid it gets clered.
+     * It checks the mesh.type, mesh.name and mesh.geometry.type if it matches with the parameter check
      * @return returns true if plotmesh is still valid and existant
      */
     IsPlotmeshValid(check)
@@ -1316,7 +1390,24 @@ export class Plot
             return false
             
         //it either has children because it's a group it has a geometry. if both are undefined, it's not valid anymore.
-        let invalid = (this.redraw == true || obj.name != check && (obj.geometry != undefined && obj.geometry.type != check))
+
+        if(this.redraw == true)
+        {
+            this.disposeMesh(obj)
+            this.redraw = false //now that the mesh is missing, it will be redrawn
+            return false
+        }
+
+        let invalid = false
+        if(obj.name != check && obj.type != check)
+        {
+            if(obj.geometry != undefined && obj.geometry.type != check)
+                invalid = true //neither the name nor the type is check
+
+            if(obj.geometry == undefined)
+                invalid = true //can only check based on obj.name
+        }
+
         if(invalid)
         {
             this.disposeMesh(obj)
@@ -1342,6 +1433,16 @@ export class Plot
         this.dfCache.x2col = 1
         this.dfCache.x3col = 2
         this.dfCache.checkstring = ""
+    }
+
+
+
+    /**
+     * returns the cache
+     */
+    getCache()
+    {
+        return this.dfCache
     }
 
 

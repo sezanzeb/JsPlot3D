@@ -132,32 +132,32 @@ export default class ColorManager
                 //#, rgb and hex
 
                 //if it is a string value
-                if(typeof(df[0][colorCol]) == "string" && isNaN(parseInt(df[0][colorCol])))
+                if(isNaN(parseInt(df[0][colorCol])))
                 {
                     filterColor = false //don't apply normalization and heatmapfilters to it
 
                     //try to extract color information from the string
-                    if(df[0][colorCol].toLowerCase().indexOf("rgb") == 0)
+                    if((df[0][colorCol]+"").toLowerCase().indexOf("rgb") == 0)
                     {
                         for(let i = 0; i < df.length; i++)
                         {
                             //remove "rgb", brackets and split it into an array of [r,g,b]
-                            let rgb = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
+                            let rgb = (df[i][colorCol]+"").substring(4,df[i][colorCol].length-1).split(",")
                             dfColors[i] = new this.THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
                         }
                     }
-                    else if(df[0][colorCol].toLowerCase().indexOf("#") == 0)
+                    else if((df[0][colorCol]+"").toLowerCase().indexOf("#") == 0)
                     {
                         //hex strings are supported by three.js right away
                         for(let i = 0; i < df.length; i++)
-                            dfColors[i] =  new this.THREE.Color(df[i][colorCol])
+                            dfColors[i] = new this.THREE.Color(df[i][colorCol])
                     }
-                    else if(df[0][colorCol].toLowerCase().indexOf("hsl") == 0)
+                    else if((df[0][colorCol]+"").toLowerCase().indexOf("hsl") == 0)
                     {
                         for(let i = 0; i < df.length; i++)
                         {
                             //remove "hsl", brackets and split it into an array of [r,g,b]
-                            let hsl = df[i][colorCol].substring(4,df[i][colorCol].length-1).split(",")
+                            let hsl = (df[i][colorCol]+"").substring(4,df[i][colorCol].length-1).split(",")
                             dfColors[i] = new this.THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
                         }
                     }

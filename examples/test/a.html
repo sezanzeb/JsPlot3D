@@ -470,7 +470,8 @@
         plot1.setAxesColor("hsl(0.1667,1,0.5)")
         plot1.plotCsvString(data,0,1,2,{
             defaultColor: "rgb(0.1,1,0.3)",
-            dataPointSize:0.035
+            dataPointSize:0.035,
+            csvIsInGoodShape: true
         })
 
         console.log()
@@ -485,7 +486,8 @@
             separator: ",",
             header: true,
             dataPointSize:0.035,
-            labeled: true
+            labeled: true,
+            csvIsInGoodShape: true
         })
 
         console.log()
@@ -528,7 +530,8 @@
         plot5.plotCsvString(data,0,1,2,{
             header: "tomato",
             colorCol:1,
-            dataPointSize:0.035
+            dataPointSize:0.035,
+            csvIsInGoodShape: true
         })
 
         console.log()
@@ -540,7 +543,8 @@
         plot6.plotCsvString(data,0,1,30,{
             mode: "maple sirup",
             colorCol:1,
-            dataPointSize:0.035
+            dataPointSize:0.035,
+            csvIsInGoodShape: true
         })
     }
     
