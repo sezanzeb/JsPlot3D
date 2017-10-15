@@ -11,7 +11,9 @@
     
     var i = 1;
     plot.animate(function() {
-        plot.plotFormula("sin(2*x1+i)*sin(2*x3-i)")
+        plot.plotFormula("sin(2*x1+i)*sin(2*x3-i)", {
+            normalizeX2: false
+        })
         i += 0.01
     }.bind(this))
 </script>

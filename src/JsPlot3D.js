@@ -83,11 +83,19 @@ export class Plot
      * @param {string}  mode     "barchart", "polygon" or "scatterplot". Changes the way the data gets displayed. Default: "polygon"
      * @param {number}  elementSize (optional). In case mode is "scatterplot" it changes the size of the datapoints. In the case of "barchart" it changes the padding between the bars between 0 and 1.
      */
-    plotFormula(originalFormula, options = {})
+    plotFormula(originalFormula, options={})
     {
+
         let mode
+        let x2frac = 1
+        let normalizeX2 = true
+        
         if(options.mode != undefined)
             mode = options.mode
+        if(options.x2frac != undefined)
+            x2frac = options.x2frac
+        if(options.normalizeX2 != undefined)
+            normalizeX2 = options.normalizeX2
 
         if(originalFormula == undefined || originalFormula == "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
@@ -97,9 +105,9 @@ export class Plot
         this.resetCalculation()
         this.parsedFormula = this.MathParser.parse(originalFormula)
 
-        if(mode == "scatterplot") //3D-Plane
+        if(mode == "scatterplot")
         {
-
+            
             ////////  SCATTERPLOT    ////////
 
             //if scatterplot, create a dataframe and send it to plotDataFrame
@@ -172,7 +180,7 @@ export class Plot
 
             //might need to recreate the geometry and the matieral
             //is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
-            if(!this.IsPlotmeshValid("PlaneGeometry"))
+            if(!this.IsPlotmeshValid("polygonFormula"))
             {
                 //create plane, divided into segments
                 let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
@@ -189,14 +197,10 @@ export class Plot
                     side: THREE.DoubleSide
                     })
 
-                /*let plotmat = new THREE.MeshBasicMaterial({
-                    vertexColors: THREE.VertexColors,
-                    side: THREE.DoubleSide
-                })*/
-
                 this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
-                this.scene.add(this.plotmesh)
+                this.plotmesh.name = "polygonFormula"
             }
+            
             //if not, go ahead and manipulate the vertices
 
             //TODO hiding faces if typeof y is not number:
@@ -212,6 +216,9 @@ export class Plot
             let x3Actual = (this.zVerticesCount-1)/this.zRes //z
             let x1ActualStep = 1/this.xRes
             let x3ActualStep = 1/this.zRes
+            let minX2 = 0
+            let maxX2 = 0
+
             for(let z = this.zVerticesCount; z >= 0; z--)
             {
                 for(let x = 0; x <= this.xVerticesCount; x++)
@@ -221,10 +228,24 @@ export class Plot
                     this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
                     vIndex ++
                     x1Actual += x1ActualStep
+                    if(y > maxX2)
+                        maxX2 = y
+                    if(y < minX2)
+                        minX2 = y
                 }
                 x1Actual = 0
                 x3Actual -= x3ActualStep
             }
+            
+            if(normalizeX2)
+            {
+                let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
+                let b = Math.abs(maxX2-minX2) //based on distance between min and max
+                x2frac = Math.max(a,b)*x2frac //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
+                this.plotmesh.geometry.scale(1,1/x2frac,1)
+            }
+
+            this.scene.add(this.plotmesh)
 
             //normals need to be recomputed so that the lighting works after the transformation
             this.plotmesh.geometry.computeFaceNormals()
@@ -232,7 +253,6 @@ export class Plot
             this.plotmesh.geometry.__dirtyNormals = true
             //make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
-
             this.makeSureItRenders()
         }
     }
@@ -280,7 +300,7 @@ export class Plot
      * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      */
-    plotCsvString(sCsv, x1col, x2col, x3col, options)
+    plotCsvString(sCsv, x1col, x2col, x3col, options = {})
     {
         //---------------------------//
         //  parameter type checking  //
@@ -312,7 +332,6 @@ export class Plot
                 return errorParamType(varname, variable, "number")
             else return true //returns true (valid) or false
         }
-
         //make sure options is defined
         if(typeof(options) == "object")
         {
@@ -362,7 +381,7 @@ export class Plot
         //now check if the checksum changed. If yes, remake the dataframe from the input
         if(this.dfCache == undefined || this.dfCache.checkstring != checkstring)
         {
-
+            this.resetCache()
             //-------------------------//
             //       creating df       //
             //-------------------------//
@@ -394,7 +413,7 @@ export class Plot
                     separator = /[\s\t]{2,}/g //tabbed data
 
                 if(data[0].search(separator) == -1)
-                    return console.error("no csv separator/delimiter was detected. Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
+                    return console.error("no csv separator/delimiter was detected. Please set separator:\"...\" according to your file format: \""+data[0]+"\"")
 
 
                 console.warn("the specified separator/delimiter was not found. Tried to detect it and came up with \""+separator+"\". Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
@@ -473,7 +492,6 @@ export class Plot
 
             //plot the dataframe.
             options.fraction = 1 //Fraction is now 1, because the fraction has already been taken into account
-
 
             this.plotDataFrame(data, x1col, x2col, x3col, options)
         }
@@ -678,8 +696,6 @@ export class Plot
 
         }
 
-
-
         if(checkNumber("x1col",x1col))
             x1col = parseFloat(x1col)
         else x1col = Math.min(0,df[0].length-1)
@@ -689,19 +705,25 @@ export class Plot
         if(checkNumber("x3col",x3col))
             x3col = parseFloat(x3col)
         else x3col = Math.min(2,df[0].length-1)
+        
         if(x1col > df[0].length || x2col > df[0].length || x3col > df[0].length)
         {
             console.error("one of the colum indices is out of bounds. The maximum index in this dataframe is "+(df[0].length-1)+". x1col: "+x1col+" x2col:"+x2col+" x3col:"+x3col)
             //detct the rightmost column index that contains numberes
             let maximumColumn = 2 //to match the default settings of 0, 1 and 2, start at 2
+            let line = 0
+
+            if(df[1] != undefined) //if possible try to skip the first line, because it might contain a header
+                line = 1
+
             for(;maximumColumn >= 0; maximumColumn--)
-                if(!isNaN((df[1][maximumColumn])))
+                if(!isNaN((df[line][maximumColumn])))
                     break
+
             x1col = Math.min(x1col,maximumColumn)
             x2col = Math.min(x2col,maximumColumn)
             x3col = Math.min(x3col,maximumColumn)
         }
-
 
 
         //plotDataFrame
@@ -719,12 +741,13 @@ export class Plot
             if(this.dfCache == undefined)
                 this.resetCache()
 
-            if(this.dfCache.dataframe == undefined || this.dfCache.dataframe.length != df.length)
-                this.dfCache.dataframe = df
+            this.dfCache.dataframe = df
 
             this.dfCache.x1col = x1col
             this.dfCache.x2col = x2col
             this.dfCache.x3col = x3col
+
+            this.dfCache.options = options
         }
 
 
@@ -934,6 +957,7 @@ export class Plot
             {
                 //plot it using circle sprites
                 let cubegroup = new THREE.Group()
+                cubegroup.name = "barchart"
 
                 //dimensions of the bars
                 let barXWidth = 1/this.xRes
@@ -972,7 +996,6 @@ export class Plot
                         cubegroup.add(bar)
                     }
 
-                cubegroup.name = "barchart"
                 this.plotmesh = cubegroup
                 this.scene.add(cubegroup)
                 
@@ -988,7 +1011,7 @@ export class Plot
             }
 
 
-            if(!keepOldPlot)
+            if(!keepOldPlot && this.dfCache.barHeights != undefined)
             {
                 for(let x = 0; x < this.dfCache.barHeights.length; x++)
                 {
@@ -1196,21 +1219,29 @@ export class Plot
         else
         {
 
-            if(mode != "scatterplot" && mode != undefined)
-                console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
-
             //plotDataFrame
             //-------------------------//
             //       scatterplot       //
             //-------------------------//
-
             //This is the default mode
+            
 
-            //plot it using circle sprites
-            let material
-            let geometry = new THREE.Geometry()
-            if(!this.IsPlotmeshValid("scatterplot"))
+            if(mode != "scatterplot" && mode != undefined)
+                console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
+    
+            if(!keepOldPlot)
             {
+                this.disposeMesh(this.plotmesh)
+            }
+
+            let isItValid = this.IsPlotmeshValid("scatterplot")
+
+            if(isItValid == false || (this.dfCache != undefined && this.dfCache.material != undefined && dataPointSize != this.dfCache.material.size))
+            {
+                //create a new material
+
+                //plot it using circle sprites
+
                 let sprite = new THREE.TextureLoader().load(this.dataPointImage)
                 //https://github.com/mrdoob/three.js/issues/1625
                 sprite.magFilter = THREE.LinearFilter
@@ -1223,7 +1254,7 @@ export class Plot
                 //alphaTest = 0.1 black edges on the sprite
                 //alphaTest = 0 not transparent infront of other sprites anymore
                 //sizeAttenuation: false, sprites don't change size in distance and size is in px
-                material = new THREE.PointsMaterial({
+                let material = new THREE.PointsMaterial({
                     size: dataPointSize,
                     map: sprite,
                     alphaTest: 0.7,
@@ -1231,18 +1262,14 @@ export class Plot
                     vertexColors: true
                 })
 
-                //material.color.set(0x2faca3)
-
                 this.dfCache.material = material
-            }
-            else
-            {
-                //when possible don't recreate the material
-                material = this.dfCache.material
+                this.plotmesh = new THREE.Group()
+                this.plotmesh.name = "scatterplot"
             }
 
-            let particles = new THREE.Points(geometry, material)
-
+            let material = this.dfCache.material
+            let group = this.plotmesh
+            let geometry = new THREE.Geometry()
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
@@ -1250,23 +1277,17 @@ export class Plot
                 vertex.y = df[i][x2col]/x2frac
                 vertex.z = df[i][x3col]/x3frac
 
-                //doesn't do anything. I suspect three.js handles invalid vertex already by skipping them
-                /*if(isNaN(vertex.x) || isNaN(vertex.y) || isNaN(vertex.z))
-                {
-                    console.log("skip")
-                    continue
-                }*/
-
+                //three.js handles invalid vertex already by skipping them
                 geometry.vertices.push(vertex)
                 geometry.colors.push(dfColors[i])
             }
 
-            if(!keepOldPlot)
-                this.disposeMesh(this.plotmesh)
+            let newDataPointSprites = new THREE.Points(geometry, material)
 
-            this.plotmesh = particles
-            particles.name = "scatterplot"
-            this.scene.add(particles)
+            
+            this.plotmesh = group
+            group.add(newDataPointSprites)
+            this.scene.add(group)
             this.benchmarkStamp("made a scatterplot")
         }
 
@@ -1279,21 +1300,35 @@ export class Plot
      * repeats the drawing using dfCache, but adds a new datapoint to it
      * @param {any} newDatapoint String or Array
      */
-    addDataPoint(newDatapoint,options)
+    addDataPoint(newDatapoint,options={})
     {
+        if(this.dfCache == undefined)
+            this.resetCache()
+            
+        //overwrite old options
+        for(let key in options)
+            this.dfCache.options[key] = options[key]
+
+        //default keepOldPlot, but make it possible to overwrite it.
+        this.dfCache.options.keepOldPlot = true //true, so that the old plot gets extended with the new datapoint
+        if(options.keepOldPlot != undefined)
+            this.dfCache.options.keepOldPlot = options.keepOldPlot
+
+        //the following have to be like this:
+        this.dfCache.options.header = false //no header in newDataPoint
+        this.dfCache.options.updateCache = false //false, because don't delete the original dataframe from cache
+
         //performance friendly default values
-        let normalizeX1 = false
-        let normalizeX2 = false
-        let normalizeX3 = false
+        if(options.normalizeX1 == undefined)
+            this.dfCache.options.normalizeX1 = false
+        if(options.normalizeX2 == undefined)
+            this.dfCache.options.normalizeX2 = false
+        if(options.normalizeX3 == undefined)
+            this.dfCache.options.normalizeX3 = false
+        if(this.dfCache.options.normalizeX1 == true || this.dfCache.options.normalizeX2 == true || this.dfCache.options.normalizeX3 == true)
+            console.warn("normalization for addDataPoint might be unperformant. You can change normalization using normalizeX1: false, normalizeX2: false, normalizeX3: false")
 
-        if(options.normalizeX1 != undefined)
-            normalizeX1 = options.normalizeX1
-        if(options.normalizeX2 != undefined)
-            normalizeX2 = options.normalizeX2
-        if(options.normalizeX3 != undefined)
-            normalizeX3 = options.normalizeX3
-
-        //create the datapoint datastructur (an array) from this
+        //create the datapoint data structure (an array) from this
         if(typeof(newDatapoint) == "string")
         {
             newDatapoint = newDatapoint.split(this.dfCache.separator)
@@ -1302,41 +1337,17 @@ export class Plot
         }
 
         //create a new dataframe from scratch if non existant
-        if(this.dfCache == undefined)
-        {
-            this.resetCache()
-            this.dfCache.dataframe = [newDatapoint]
-        }
-        else
-        {
-            this.dfCache.dataframe[this.dfCache.dataframe.length] = newDatapoint
-            
-            if(newDatapoint.length != this.dfCache.dataframe[0].length)
-                return console.error("the new datapoint does not match the number of column in the cached dataframe ("+newDatapoint.length+" != "+this.dfCache.dataframe[0].length+")")
-        }
+        this.dfCache.dataframe[this.dfCache.dataframe.length] = newDatapoint
         
+        if(newDatapoint.length != this.dfCache.dataframe[0].length)
+            return console.error("the new datapoint does not match the number of column in the cached dataframe ("+newDatapoint.length+" != "+this.dfCache.dataframe[0].length+")")
+
         //because of keepOldPlot, only hand the newDatapoint over to plotDataFrame
         this.plotDataFrame([newDatapoint],
             this.dfCache.x1col,
             this.dfCache.x2col,
-            this.dfCache.x3col,{
-                keepOldPlot: true,
-                header: false,
-                updateCache: false,
-                
-                //available for customizing:
-                defaultColor: options.color,
-                mode: options.mode,
-                barchartPadding: options.barchartPadding,
-                dataPointSize: options.dataPointSize,
-                title: options.title,
-                x1title: options.x1title,
-                x2title: options.x2title,
-                x3title: options.x3title,
-                normalizeX1: normalizeX1,
-                normalizeX2: normalizeX2,
-                normalizeX3: normalizeX3
-            },
+            this.dfCache.x3col,
+            this.dfCache.options, //dfCache.options got overwritten in this function
             true)
 
         return 0
@@ -1378,7 +1389,7 @@ export class Plot
 
 
     /**
-     * if plotmesh is invalid it gets clered.
+     * if plotmesh is invalid it gets clered. The point of this is that materials and such don't have to be recreated again and again
      * It checks the mesh.type, mesh.name and mesh.geometry.type if it matches with the parameter check
      * @return returns true if plotmesh is still valid and existant
      */
@@ -1387,34 +1398,31 @@ export class Plot
         let obj = this.plotmesh
 
         if(obj == undefined)
+        {
+            this.redraw = false
             return false
+        }
             
         //it either has children because it's a group it has a geometry. if both are undefined, it's not valid anymore.
 
-        if(this.redraw == true)
+        if(this.redraw == true) //this is the only place where this.redraw is taken into account
         {
             this.disposeMesh(obj)
-            this.redraw = false //now that the mesh is missing, it will be redrawn
+            this.redraw = false
             return false
         }
 
-        let invalid = false
-        if(obj.name != check && obj.type != check)
-        {
-            if(obj.geometry != undefined && obj.geometry.type != check)
-                invalid = true //neither the name nor the type is check
 
-            if(obj.geometry == undefined)
-                invalid = true //can only check based on obj.name
-        }
+        if(obj.name == check)
+            return true
 
-        if(invalid)
-        {
-            this.disposeMesh(obj)
-            this.redraw = false //now that the mesh is missing, it will be redrawn
-            return false
-        }
-        return true
+        if(obj.type == check)
+            return true
+
+            
+        this.disposeMesh(obj)
+        this.redraw = false
+        return false
     }
 
 
@@ -1433,6 +1441,7 @@ export class Plot
         this.dfCache.x2col = 1
         this.dfCache.x3col = 2
         this.dfCache.checkstring = ""
+        this.dfCache.options = {}
     }
 
 
@@ -1442,6 +1451,8 @@ export class Plot
      */
     getCache()
     {
+        if(this.dfCache == undefined)
+            resetCache()
         return this.dfCache
     }
 
@@ -1451,7 +1462,7 @@ export class Plot
      * frees memory and removes the plotmesh (by making it available for the garbage collegtor)
      */
     disposeMesh(mesh)
-    {            
+    {   
         if(mesh != undefined)
         {
             if(mesh.geometry != undefined)
@@ -1462,12 +1473,14 @@ export class Plot
                 mesh.texture.dispose()
 
             //recursively clear the children
-            for(let i = 0;i < mesh.children; i++)
-                this.disposeMesh(mesh.cildren[i])
-
-            this.scene.remove(mesh)
-            
-            mesh = undefined
+            for(let i = 0;i < mesh.children.length; i++)
+                this.disposeMesh(mesh.children[i])
+                
+            if(mesh.parent != null)
+                mesh.parent.remove(mesh)
+                
+            if(mesh != undefined)
+                mesh.remove()
         }
     }
 
@@ -1626,7 +1639,7 @@ export class Plot
 
 
     /**
-     * tells this object to animate this.
+     * tells this object to animate this. You can stop the animation using stopAnimation()
      * @example
      *
      * //animation
@@ -1643,6 +1656,16 @@ export class Plot
         this.onChangeCamera = function() {}
         this.animationFunc = animationFunc
         this.callAnimation()
+    }
+
+
+
+    /**
+     * stops the ongoing animation. To start an animation, see animate(...)
+     */
+    stopAnimation()
+    {
+        this.animationFunc = ()=>{}
     }
 
 
@@ -1832,12 +1855,39 @@ export class Plot
         axes.add(arrowMesh2)
         axes.add(arrowMesh3)
 
+        let placeLetter = function(letter, textColor, position)
+        {
+            //write text to a canvas
+            let textCanvas = document.createElement('canvas')
+            textCanvas.height = 128
+            textCanvas.width = 64
+            let context2d = textCanvas.getContext('2d')
+            context2d.font = "Bold 80px sans-serif"
+            context2d.fillStyle = textColor //textclr
+            context2d.fillText(letter,0,80) //write
+    
+            //create a texture from the canvas
+            let canvasToTexture = new THREE.Texture(textCanvas)
+            let textureToSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: canvasToTexture,
+                alphaTest: 0.6
+            }))
+    
+            //transform
+            let size = 0.05
+            textureToSprite.scale.set(size,2*size)
+            textureToSprite.position.set(position.x,position.y,position.z)
+    
+            //finish
+            canvasToTexture.needsUpdate = true
+            return textureToSprite
+        }
 
         //text indicating the dimension name
         let offset = 0.1
-        let xLetter = this.palceLetter("x","#"+colorObject.getHexString(), new THREE.Vector3(this.xLen+offset,0,0))
-        let yLetter = this.palceLetter("y","#"+colorObject.getHexString(), new THREE.Vector3(0,this.yLen+offset,0))
-        let zLetter = this.palceLetter("z","#"+colorObject.getHexString(), new THREE.Vector3(0,0,this.zLen+offset))
+        let xLetter = placeLetter("x","#"+colorObject.getHexString(), new THREE.Vector3(this.xLen+offset,0,0))
+        let yLetter = placeLetter("y","#"+colorObject.getHexString(), new THREE.Vector3(0,this.yLen+offset,0))
+        let zLetter = placeLetter("z","#"+colorObject.getHexString(), new THREE.Vector3(0,0,this.zLen+offset))
         axes.add(xLetter)
         axes.add(yLetter)
         axes.add(zLetter)
@@ -1846,36 +1896,6 @@ export class Plot
         //add the axes group to the scene and store it locally in the object
         this.scene.add(axes)
         this.axes = axes
-    }
-
-
-
-    palceLetter(letter, textColor, position)
-    {
-        //write text to a canvas
-        let textCanvas = document.createElement('canvas')
-        textCanvas.height = 128
-        textCanvas.width = 64
-        let context2d = textCanvas.getContext('2d')
-        context2d.font = "Bold 80px sans-serif"
-        context2d.fillStyle = textColor //textclr
-        context2d.fillText(letter,0,80) //write
-
-        //create a texture from the canvas
-        let canvasToTexture = new THREE.Texture(textCanvas)
-        let textureToSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-            map: canvasToTexture,
-            alphaTest: 0.6
-        }))
-
-        //transform
-        let size = 0.05
-        textureToSprite.scale.set(size,2*size)
-        textureToSprite.position.set(position.x,position.y,position.z)
-
-        //finish
-        canvasToTexture.needsUpdate = true
-        return textureToSprite
     }
 
 

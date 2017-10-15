@@ -12,7 +12,10 @@ document.getElementById("formulaForm").addEventListener("submit",function(e)
 {
     e.preventDefault()
     var formula = document.getElementById("formulaText").value
-    plot.plotFormula(formula, "scatterplot")
+    plot.plotFormula(formula, {
+        mode: "scatterplot",
+        keepOldPlot: true
+    })
 })
 
 //write down that the file in the cache is not up to date anymore
@@ -65,7 +68,7 @@ function plotcsv()
         normalizeX1: true,
         normalizeX2: true,
         normalizeX3: true,
-        mode: "barchart",
+        mode: "scatterplot",
         title: name,
         fraction: 1,
         labeled: false,

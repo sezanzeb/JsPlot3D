@@ -8,6 +8,12 @@ It is written in ES6 syntax and compiled using webpack.
 
 default branch: "threejs"
 
+<p align="center">
+    <img width="23%" src="images/scatterplots1.png">
+    <img width="23%" src="images/scatterplots2.png">
+    <img width="23%" src="images/barcharts1.png">
+    <img width="23%" src="images/barcharts2.png">
+</p>
 
 ## Building JsPlot3D.js
 
@@ -63,8 +69,6 @@ Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on
 
 **needed for a first release:**
 
-- normalize the scatterplot in a way that the maximum distance between max and min is 1
-- interpolate the bar heights
 - set xRes and zRes to values that are not equal and fix errors
 - make a example.csv that contains negative positions (x: -1, z: -0.32 and such) and fix errors
 - try to change xLen, yLen and zLen (also to negative values) and fix errors
