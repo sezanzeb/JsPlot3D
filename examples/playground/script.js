@@ -14,7 +14,7 @@ document.getElementById("formulaForm").addEventListener("submit",function(e)
     var formula = document.getElementById("formulaText").value
     plot.plotFormula(formula, {
         mode: "scatterplot",
-        keepOldPlot: true
+        keepOldPlot: false
     })
 })
 

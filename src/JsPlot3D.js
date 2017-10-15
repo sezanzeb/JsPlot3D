@@ -32,19 +32,13 @@ export class Plot
         //some plotdata specific variables. I want setters and getter for all those at some point
         this.MathParser = new MathParser()
         this.resetCalculation() //configures the variables
-        this.dataPointImage = "datapoint.png"
+        //this.dataPointImage = "datapoint.png"
         this.ColorManager = new ColorManager(THREE)
 
         if(options.backgroundColor != undefined)
             backgroundColor = options.backgroundColor
         if(options.axesColor != undefined)
             axesColor = options.axesColor
-
-
-        //check if dataPointImage is available
-        let img = new Image()
-        img.onerror = ()=>console.warn(this.dataPointImage+" does not exist. Scatterplots will not be visible")
-        img.src = this.dataPointImage
 
 
         //three.js setup
@@ -1240,12 +1234,22 @@ export class Plot
             {
                 //create a new material
 
+                let canvas = document.createElement("canvas")
+                let context = canvas.getContext("2d")
+                canvas.width = 64
+                canvas.height = 64
+          
+                context.beginPath()
+                context.arc(32, 32, 30, 0, 2*Math.PI)
+                context.fillStyle = "white"
+                context.fill()
+        
+                let datapointSprite = new THREE.Texture(canvas)
+                datapointSprite.needsUpdate = true
                 //plot it using circle sprites
 
-                let sprite = new THREE.TextureLoader().load(this.dataPointImage)
-                //https://github.com/mrdoob/three.js/issues/1625
-                sprite.magFilter = THREE.LinearFilter
-                sprite.minFilter = THREE.LinearFilter
+                datapointSprite.magFilter = THREE.LinearFilter
+                datapointSprite.minFilter = THREE.LinearFilter
 
 
                 //https://github.com/mrdoob/three.js/issues/1625
@@ -1256,8 +1260,7 @@ export class Plot
                 //sizeAttenuation: false, sprites don't change size in distance and size is in px
                 let material = new THREE.PointsMaterial({
                     size: dataPointSize,
-                    map: sprite,
-                    alphaTest: 0.7,
+                    map: datapointSprite,
                     transparent: true,
                     vertexColors: true
                 })
@@ -1601,14 +1604,15 @@ export class Plot
 
 
     /**
+     * Deprecated
      * changes the datapoint image. You need to plot the data again after this function so that the change takes effect
      * @param {string} url url of the image.
      */
-    setDataPointImage(url)
+    /*setDataPointImage(url)
     {
         console.log("url: "+typeof(url))
         this.dataPointImage = url
-    }
+    }*/
 
 
 
