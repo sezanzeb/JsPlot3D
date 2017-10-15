@@ -2,9 +2,9 @@
 
 **unstable**
 
-Plots functions and .csv files. Scatterplot is also supported. It will plot using three.js. Processing happens client side.
+Plots functions and .csv files. Based on three.js.
 
-It is written in ES6 syntax and compiled using webpack.
+It is written in ES6 syntax and compiled using Webpack.
 
 default branch: "threejs"
 

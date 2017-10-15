@@ -5,7 +5,7 @@
     Evenly distributed heatmapcolored bars on a dark blue background and lime axes. Lowest bar is blue, highest is red.<br/>
     They are all positive in their height. No axes should be visible. A legend should be displayed below the canvas.<br/>
     The labels should say: "rainbow", "random x", "random y", "random z" and It should not be squashed to one side.<br/>
-    It consists of 6 rows and 6 columns of bars = 36 bars.
+    It's twice as long as deep (10 x 5 bars)
 </p>
 <p><i><small>The difference to f.html is, that this is not a formula that involves some random factor. Here, a new random datapoint is sent to plot each frame.</small></i></p>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
@@ -14,8 +14,7 @@
     var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"), {backgroundColor: "#12365a"})
     plot.createLegend(document.getElementById("JsPlot3DContainerLegend"))
     plot.removeAxes()
-
-    plot.setDimensions({xRes:5,zRes:5})
+    plot.setDimensions({xLen:2,xRes:5,zRes:5})
 
     plot.animate(function() {
         let randr = 1

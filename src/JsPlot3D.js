@@ -81,7 +81,7 @@ export class Plot
     {
 
         let mode
-        let x2frac = 1
+        let x2frac = 1/this.yLen
         let normalizeX2 = true
         
         if(options.mode != undefined)
@@ -177,7 +177,7 @@ export class Plot
             if(!this.IsPlotmeshValid("polygonFormula"))
             {
                 //create plane, divided into segments
-                let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xRes,this.zRes)
+                let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xVerticesCount,this.zVerticesCount)
                 //move it
                 planegeometry.rotateX(Math.PI/2)
                 planegeometry.translate(this.xLen/2,0,this.zLen/2)
@@ -235,7 +235,7 @@ export class Plot
             {
                 let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
                 let b = Math.abs(maxX2-minX2) //based on distance between min and max
-                x2frac = Math.max(a,b)*x2frac //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
+                x2frac = Math.max(a,b)*x2frac/this.yLen //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
                 this.plotmesh.geometry.scale(1,1/x2frac,1)
             }
 
@@ -872,7 +872,7 @@ export class Plot
             //a hybrid solution of checking the distance between the points and checking the |value|
             let a = Math.max(Math.abs(maxX1),Math.abs(minX1)) //based on largest |value|
             let b = Math.abs(maxX1-minX1) //based on distance between min and max
-            x1frac = Math.max(a,b)*x1frac //hybrid. The multiplication by x1frac is to take the user defined options.x1frac value into account
+            x1frac = Math.max(a,b)*x1frac/this.xLen //hybrid. The multiplication by x1frac is to take the user defined options.x1frac value into account
             
         }
         
@@ -903,7 +903,7 @@ export class Plot
                 //a hybrid solution of checking the distance between the points and checking the |value|
                 let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
                 let b = Math.abs(maxX2-minX2) //based on distance between min and max
-                x2frac = Math.max(a,b)*x2frac //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
+                x2frac = Math.max(a,b)*x2frac/this.yLen //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
             }
         }
 
@@ -932,7 +932,7 @@ export class Plot
             //a hybrid solution of checking the distance between the points and checking the |value|
             let a = Math.max(Math.abs(maxX3),Math.abs(minX3)) //based on largest |value|
             let b = Math.abs(maxX3-minX3) //based on distance between min and max
-            x3frac = Math.max(a,b)*x3frac //hybrid. The multiplication by x3frac is to take the user defined options.x3frac value into account
+            x3frac = Math.max(a,b)*x3frac/this.zLen //hybrid. The multiplication by x3frac is to take the user defined options.x3frac value into account
         }
 
         this.benchmarkStamp("normalized the data")
@@ -1017,8 +1017,8 @@ export class Plot
 
             //fill the barHeights array with the added heights of the bars
             //maxX1 and maxX3 are the results of the normalization that happens for plot mode
-            let factorX1 = x1frac/(this.xRes-1)
-            let factorX3 = x3frac/(this.zRes-1)
+            let factorX1 = x1frac/(this.xRes)
+            let factorX3 = x3frac/(this.zRes)
             for(let i = 0; i < df.length; i ++)
             {
 
@@ -1108,7 +1108,7 @@ export class Plot
             {
                 let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
                 let b = Math.abs(maxX2-minX2) //based on distance between min and max
-                x2frac = Math.max(a,b)*x2frac //hybrid. The multiplication by x1frac is to take the user defined options.x2frac value into account
+                x2frac = Math.max(a,b)*x2frac/this.yLen //hybrid. The multiplication by x1frac is to take the user defined options.x2frac value into account
 
                 //a lower value of normalizationSmoothing will result in faster jumping around plots. 0 Means no smoothing this happens, because 
                 //sometimes the plot might be close to 0 everywhere. This is not visible because of the normalization though one the sign
@@ -1261,6 +1261,7 @@ export class Plot
                 let material = new THREE.PointsMaterial({
                     size: dataPointSize,
                     map: datapointSprite,
+                    alphaTest: 0.1,
                     transparent: true,
                     vertexColors: true
                 })
@@ -1328,8 +1329,8 @@ export class Plot
             this.dfCache.options.normalizeX2 = false
         if(options.normalizeX3 == undefined)
             this.dfCache.options.normalizeX3 = false
-        if(this.dfCache.options.normalizeX1 == true || this.dfCache.options.normalizeX2 == true || this.dfCache.options.normalizeX3 == true)
-            console.warn("normalization for addDataPoint might be unperformant. You can change normalization using normalizeX1: false, normalizeX2: false, normalizeX3: false")
+        //if(this.dfCache.options.normalizeX1 == true || this.dfCache.options.normalizeX2 == true || this.dfCache.options.normalizeX3 == true)
+        //    console.warn("normalization for addDataPoint might be unperformant. You can change normalization using normalizeX1: false, normalizeX2: false, normalizeX3: false")
 
         //create the datapoint data structure (an array) from this
         if(typeof(newDatapoint) == "string")
@@ -1510,7 +1511,7 @@ export class Plot
      */
     setAxesColor(color)
     {
-        this.axes = this.createAxes(color)
+        this.createAxes(color)
         //this.render()
     }
 
@@ -1560,22 +1561,30 @@ export class Plot
         if(typeof(dimensions) != "object")
             return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen")
 
-        if(dimensions.xRes <= 0 || dimensions.zRes <= 0)
-            return console.error("xRes and zRes have to be positive. xRes:"+dimensions.xRes+" zRes:"+dimensions.zRes)
-
         if(dimensions.xRes != undefined)
-            this.xRes = parseInt(dimensions.xRes)
+            this.xRes = Math.max(1,Math.abs(parseInt(dimensions.xRes)))
         if(dimensions.zRes != undefined)
-            this.zRes = parseInt(dimensions.zRes)
+            this.zRes = Math.max(1,Math.abs(parseInt(dimensions.zRes)))
         if(dimensions.xLen != undefined)
-            this.xLen = dimensions.xLen
+            this.xLen = Math.abs(dimensions.xLen)
         if(dimensions.yLen != undefined)
-            this.yLen = dimensions.yLen
+            this.yLen = Math.abs(dimensions.yLen)
         if(dimensions.zLen != undefined)
-            this.zLen = dimensions.zLen
+            this.zLen = Math.abs(dimensions.zLen)
 
-        this.xVerticesCount = this.xLen*this.xRes
-        this.zVerticesCount = this.zLen*this.zRes
+        this.xVerticesCount = Math.max(1,Math.round(this.xLen*this.xRes))
+        this.zVerticesCount = Math.max(1,Math.round(this.zLen*this.zRes))
+
+        if(this.axes != undefined)
+            this.createAxes(this.axesColor) //recreate
+        
+        if(this.camera != undefined && this.cameraControls != undefined)
+        {
+            //move
+            this.camera.position.set(this.xLen/2,Math.max(this.zLen,this.yLen),this.zLen+this.xLen)
+            this.cameraControls.target.set(this.xLen/2,this.yLen/2,this.zLen/2)
+            this.camera.lookAt(this.cameraControls.target)
+        }
 
         //vertices counts changed, so the mesh has to be recreated
         this.redraw = true
@@ -1749,7 +1758,7 @@ export class Plot
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
         //let zoom = 1000
         //let camera = new THREE.OrthographicCamera(width/-zoom, width/zoom, height/-zoom, height/zoom, near, far)
-        camera.position.set(0.5,0.6,2)
+        camera.position.set(this.xLen/2,Math.max(this.zLen,this.yLen),this.zLen+this.xLen)
 
         let controls = new OrbitControls(camera, this.renderer.domElement)
         controls.enableKeys = true
@@ -1774,6 +1783,7 @@ export class Plot
         camera.lookAt(controls.target)
 
         this.camera = camera
+        this.cameraControls = controls
     }
 
 
@@ -1801,6 +1811,7 @@ export class Plot
     removeAxes()
     {
         this.disposeMesh(this.axes)
+        this.axes = undefined
     }
 
 
@@ -1809,9 +1820,11 @@ export class Plot
      * @private
      * @param {string} color     hex string of the axes color. default black #000000
      */
-    createAxes(color="0x000000")
+    createAxes(color="#000000")
     {
+        this.axesColor = color //to be able to easily redraw it later with the same color
         this.disposeMesh(this.axes)
+
         let axes = new THREE.Group()
 
         let colorObject = this.ColorManager.getColorObjectFromAnyString(color)
