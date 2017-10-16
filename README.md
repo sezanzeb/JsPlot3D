@@ -7,10 +7,10 @@ Plots functions and .csv files. Based on three.js.
 It is written in ES6 syntax and compiled using Webpack.
 
 <p align="center">
-    <img width="23%" src="images/scatterplots1.png">
-    <img width="23%" src="images/scatterplots2.png">
-    <img width="23%" src="images/barcharts1.png">
-    <img width="23%" src="images/barcharts2.png">
+    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatterplots1.png">
+    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatterplots2.png">
+    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barcharts1.png">
+    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barcharts2.png">
 </p>
 
 For building information take a look at MORE.md
