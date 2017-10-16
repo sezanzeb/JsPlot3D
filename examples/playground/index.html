@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>3D-Plot-Js</title>
+        <title>JsPlot3D Playground</title>
         <link rel="stylesheet" type="text/css" href="style.css">
         <link rel="shortcut icon" href="icon.png">
     </head>
@@ -9,7 +9,7 @@
 
         <div id="pageheader">
             <img src="icon.png">
-            <h1>JsPlot3D Playground</h1>
+            <h1>JsPlot3D</h1><h1>Playground</h1>
             <a id="github" href="https://github.com/sezanzeb/JsPlot3D">GitHub</a>
         </div>
         <div id="main">
@@ -21,130 +21,181 @@
                     Hold [left click] to rotate the view<br/>
                     Hold [right click] to move the view around<br/>
                 </small>
+                <div id="csvhead"></div>
             </div>
             <div id="right">
-                <h2>Formula</h2>
-                <p>
-                    <form id="formulaForm">
-                        y(x1,x3) = <input id="formulaText" type="text" placeholder="javascript syntax"></input><button id="formulaButton">calc</button>
+                <div class="section">
+                    <h2>.csv File Upload</h2>
+                    <form id="csvform">
+                        <p>
+                            <input name="fileup" id="fileup" type="file"></input>
+                            <label for="fileup" id="fileupbutton" class="button highlight">select a file</label>
+                            <label id="fileuplabel"></label>
+                            <button id="submitcsv" class="highlight" type="submit" style="display:none">plot</button>
+                        </p>
+                        <small>optional .csv realted options:</small>
+                        <p>
+                            <label>header:</label>
+                            <select id="header">
+                                <option value=""></option>
+                                <option value="true">true</option>
+                                <option value="false">false</option>
+                            </select>
+                            <small>(Does the first csv line contain headers?)</small>
+                        </p>
+                        <p>
+                            <label>separator:</label><input id="separator" type="text"></input>
+                        </p>
+                        <p>
+                            <label>active columns:</label>
+                            <input id="x1" class="indices" type="number" placeholder="x"></input>
+                            <input id="x2" class="indices" type="number" placeholder="y"></input>
+                            <input id="x3" class="indices" type="number" placeholder="z"></input>
+                        </p>
+                        <p>
+                            <label>labeled:</label>
+                            <select id="labeled">
+                                <option value=""></option>
+                                <option value="true">true</option>
+                                <option value="false">false</option>
+                            </select>
+                            <small>will group datapoint by using colors (based on colorCol)</small>
+                        </p>
+                        <small>type in the column indices of your csv file that you would<br/>like to plot for x1 (x), x2 (y) and x3 (z). Default is 0, 1 and 2</small>
                     </form>
-                    <small>Example: sin(x1*5)+sin(x3*5)</small>
-                </p>
-                <h2>.csv File Upload</h2>
-                <p>
-                    <input name="fileup" id="fileup" type="file"></input>
-                    <label for="fileup" id="fileupbutton">select a file</label>
-                    <label id="fileuplabel"></label>
-                </p>
-                <p>
-                    <label>header:</label>
-                    <select id="header">
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                    </select>
-                </p>
-                <p>
-                    <label>separator:</label><input id="separator" type="text"></input>
-                </p>
-                <p>
-                    <input id="x1" class="indices" type="number" placeholder="x"></input>
-                    <input id="x2" class="indices" type="number" placeholder="y"></input>
-                    <input id="x3" class="indices" type="number" placeholder="z"></input>
-                    <button id="submitcsv">plot</button>
-                </p>
-                <small>type in the column indices of your csv file that you would<br/>like to plot for x1 (x), x2 (y) and x3 (z). Default is 0, 1 and 2</small>
-
-                <h2>Settings</h2>
-                <p>(none are mandatory)</p>
-                <br/>
-                <p>
-                    <small>options object:</small>
-                </p>
-                <p>
-                    <label>mode:</label>
-                    <select id="mode">
-                        <option value="scatterplot">scatterplot</option>
-                        <option value="barchart">barchart</option>
-                        <option value="polygon">polygon</option>
-                    </select>
-                </p>
-                <p>
-                    <label>colorCol:</label><input id="colorCol" type="number"></input>
-                </p>
-                <p>
-                    normalize:
-                    <label>x</label>
-                    <select id="normalizeX1">
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                    </select>
-                    <label>y</label>
-                    <select id="normalizeX2">
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                    </select>
-                    <label>z</label>
-                    <select id="normalizeX3">
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                    </select>
-                </p>
-                <p>
-                    <label>barchartPadding:</label><input id="barchartPadding" type="number" max="1" min="0" step="0.1"></input>
-                </p>
-                <p>
-                    <label>barSizeThreshold:</label><input id="barSizeThreshold" type="number" max="1" min="0" step="0.1"></input>
-                </p>
-                <p>
-                    <label>dataPointSize:</label><input id="dataPointSize" type="number" min="0" step="0.005"></input>
-                </p>
-                <p>
-                    <label>defaultColor:</label><input id="defaultColor" type="text"></input>
-                </p>
-                <p>
-                    <label>hueOffset:</label><input id="hueOffset" type="number" step="0.1"></input>
-                </p>
-                <p>
-                    <label>title:</label><input id="title" type="text"></input>
-                </p>
-                <p>
-                    <label>x1title:</label><input id="x1title" class="short" type="text"></input>
-                    <label>x2title:</label><input id="x2title" class="short" type="text"></input>
-                    <label>x3title:</label><input id="x3title" class="short" type="text"></input>
-                </p>
-                <p>
-                    <label>fraction:</label><input id="fraction" type="number" max="1" min="0" step="0.1"></input>
-                </p>
-                <p>
-                    <label>keepOldPlot:</label>
-                    <select id="keepOldPlot">
-                        <option value="false">false</option>
-                        <option value="true">true</option>
-                    </select>
-                </p>
-                </table>
-                <br/>
-                <p>
-                    <small>using setters:</small>
-                </p>
-                <p>
-                    resolution:
-                    <label>x</label>
-                    <input type="number" id="xRes">
-                    <label>y</label>
-                    <input type="number" id="yRes">
-                    <label>z</label>
-                    <input type="number" id="zRes">
-                </p>
-                <p>
-                    <label>background color:</label>
-                    <input type="text" id="backgroundColor">
-                </p>
-                <p>
-                    <label>axes color:</label>
-                    <input type="text" id="axesColor">
-                </p>
+                </div>
+                <div class="section">
+                    <h2>Formula</h2>
+                    <form id="formulaForm">
+                        <p>
+                            y(x1,x3) = <input id="formulaText" type="text" placeholder="javascript syntax"></input><button id="formulaButton" type="submit">calc</button>
+                        </p>
+                        <p>
+                            <small>Example: sin(x1*5)+sin(x3*5)</small>
+                        </p>
+                    </form>
+                </div>
+                <div class="section">
+                    <h2>Settings</h2>
+                    <form id="settings">
+                        <p>
+                            <small>options object:</small>
+                        </p>
+                        <p>
+                            <label>mode:</label>
+                            <select id="mode">
+                                <option value=""></option>
+                                <option value="scatterplot">scatterplot</option>
+                                <option value="barchart">barchart</option>
+                                <option value="polygon">polygon</option>
+                            </select>
+                            <small>"polygon" is only available for plotting Formulas</small>
+                        </p>
+                        <p>
+                            <label>colorCol:</label><input id="colorCol" type="number"></input>
+                            <label>hueOffset:</label><input id="hueOffset" type="number" value="-0.05" step="0.05"></input>
+                        </p>
+                        <p>
+                            normalize:
+                            <label>x</label>
+                            <select id="normalizeX1">
+                                <option value=""></option>
+                                <option value="true">true</option>
+                                <option value="false">false</option>
+                            </select>
+                            <label>y</label>
+                            <select id="normalizeX2">
+                                <option value=""></option>
+                                <option value="true">true</option>
+                                <option value="false">false</option>
+                            </select>
+                            <label>z</label>
+                            <select id="normalizeX3">
+                                <option value=""></option>
+                                <option value="true">true</option>
+                                <option value="false">false</option>
+                            </select>
+                        </p>
+                        <p>
+                            <label>barchartPadding:</label><input id="barchartPadding" type="number" max="1" min="0" step="0.1"></input>
+                            <label>dataPointSize:</label><input id="dataPointSize" type="number" min="0" step="0.005"></input>
+                        </p>
+                        <p>
+                            <label>barSizeThreshold:</label><input id="barSizeThreshold" type="number" max="1" min="0" step="0.05"></input>
+                        </p>
+                        <p>
+                            <label>defaultColor:</label><input id="defaultColor" type="text" value="rgb(0.6,1,0)"></input>
+                            <small>e.g.:0xffffff,#ff6600,rgb(1,0.5,0),hsl(0.7,0.6,0.3)</small>
+                        </p>
+                        <p>
+                            <label>title:</label><input id="title" type="text"></input>
+                        </p>
+                        <p>
+                            <label>x1title:</label><input id="x1title" class="short" type="text"></input>
+                            <label>x2title:</label><input id="x2title" class="short" type="text"></input>
+                            <label>x3title:</label><input id="x3title" class="short" type="text"></input>
+                        </p>
+                        <p>
+                            <label>fraction:</label><input id="fraction" type="number" max="1" min="0" step="0.1"></input>
+                        </p>
+                        <p>
+                            <label>keepOldPlot:</label>
+                            <select id="keepOldPlot">
+                                <option value=""></option>
+                                <option value="false">false</option>
+                                <option value="true">true</option>
+                            </select>
+                        </p>
+                        <p>
+                            <label>apply changes:</label>
+                            <button type="submit">click</button>
+                        </p>
+                    </form>
+                        <br/>
+                        <p>
+                            <small>using setters:</small>
+                        </p>
+                        <form id="setDimensions">
+                            <p>
+                                resolution:
+                                <label>x</label>
+                                <input type="number" id="xRes">
+                                <label>z</label>
+                                <input type="number" id="zRes">
+                                <button type="submit">set</button>
+                            </p>
+                            <p>
+                                length:
+                                <label>x</label>
+                                <input type="number" id="xLen">
+                                <label>y</label>
+                                <input type="number" id="yLen">
+                                <label>z</label>
+                                <input type="number" id="zLen">
+                                <button type="submit">set</button>
+                            </p>
+                        </form>
+                        <form id="setBackgroundColor">
+                            <p>
+                                <label>background color:</label>
+                                <input type="text" id="backgroundColor">
+                                <button type="submit">set</button>
+                            </p>
+                        </form>
+                        <form id="setAxesColor">
+                            <p>
+                                <label>axes color:</label>
+                                <input type="text" id="axesColor">
+                                <button type="submit">set</button>
+                            </p>
+                        </form>
+                        <small>examples: 0xffffff, #ff6600, rgb(1,0.5,0), hsl(0.7,0.6,0.3)</small>
+                        <button type="submit" style="display:none;"></button>
+                </div>
             </div>
+        </div>
+        <div id="footer">
+            Attribution: Font "Codystar" by Neapolitan, Principal design; Font "Work Sans" by Wei Huang, Principal design
         </div>
     </body>
 </html>

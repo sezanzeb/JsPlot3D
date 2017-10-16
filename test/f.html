@@ -9,8 +9,6 @@
     <b>- The first plot</b> inverts from time to time due to the plot approximating y(x,z) = 0 at some point. Once the sign flips, the whole plot flips and gets normalized<br/>
     <b>- The fourth plot</b> is supposed to be very flat<br/>
     Plot 2 and 3 don't have anything too suspicious about them by default. The waves behave differently, but that's all.<br/>
-    The features used here are kind of experimental. There is smoothing of the normalization factor involved and normalizing the barcharts while keepOldPlot is still on also<br/>
-    results in some rather unusual results.
 </p>
 <p>
     The background is blue. There are no  axes visible.
@@ -25,7 +23,7 @@
             backgroundColor: "#2266aa",
             axesColor: 0xffff00
         })
-    plot1.setDimensions({xLen:0.9,zLen:0.9,yLen:0.1})
+    plot1.setDimensions({xLen:0.9,zLen:0.9,yLen:0.9})
     plot1.removeAxes()
     plot1.setDimensions({xRes: 5, zRes: 5})
     var i1 = 1;

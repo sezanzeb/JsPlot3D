@@ -126,6 +126,7 @@ export class Plot
 
         this.resetCalculation()
         this.parsedFormula = this.MathParser.parse(originalFormula)
+        this.dfCache.checkstring = "" //don't fool plotCsvString into believing the cache contains still old csv data
 
         if(mode == "scatterplot")
         {
@@ -331,6 +332,8 @@ export class Plot
         //a more complete checking will be done in plotDataFrame once the dataframe is generated.
         //only check what is needed in plotCsvString
 
+        if(sCsv === "" || sCsv == undefined)
+            return console.error("dataframe is empty")
         //default config
         let separator=","
         let title=""
@@ -413,6 +416,7 @@ export class Plot
 
             //transform the sCsv string to a dataframe
             let data = sCsv.split("\n")
+
             if(fraction <= 1)
                 data = data.slice(0,data.length-data.length*(1-fraction))
 
@@ -421,6 +425,10 @@ export class Plot
                 data = data.slice(-(data.length-1))
             if(data[data.length-1] == "")
                 data.pop()
+
+            //now check if the dataframe is empty
+            if(data.length == 0)
+                return console.error("dataframe is empty")
 
             //find out the separator automatically if the user didn't define it
             if(options.separator == undefined || data[0].indexOf(separator) == -1)
@@ -754,34 +762,8 @@ export class Plot
         }
 
 
-        //plotDataFrame
-        //-------------------------//
-        //         Caching         //
-        //-------------------------//
-        //used for addDataPoint to store what was plotted the last time
-        //also used to store the material in some cases so that it does not have to be recreated each time
-
-        //now that the script arrived here, store the options to make easy redraws possible
-        //update cache
-        if(updateCache == true) //if updating is allowed
-        {
-            //create cache object if not existant
-            if(this.dfCache == undefined)
-                this.resetCache()
-
-            this.dfCache.dataframe = df
-
-            this.dfCache.x1col = x1col
-            this.dfCache.x2col = x2col
-            this.dfCache.x3col = x3col
-
-            this.dfCache.options = options
-        }
-
-
-
-        //header removal
-        if(options.header == undefined)
+        //automatic header detection
+        if(options.header == undefined && df.length >= 2)
         {
             //find out automatically if they are headers or not
             //take x1col, check first line type (string/NaN?) then second line type (number/!NaN?)
@@ -793,9 +775,13 @@ export class Plot
             }
         }
         
+        let headerRow
         if(header)
         {
-            let headerRow = df[0]
+            if(df.length == 1)
+                return console.error("dataframe is empty besides headers")
+
+            headerRow = df[0]
             //still set to default values?
             if(x1title == "x1")
                 x1title = headerRow[x1col]
@@ -807,6 +793,8 @@ export class Plot
             //the array. don't know if something like that exists in javascript
             df = df.slice(1,df.length)
         }
+        if(df.length == 0)
+            return console.error("dataframe is empty")
 
         this.benchmarkStamp("checked Parameters")
 
@@ -819,6 +807,7 @@ export class Plot
         //creates an array "dfColors" that holds the color information
         //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
 
+        //headers are already removed from df by now
         let colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
         if(colorMap == -1)
         {
@@ -831,9 +820,9 @@ export class Plot
 
         //update the legend with the label color information
         //open legend, add title
-        let legendColorHTML = ""
+        let legendHTML = ""
         if(title != undefined && title != "")
-            legendColorHTML += "<h1>"+title+"</h1>"
+            legendHTML += "<h1>"+title+"</h1>"
 
         //add info about the labels and the colors
         if(colorMap.labelColorMap != {})
@@ -841,30 +830,30 @@ export class Plot
             if(mode != "barchart") //no labels available in barchart mode (yet)
             {
                 //label colors:
-                legendColorHTML += "<table class=\"jsP3D_labelColorLegend\">" //can't append to innerHTML directly for some funny reason
+                legendHTML += "<table class=\"jsP3D_labelColorLegend\">" //can't append to innerHTML directly for some funny reason
                 for(let key in colorMap.labelColorMap)
                 {
-                    legendColorHTML += "<tr>"
-                    legendColorHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + colorMap.labelColorMap[key].getHexString() + ";\"></span></td>"
-                    legendColorHTML += "<td>" + key + "</td>"
-                    legendColorHTML += "</tr>"
+                    legendHTML += "<tr>"
+                    legendHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + colorMap.labelColorMap[key].getHexString() + ";\"></span></td>"
+                    legendHTML += "<td>" + key + "</td>"
+                    legendHTML += "</tr>"
                 }
-                legendColorHTML += "</table>"
+                legendHTML += "</table>"
             }
         }
 
         //axes titles:
-        legendColorHTML += "<table class=\"jsP3D_axesTitleLegend\">"
+        legendHTML += "<table class=\"jsP3D_axesTitleLegend\">"
         if(x1title != undefined)
-            legendColorHTML += "<tr><td>x:</td><td>"+x1title+"</td></tr>"
+            legendHTML += "<tr><td>x:</td><td>"+x1title+"</td></tr>"
         if(x2title != undefined)
-            legendColorHTML += "<tr><td>y:</td><td>"+x2title+"</td></tr>"
+            legendHTML += "<tr><td>y:</td><td>"+x2title+"</td></tr>"
         if(x3title != undefined)
-            legendColorHTML += "<tr><td>z:</td><td>"+x3title+"</td></tr>"
-        legendColorHTML += "</table>"
+            legendHTML += "<tr><td>z:</td><td>"+x3title+"</td></tr>"
+        legendHTML += "</table>"
 
         //closing tag of the legend
-        this.legend.element.innerHTML = legendColorHTML
+        this.legend.element.innerHTML = legendHTML
         this.benchmarkStamp("created the Legend")
 
         //by this point only dfColors stays relevant. So the function above can be easily moved to a different class to clear up the code here
@@ -879,10 +868,15 @@ export class Plot
         //normalize, so that the farthest away point is still within the xLen yLen zLen frame
         //TODO logarithmic normalizing
  
+        let startValueIndex = 0
+        if(df.length >= 2)
+            //assume second line if possible, because headers might be accidentally still there (because of wrong configuration)
+            startValueIndex = 1
+
         if(normalizeX1)
         {
-            let maxX1 = 0
-            let minX1 = 0
+            let maxX1 = df[startValueIndex][x1col]
+            let minX1 = df[startValueIndex][x1col]
             //determine max for normalisation
             for(let i = 0; i < df.length; i++)
             {
@@ -910,12 +904,12 @@ export class Plot
             
         }
         
-        if(mode != "barchart") //barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (and also old datapoints, depending on keepOldPlot)
+        if(mode != "barchart") //barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
         {
             if(normalizeX2)
             {
-                let maxX2 = df[0][x2col]
-                let minX2 = df[0][x2col]
+                let maxX2 = df[startValueIndex][x2col]
+                let minX2 = df[startValueIndex][x2col]
                 for(let i = 0; i < df.length; i++)
                 {
                     if((df[i][x2col]) > maxX2)
@@ -943,8 +937,8 @@ export class Plot
 
         if(normalizeX3)
         {
-            let maxX3 = 0
-            let minX3 = 0
+            let maxX3 = df[startValueIndex][x3col]
+            let minX3 = df[startValueIndex][x3col]
             for(let i = 0; i < df.length; i++)
             {
                 if((df[i][x3col]) > maxX3)
@@ -979,10 +973,17 @@ export class Plot
             //-------------------------//
 
             //this.dfCache.previousX2frac = 1 //for normalizationSmoothing. Assume that the data does not need to be normalized at first
+            let xBarOffset = 1/this.xRes/2
+            let zBarOffset = 1/this.zRes/2
 
             //if needed, reconstruct the barchart
-            if(!this.IsPlotmeshValid("barchart"))
+            let valid = this.IsPlotmeshValid("barchart")
+            let paddingValid = (options.barchartPadding == undefined && this.dfCache.options.barchartPadding == undefined) || (barchartPadding == this.dfCache.options.barchartPadding)
+
+            if(!valid || !paddingValid)
             {
+                console.log("recreate")
+                this.disposeMesh(this.plotmesh)
                 //plot it using circle sprites
                 let cubegroup = new THREE.Group()
                 cubegroup.name = "barchart"
@@ -998,7 +999,7 @@ export class Plot
                     {
                         //create the bar
                         //I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
-                        let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding,1,1/this.zRes-barchartPadding)
+                        let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding/this.xRes,1,1/this.zRes-barchartPadding/this.zRes)
                         //manually set the height to 0:
                         shape.vertices[0].y = 0
                         shape.vertices[1].y = 0
@@ -1008,6 +1009,24 @@ export class Plot
                         shape.vertices[5].y = 0
                         shape.vertices[6].y = 0
                         shape.vertices[7].y = 0
+
+                        shape.vertices[0].x += xBarOffset
+                        shape.vertices[1].x += xBarOffset
+                        shape.vertices[2].x += xBarOffset
+                        shape.vertices[3].x += xBarOffset
+                        shape.vertices[4].x += xBarOffset
+                        shape.vertices[5].x += xBarOffset
+                        shape.vertices[6].x += xBarOffset
+                        shape.vertices[7].x += xBarOffset
+
+                        shape.vertices[0].z += zBarOffset
+                        shape.vertices[1].z += zBarOffset
+                        shape.vertices[2].z += zBarOffset
+                        shape.vertices[3].z += zBarOffset
+                        shape.vertices[4].z += zBarOffset
+                        shape.vertices[5].z += zBarOffset
+                        shape.vertices[6].z += zBarOffset
+                        shape.vertices[7].z += zBarOffset
 
                         let plotmat = new THREE.MeshStandardMaterial({
                             color: 0,
@@ -1020,13 +1039,17 @@ export class Plot
                             })
 
                         let bar = new THREE.Mesh(shape,plotmat)
-                        bar.position.set(x/this.xRes,0,z/this.zRes)
+                        bar.position.set(x/this.xRes,0,z/this.zRes) //move it to the correct position and a little bit away from the axes
                         cubegroup.add(bar)
                     }
 
                 this.plotmesh = cubegroup
                 this.scene.add(cubegroup)
-                
+            }
+
+
+            if(this.dfCache.barHeights == undefined)
+            {
                 //now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
                 let barHeights = new Array(this.xVerticesCount)
                 for(let x = 0; x < barHeights.length; x++)
@@ -1039,12 +1062,14 @@ export class Plot
             }
 
 
-            if(!keepOldPlot && this.dfCache.barHeights != undefined)
+            if(!keepOldPlot)
             {
                 for(let x = 0; x < this.dfCache.barHeights.length; x++)
                 {
                     for(let z = 0; z < this.dfCache.barHeights[x].length; z++)
-                    this.dfCache.barHeights[x][z] = 0
+                    {
+                        this.dfCache.barHeights[x][z] = 0
+                    }
                 }
             }
             
@@ -1136,7 +1161,8 @@ export class Plot
                     minX2 = y
             }
 
-
+            //percent of largest bar
+            barSizeThreshold = barSizeThreshold*Math.max(Math.abs(maxX2),Math.abs(minX2))
 
             if(normalizeX2 == true)
             {
@@ -1161,41 +1187,37 @@ export class Plot
                 let y = this.dfCache.barHeights[x][z]
 
                 //was this bar mentioned in df?
-                if(y != 0 && y != undefined)
+                if(y != undefined)
                 {
-                    y = y/x2frac
                     //hide that bar if it's smaller than or equal to the threshold
                     //y is now normalized (|y| is never larger than 1), so barSizeThreshold acts like a percentage value
                     if(Math.abs(y) > barSizeThreshold)
                     {
                         //make it visible if it's not zero
-
-                        //color it according to the heatmap color
                         bar.material.visible = true
-
-                        //those are the vertex of the barchart that surround the top face
-                        bar.geometry.vertices[0].y = y
-                        bar.geometry.vertices[1].y = y
-                        bar.geometry.vertices[4].y = y
-                        bar.geometry.vertices[5].y = y
-                        bar.geometry.verticesNeedUpdate = true
                         //no need to recompute normals, because they still face in the same direction
                     }
                     else
                     {
                         bar.material.visible = false
                     }
+                    y = y/x2frac
                 }
                 else
                 {
-                    //make sure that old bar gets colored aswell
-                    y = bar.geometry.vertices[0].y/x2frac
-                    if(!keepOldPlot)
-                        bar.material.visible = false
+                    y = 0
+                    bar.material.visible = false
                 }
+                
+                //those are the vertex of the barchart that surround the top face
+                bar.geometry.vertices[0].y = y
+                bar.geometry.vertices[1].y = y
+                bar.geometry.vertices[4].y = y
+                bar.geometry.vertices[5].y = y
+                bar.geometry.verticesNeedUpdate = true
 
                 //y was divided by x2frac recently
-                let color = this.ColorManager.convertToHeat(y*x2frac,minX2,maxX2)
+                let color = this.ColorManager.convertToHeat(y*x2frac,minX2,maxX2,hueOffset)
                 bar.material.color.set(color)
                 bar.material.emissive.set(color)
             }
@@ -1264,8 +1286,9 @@ export class Plot
 
             let isItValid = this.IsPlotmeshValid("scatterplot")
             let oldMaterialDefined = this.dfCache != undefined && this.dfCache.material != undefined
+            let isOldMaterialSimilar = (this.dfCache != undefined && this.dfCache.material != undefined && dataPointSize == this.dfCache.material.size)
 
-            if(!oldMaterialDefined || !isItValid || (this.dfCache != undefined && this.dfCache.material != undefined && dataPointSize != this.dfCache.material.size))
+            if(!oldMaterialDefined || !isItValid || !isOldMaterialSimilar)
             {
                 //create a new material
                 let canvas = document.createElement("canvas")
@@ -1295,7 +1318,7 @@ export class Plot
                 let material = new THREE.PointsMaterial({
                     size: dataPointSize,
                     map: datapointSprite,
-                    alphaTest: 0.2,
+                    alphaTest: 0.3,
                     transparent: true,
                     vertexColors: true
                 })
@@ -1308,6 +1331,7 @@ export class Plot
             let material = this.dfCache.material
             let group = this.plotmesh
             let geometry = new THREE.Geometry()
+            
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
@@ -1327,6 +1351,30 @@ export class Plot
             group.add(newDataPointSprites)
             this.scene.add(group)
             this.benchmarkStamp("made a scatterplot")
+        }
+        
+        
+        //plotDataFrame
+        //-------------------------//
+        //         Caching         //
+        //-------------------------//
+        //used for addDataPoint to store what was plotted the last time
+        //also used to store the material in some cases so that it does not have to be recreated each time
+
+        //now that the script arrived here, store the options to make easy redraws possible
+        //update cache
+        if(updateCache == true) //if updating is allowed
+        {
+            if(headerRow != undefined)
+                this.dfCache.dataframe = ([headerRow]).concat(df)
+            else
+                this.dfCache.dataframe = df
+
+            this.dfCache.x1col = x1col
+            this.dfCache.x2col = x2col
+            this.dfCache.x3col = x3col
+
+            this.dfCache.options = options
         }
 
         this.makeSureItRenders()
@@ -1562,7 +1610,7 @@ export class Plot
             this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(color))
         else
             this.renderer.setClearColor(color)
-        //this.render()
+        this.render()
     }
 
 
@@ -1574,7 +1622,7 @@ export class Plot
     setAxesColor(color)
     {
         this.createAxes(color)
-        //this.render()
+        this.render()
     }
 
 
@@ -1857,10 +1905,10 @@ export class Plot
     createLight()
     {
         // set a directional light
-        let directionalLight1 = new THREE.DirectionalLight(0xff6600, 4)
+        let directionalLight1 = new THREE.DirectionalLight(0xff9933, 4)
         directionalLight1.position.y = 10;
         this.scene.add(directionalLight1)
-        let directionalLight2 = new THREE.DirectionalLight(0x0033ff, 6)
+        let directionalLight2 = new THREE.DirectionalLight(0x0033ff, 4)
         directionalLight2.position.y = -10;
         this.scene.add(directionalLight2)
     }

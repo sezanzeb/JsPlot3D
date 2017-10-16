@@ -17,11 +17,11 @@ export default class ColorManager
      * @param {number} max minimum value present in your dataframe. Default 1
      * @return THREE.Color object
      */
-    convertToHeat(value,min=-1,max=1)
+    convertToHeat(value,min=-1,max=1,hueOffset)
     {
         //set color boundaries so that the colors are heatmap like
-        let upperColorBoundary = 0 //equals red //what the highest value will get
-        let lowerColorBoundary = 0.65 //equals blue with a faint purple tone //what the lowest value will get
+        let upperColorBoundary = 0+hueOffset //equals red //what the highest value will get
+        let lowerColorBoundary = 0.65+hueOffset //equals blue with a faint purple tone //what the lowest value will get
 
         value = parseFloat(value)
         value = (value-min)/(max-min) //normalize
@@ -40,15 +40,15 @@ export default class ColorManager
      * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
      * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
      * The parameters have the same names as in JsPlot3D.js. Just forward them to this function
+     * @param {any[][]} df the dataframe without the headers
      * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
      * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains this.THREE.Color objects
      */
     getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true,hueOffset=0)
     {
-
         let dfColors = new Array(df.length) //array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
         
-        if(colorCol != -1) //does the user even want colors?
+        if(colorCol != -1 && df.length >= 2) //does the user even want colors? Are there even a few datapoints so that they can be colored in different ways?
         {
             let numberOfLabels = 0
             //let numberOfLabels = df.length
@@ -63,8 +63,9 @@ export default class ColorManager
             //also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
             //no need to check if it's numbers or not, because dfColors carries only numbers
             //Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
-            let clrMax
-            let clrMin
+            let clrMax = df[1][colorCol]
+            let clrMin = df[1][colorCol]
+            
             //the following function just updates clrMax and clrMin, only available within the function that wraps this (getColorMap(...))
             let findHighestAndLowest = (value) =>
             {
@@ -89,22 +90,22 @@ export default class ColorManager
                 //------------------------//
                 //e.g. "group1" "group2" "tall" "small" "0" "1" "flower" "tree"
 
-                if(df[0][colorCol].indexOf("rgb") == 0 ||
-                df[0][colorCol].indexOf("hsl") == 0 ||
-                (df[0][colorCol].indexOf("#") == 0 && df[0][colorCol].length == 7))
+                //check the second line, because there might be headers accidentally in the first row
+                if((df[1][colorCol]+"").indexOf("rgb") == 0 ||
+                (df[1][colorCol]+"").indexOf("hsl") == 0 ||
+                ((df[1][colorCol]+"").indexOf("#") == 0 && df[0][colorCol].length == 7))
                 {
                     console.warn(df[0][colorCol]+" might be a color. \"labeled\" is set true. For the stored colors to show up, try \"labeled=false\"")
                 }
-                clrMax = 0 //assume 0
-                clrMin = 0 //assume 0
-                //count to ammount of labels here
+                
+                //count the ammount of labels here
                 let label = ""
                 for(let i = 0; i < df.length; i++)
                 {
                     label = df[i][colorCol] //read the label/classification
                     if(map[label] == undefined) //is this label still unknown?
                     {
-                        map[label] = numberOfLabels //map it to a unique number
+                        map[label] = numberOfLabels //map it to an unique number
                         numberOfLabels ++ //make sure the next label gets a different number
                     }
                     //copy the labels to dfColors as numbers
@@ -132,12 +133,14 @@ export default class ColorManager
                 //#, rgb and hex
 
                 //if it is a string value
-                if(isNaN(parseInt(df[0][colorCol])))
+                //check the second line, because there might be headers accidentally in the first row
+                if(isNaN(parseInt(df[1][colorCol])))
                 {
                     filterColor = false //don't apply normalization and heatmapfilters to it
 
                     //try to extract color information from the string
-                    if((df[0][colorCol]+"").toLowerCase().indexOf("rgb") == 0)
+                    //check the second line, because there might be headers accidentally in the first row
+                    if((df[1][colorCol]+"").toLowerCase().indexOf("rgb") == 0)
                     {
                         for(let i = 0; i < df.length; i++)
                         {
@@ -146,13 +149,13 @@ export default class ColorManager
                             dfColors[i] = new this.THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
                         }
                     }
-                    else if((df[0][colorCol]+"").toLowerCase().indexOf("#") == 0)
+                    else if((df[1][colorCol]+"").toLowerCase().indexOf("#") == 0)
                     {
                         //hex strings are supported by three.js right away
                         for(let i = 0; i < df.length; i++)
                             dfColors[i] = new this.THREE.Color(df[i][colorCol])
                     }
-                    else if((df[0][colorCol]+"").toLowerCase().indexOf("hsl") == 0)
+                    else if((df[1][colorCol]+"").toLowerCase().indexOf("hsl") == 0)
                     {
                         for(let i = 0; i < df.length; i++)
                         {
@@ -185,8 +188,7 @@ export default class ColorManager
                     //examples: 0x3a96cd (3839693) 0xffffff (16777215) 0x000000 (0)
 
                     //it's a number. just copy it over and filter it to a heatmap
-                    clrMax = df[0][colorCol] //assume the first value
-                    clrMin = df[0][colorCol] //assume the first value
+                    
                     for(let i = 0; i < df.length; i++)
                     {
                         dfColors[i] = parseFloat(df[i][colorCol])
@@ -199,16 +201,17 @@ export default class ColorManager
                     //This is just a preparation for CASE 3 and CASE 4
                 }
             }
-
+            
             //manipulate the color
             if(filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
             {
+                
                 //now apply the filters and create a THREE color from the information stored in dfColors
                 for(let i = 0;i < df.length; i++)
                 {
                     let color = dfColors[i]
                     //store that color
-                    dfColors[i] = this.convertToHeat(color,clrMin,clrMax)
+                    dfColors[i] = this.convertToHeat(color,clrMin,clrMax,hueOffset)
                 }
 
                 //CASE 3 dfColors now contains a heatmap
