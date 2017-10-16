@@ -1,32 +1,33 @@
-body
-{
+@import url('https://fonts.googleapis.com/css?family=Codystar');
+@import url('https://fonts.googleapis.com/css?family=Work+Sans:300');
+
+body {
     background: #19212f;
-    color:white;
-    font-family:sans-serif;
-    text-align: center;
+    color:#ddd;
+    margin:0px;
+
+    font-family: 'Work Sans', sans-serif;
 }
 
-.jsP3D_legend
-{
+.jsP3D_legend {
     margin: 10px 0px 0px 0px;
     border: 1px solid #fff;
     padding: 5px 10px;
     border-radius: 2px;
     position: absolute;
-    top: 40px;
+    top: 10px;
     margin-left: 20px;
 }
 
-.jsP3D_legend h1
-{
+.jsP3D_legend h1 {
     margin: 0px 0px 5px;
     font-size: 20px;
     border-bottom: 1px solid white;
     padding: 5px 0px 7px;
+    color: #fff
 }
 
-.jsP3D_labelColor
-{
+.jsP3D_labelColor {
     width: 10px;
     height: 10px;
     display: block;
@@ -34,26 +35,87 @@ body
     margin-right: 10px;
 }
 
-.jsP3D_axesTitleLegend
-{
+.jsP3D_axesTitleLegend {
     width: 100%;
     margin-top: 4px;
 }
 
-#main
-{
+.jsP3D_legend:empty {
+    display: none;
+}
+
+#pageheader {
+    background:black;
+    padding:10px 20px;
+    height:30px;
+    position:relative;
+}
+
+#pageheader h1 {
+    font-family: 'Codystar', cursive;
+    margin: 0px;
+    position: relative;
+    bottom: 7px;
+    margin-left: 10px;
+    font-size:22px;
+}
+
+#main h2:not(:first-child) {
+    margin-top:60px;
+}
+
+a {
+    color:white;
+    text-decoration:none;
+}
+
+#github {
+    position:absolute;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
+    line-height: 50px;
+    padding: 0px 50px;
+    border-left: 1px solid #222;
+}
+
+#pageheader * {
+    display:inline;
+    max-height:100%;
+}
+
+#left, #right {
+    display: table-cell;
+    vertical-align: top;
+    padding:0px 20px;
+}
+
+#main {
     margin:30px auto;
-    display:block;
+    display:table;
+    position:relative;
+}
+
+#left {
+    text-align:center;
+}
+
+#left small {
+    position:relative;
+    top:5px;
+}
+
+#right {
     width:700px;
 }
 
-#threecanvas
-{
+#threecanvas {
     width:700px;
     height:600px;
-    margin:30px auto;
+    margin:0px auto;
     display:block;
-    border-radius:2px;
+    border-radius: 5px;
+    overflow: hidden;
 }
 
 #threecanvas:focus {
@@ -64,43 +126,84 @@ body
     width: 500px;
     margin-right: 10px;
 }
-input, button {
+
+input, button, select, #fileupbutton {
     color: white;
-    background: transparent;
-    border: 1px solid white;
-    padding: 15px;
-    border-radius: 5px;
+    background: rgb(31, 41, 60);
+    border: 0px solid black;
+    padding: 8px 15px;
+    /* border-radius: 2px; */
+    border-bottom-width: 1px;
 }
 
-small
+#fileupbutton
 {
-    opacity:0.3;
+    margin-left:0px;
+    display: inline-block;
 }
 
-small p
+#right table
 {
+    table-layout:fixed;
+    width:100%;
+}
+
+.separator
+{
+
+}
+
+.short
+{
+    width:100px;
+}
+
+small {
+    opacity:0.4;
+}
+
+small p {
     margin:0;
 }
 
 #fileup {
-    padding: 12px 15px;
+    padding: 5px 15px;
+    position:relative;
+    width:100px;
+    display:none;
 }
 
-.indices
-{
-    margin-left: 6px;
-    width:50px;
-    text-align: center;
+input[type=number] {
+    width:65px;
+    padding-right:5px;
+    text-align: left;
+    margin-right:6px;
 }
 
-#sep, #submitcsv
+#dataPointSize
 {
-    margin-left: 6px;
+    width:80px;
+}
+
+#sep, #submitcsv {
     width:100px;
     text-align: center;
 }
 
-button
+p, form {
+    margin: 9px 0px;
+}
+
+h2 {
+    padding-top: 7px;
+    margin: 0px;
+}
+
+label:not(:first-child) {
+    margin-left:15px;
+}
+
+label
 {
-    text-decoration:underline;
+    margin-right:10px;
 }

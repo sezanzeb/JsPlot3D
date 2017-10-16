@@ -1263,11 +1263,11 @@ export class Plot
             }
 
             let isItValid = this.IsPlotmeshValid("scatterplot")
+            let oldMaterialDefined = this.dfCache != undefined && this.dfCache.material != undefined
 
-            if(isItValid == false || (this.dfCache != undefined && this.dfCache.material != undefined && dataPointSize != this.dfCache.material.size))
+            if(!oldMaterialDefined || !isItValid || (this.dfCache != undefined && this.dfCache.material != undefined && dataPointSize != this.dfCache.material.size))
             {
                 //create a new material
-
                 let canvas = document.createElement("canvas")
                 let context = canvas.getContext("2d")
                 canvas.width = 64
@@ -1295,7 +1295,7 @@ export class Plot
                 let material = new THREE.PointsMaterial({
                     size: dataPointSize,
                     map: datapointSprite,
-                    alphaTest: 0.1,
+                    alphaTest: 0.2,
                     transparent: true,
                     vertexColors: true
                 })
@@ -1823,7 +1823,7 @@ export class Plot
         camera.position.set(this.xLen/2,Math.max(this.zLen,this.yLen),this.zLen+this.xLen)
 
         let controls = new OrbitControls(camera, this.renderer.domElement)
-        controls.enableKeys = true
+        controls.enableKeys = false
         controls.target.set(0.5,0.5,0.5)
 
         //the point of this is, that i can disable this by overwriting it

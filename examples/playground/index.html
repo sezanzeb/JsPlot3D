@@ -1,40 +1,152 @@
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>3D-Plot-Js</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
-  </head>
-  <body>
+    <head>
+        <meta charset="utf-8">
+        <title>3D-Plot-Js</title>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <link rel="shortcut icon" href="icon.png">
+    </head>
+    <body>
 
-    <div id="main">
-        <div id="threecanvas"></div>
-        <div id="Legend"></div>
+        <div id="pageheader">
+            <img src="icon.png">
+            <h1>JsPlot3D Playground</h1>
+            <a id="github" href="https://github.com/sezanzeb/JsPlot3D">GitHub</a>
+        </div>
+        <div id="main">
+            <div id="left">
+                <div id="threecanvas"></div>
+                <div id="Legend"></div>
+                <small>
+                    Use the scroll wheel to zoom in<br/>
+                    Hold [left click] to rotate the view<br/>
+                    Hold [right click] to move the view around<br/>
+                </small>
+            </div>
+            <div id="right">
+                <h2>Formula</h2>
+                <p>
+                    <form id="formulaForm">
+                        y(x1,x3) = <input id="formulaText" type="text" placeholder="javascript syntax"></input><button id="formulaButton">calc</button>
+                    </form>
+                    <small>Example: sin(x1*5)+sin(x3*5)</small>
+                </p>
+                <h2>.csv File Upload</h2>
+                <p>
+                    <input name="fileup" id="fileup" type="file"></input>
+                    <label for="fileup" id="fileupbutton">select a file</label>
+                    <label id="fileuplabel"></label>
+                </p>
+                <p>
+                    <label>header:</label>
+                    <select id="header">
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                    </select>
+                </p>
+                <p>
+                    <label>separator:</label><input id="separator" type="text"></input>
+                </p>
+                <p>
+                    <input id="x1" class="indices" type="number" placeholder="x"></input>
+                    <input id="x2" class="indices" type="number" placeholder="y"></input>
+                    <input id="x3" class="indices" type="number" placeholder="z"></input>
+                    <button id="submitcsv">plot</button>
+                </p>
+                <small>type in the column indices of your csv file that you would<br/>like to plot for x1 (x), x2 (y) and x3 (z). Default is 0, 1 and 2</small>
 
-        <p>
-          <form id="formulaForm">
-            y(x1,x3) = <input id="formulaText" type="text" placeholder="javascript syntax"></input><button id="formulaButton">calc</button>
-          </form>
-        </p>
-        <hr/>
-        <p>
-          upload csv: <input id="fileup" type="file"></input>
-        </p>
-        <p>
-          <input id="x1" class="indices" type="text" placeholder="x1"></input>
-          <input id="x2" class="indices" type="text" placeholder="x2"></input>
-          <input id="x3" class="indices" type="text" placeholder="x3"></input>
-          <input id="clr" class="indices" type="text" placeholder="clr"></input>
-          <button id="submitcsv">plot</button>
-        </p>
-        <small>type in the column indices of your csv file that you would like to plot for x1, x2 and x3. Make sure those columns contain numbers. You can use "example.csv" or "iris.csv" in the project root directory.</small>
-        <hr/>
-        <small>
-          <p>Use the scroll wheel to zoom in</p>
-          <p>Hold [left click] to rotate the view</p>
-        </small>
-
-    </div>
-  </body>
+                <h2>Settings</h2>
+                <p>(none are mandatory)</p>
+                <br/>
+                <p>
+                    <small>options object:</small>
+                </p>
+                <p>
+                    <label>mode:</label>
+                    <select id="mode">
+                        <option value="scatterplot">scatterplot</option>
+                        <option value="barchart">barchart</option>
+                        <option value="polygon">polygon</option>
+                    </select>
+                </p>
+                <p>
+                    <label>colorCol:</label><input id="colorCol" type="number"></input>
+                </p>
+                <p>
+                    normalize:
+                    <label>x</label>
+                    <select id="normalizeX1">
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                    </select>
+                    <label>y</label>
+                    <select id="normalizeX2">
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                    </select>
+                    <label>z</label>
+                    <select id="normalizeX3">
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                    </select>
+                </p>
+                <p>
+                    <label>barchartPadding:</label><input id="barchartPadding" type="number" max="1" min="0" step="0.1"></input>
+                </p>
+                <p>
+                    <label>barSizeThreshold:</label><input id="barSizeThreshold" type="number" max="1" min="0" step="0.1"></input>
+                </p>
+                <p>
+                    <label>dataPointSize:</label><input id="dataPointSize" type="number" min="0" step="0.005"></input>
+                </p>
+                <p>
+                    <label>defaultColor:</label><input id="defaultColor" type="text"></input>
+                </p>
+                <p>
+                    <label>hueOffset:</label><input id="hueOffset" type="number" step="0.1"></input>
+                </p>
+                <p>
+                    <label>title:</label><input id="title" type="text"></input>
+                </p>
+                <p>
+                    <label>x1title:</label><input id="x1title" class="short" type="text"></input>
+                    <label>x2title:</label><input id="x2title" class="short" type="text"></input>
+                    <label>x3title:</label><input id="x3title" class="short" type="text"></input>
+                </p>
+                <p>
+                    <label>fraction:</label><input id="fraction" type="number" max="1" min="0" step="0.1"></input>
+                </p>
+                <p>
+                    <label>keepOldPlot:</label>
+                    <select id="keepOldPlot">
+                        <option value="false">false</option>
+                        <option value="true">true</option>
+                    </select>
+                </p>
+                </table>
+                <br/>
+                <p>
+                    <small>using setters:</small>
+                </p>
+                <p>
+                    resolution:
+                    <label>x</label>
+                    <input type="number" id="xRes">
+                    <label>y</label>
+                    <input type="number" id="yRes">
+                    <label>z</label>
+                    <input type="number" id="zRes">
+                </p>
+                <p>
+                    <label>background color:</label>
+                    <input type="text" id="backgroundColor">
+                </p>
+                <p>
+                    <label>axes color:</label>
+                    <input type="text" id="axesColor">
+                </p>
+            </div>
+        </div>
+    </body>
 </html>
 
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
