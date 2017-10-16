@@ -603,7 +603,7 @@ export class Plot
         let fraction=1 //TODO
         let labeled=false
         let defaultColor=0 //black
-        let barchartPadding=0.5/this.xRes
+        let barchartPadding=0.5
         let dataPointSize=0.02
         let filterColor=true
         let x1title="x1"
@@ -663,7 +663,7 @@ export class Plot
             if(checkNumber("fraction",options.fraction))
                 fraction = parseFloat(options.fraction)
             if(checkNumber("barchartPadding",options.barchartPadding))
-                barchartPadding = parseFloat(options.barchartPadding)/this.xRes
+                barchartPadding = parseFloat(options.barchartPadding)
             if(barchartPadding >= 1)
             {
                 barchartPadding = 0
@@ -873,10 +873,11 @@ export class Plot
             //assume second line if possible, because headers might be accidentally still there (because of wrong configuration)
             startValueIndex = 1
 
+        let maxX1, minX1
         if(normalizeX1)
         {
-            let maxX1 = df[startValueIndex][x1col]
-            let minX1 = df[startValueIndex][x1col]
+            maxX1 = df[startValueIndex][x1col]
+            minX1 = df[startValueIndex][x1col]
             //determine max for normalisation
             for(let i = 0; i < df.length; i++)
             {
@@ -935,10 +936,11 @@ export class Plot
             }
         }
 
+        let maxX3, minX3
         if(normalizeX3)
         {
-            let maxX3 = df[startValueIndex][x3col]
-            let minX3 = df[startValueIndex][x3col]
+            maxX3 = df[startValueIndex][x3col]
+            minX3 = df[startValueIndex][x3col]
             for(let i = 0; i < df.length; i++)
             {
                 if((df[i][x3col]) > maxX3)
@@ -972,6 +974,30 @@ export class Plot
             //        Bar Chart        //
             //-------------------------//
 
+
+            //how are negative positions created?
+            //
+            //                    -1
+            //          +---------+---------+
+            //          |         |         |
+            //          |         |         |
+            //          |         |         |
+            //        -1|_________|_________|1
+            //          |         |         |
+            //          |         |         |
+            //          |         |         |
+            //          |         |         |
+            //          +---------+---------+
+            //                    1
+            //
+            //
+            // this rectangle is being filled with invisible bars. Number of bars: (xVerticesCount * zVerticesCount)
+            // how do i adress bars using negative numbers?
+            // bar heights are stored in a 2D array. They are accessed using positive integers from 0 to xVerticesCount*2
+            // I just have to add xVerticesCount and zVerticesCount to the array index to get the bar for e.g. (-5, 2).
+            // Afterwards the whole group of bars just has to be translated by -xLen and -zLen so that the bar
+            // at [xVerticesCount/2][zVerticesCount/2] is displayed in the middle upon rendering
+
             //this.dfCache.previousX2frac = 1 //for normalizationSmoothing. Assume that the data does not need to be normalized at first
             let xBarOffset = 1/this.xRes/2
             let zBarOffset = 1/this.zRes/2
@@ -982,24 +1008,23 @@ export class Plot
 
             if(!valid || !paddingValid)
             {
-                console.log("recreate")
                 this.disposeMesh(this.plotmesh)
                 //plot it using circle sprites
                 let cubegroup = new THREE.Group()
                 cubegroup.name = "barchart"
 
                 //dimensions of the bars
-                let barXWidth = 1/this.xRes
+                /*let barXWidth = 1/this.xRes
                 let barZWidth = 1/this.zRes
                 if(barchartPadding > barXWidth || barchartPadding > barZWidth)
-                    console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth,barZWidth))
+                    console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth,barZWidth))*/
 
-                for(let x = 0; x < this.xVerticesCount; x++)
-                    for(let z = 0; z < this.zVerticesCount; z++)
+                for(let x = 0; x < this.xVerticesCount*2; x++)
+                    for(let z = 0; z < this.zVerticesCount*2; z++)
                     {
                         //create the bar
                         //I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
-                        let shape = new THREE.CubeGeometry(1/this.xRes-barchartPadding/this.xRes,1,1/this.zRes-barchartPadding/this.zRes)
+                        let shape = new THREE.CubeGeometry((1-barchartPadding)/this.xRes,1,(1-barchartPadding)/this.zRes)
                         //manually set the height to 0:
                         shape.vertices[0].y = 0
                         shape.vertices[1].y = 0
@@ -1010,36 +1035,21 @@ export class Plot
                         shape.vertices[6].y = 0
                         shape.vertices[7].y = 0
 
-                        shape.vertices[0].x += xBarOffset
-                        shape.vertices[1].x += xBarOffset
-                        shape.vertices[2].x += xBarOffset
-                        shape.vertices[3].x += xBarOffset
-                        shape.vertices[4].x += xBarOffset
-                        shape.vertices[5].x += xBarOffset
-                        shape.vertices[6].x += xBarOffset
-                        shape.vertices[7].x += xBarOffset
-
-                        shape.vertices[0].z += zBarOffset
-                        shape.vertices[1].z += zBarOffset
-                        shape.vertices[2].z += zBarOffset
-                        shape.vertices[3].z += zBarOffset
-                        shape.vertices[4].z += zBarOffset
-                        shape.vertices[5].z += zBarOffset
-                        shape.vertices[6].z += zBarOffset
-                        shape.vertices[7].z += zBarOffset
+                        //use translate when the position property should not be influenced
+                        //shape.translate(xBarOffset,0,zBarOffset)
 
                         let plotmat = new THREE.MeshStandardMaterial({
                             color: 0,
                             emissive: 0,
                             roughness: 1,
                             visible: false,
-                            side: THREE.DoubleSide //without doubleside the lightening is wrong.
-                            //faces that point to the top receive the light from the bottom without DoubleSide
-                            //(even when changing the culling side depending on y < 0)
-                            })
+                            side: THREE.DoubleSide
+                        })
 
                         let bar = new THREE.Mesh(shape,plotmat)
-                        bar.position.set(x/this.xRes,0,z/this.zRes) //move it to the correct position and a little bit away from the axes
+                        bar.position.set(x/this.xRes,0,z/this.zRes)
+                        //as the bars height are caulcated using a huge offset of xVerticesCount and zVerticesCount in addToHeights, translate it back to its right position
+                        bar.geometry.translate(-this.xLen,0,-this.zLen) //use translate when the position property should not be influenced
                         cubegroup.add(bar)
                     }
 
@@ -1051,10 +1061,11 @@ export class Plot
             if(this.dfCache.barHeights == undefined)
             {
                 //now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
-                let barHeights = new Array(this.xVerticesCount)
+                //make it 4 times as large (*2 and *2) so that it can hold negative numbers
+                let barHeights = new Array(this.xVerticesCount*2)
                 for(let x = 0; x < barHeights.length; x++)
                 {
-                    barHeights[x] = new Array(this.zVerticesCount)
+                    barHeights[x] = new Array(this.zVerticesCount*2)
                     for(let z = 0; z < barHeights[x].length; z++)
                         barHeights[x][z] = 0
                 }
@@ -1062,6 +1073,7 @@ export class Plot
             }
 
 
+            //overwrite with zeros
             if(!keepOldPlot)
             {
                 for(let x = 0; x < this.dfCache.barHeights.length; x++)
@@ -1110,6 +1122,10 @@ export class Plot
                     
                     let oppositeSquareArea = Math.abs(1-Math.abs(x-x_float))*(1-Math.abs(z-z_float))
 
+                    //add the following, because the array is twice as large and the center is supposed to be at [xVertCount][zVertCount]
+                    x += this.xVerticesCount
+                    z += this.zVerticesCount
+
                     //make sure x and z are not out of bounds
                     if(this.dfCache.barHeights[x] != undefined)
                         if(this.dfCache.barHeights[x][z] != undefined)
@@ -1152,13 +1168,18 @@ export class Plot
                 let bar = this.plotmesh.children[i]
                 let x = parseInt(bar.position.x*this.xRes)
                 let z = parseInt(bar.position.z*this.zRes)
-                let y = this.dfCache.barHeights[x][z]
+                let y
+                if(this.dfCache.barHeights[x] != undefined)
+                    y = this.dfCache.barHeights[x][z]
                 
-                //find the highest bar
-                if(y > maxX2)
-                    maxX2 = y
-                if(y < minX2)
-                    minX2 = y
+                if(y != undefined)
+                {
+                    //find the highest bar
+                    if(y > maxX2)
+                        maxX2 = y
+                    if(y < minX2)
+                        minX2 = y
+                }
             }
 
             //percent of largest bar
@@ -1214,6 +1235,7 @@ export class Plot
                 bar.geometry.vertices[1].y = y
                 bar.geometry.vertices[4].y = y
                 bar.geometry.vertices[5].y = y
+
                 bar.geometry.verticesNeedUpdate = true
 
                 //y was divided by x2frac recently
@@ -1699,7 +1721,8 @@ export class Plot
         //vertices counts changed, so the mesh has to be recreated
         this.redraw = true
 
-        //takes effect once the mesh gets created from new
+        //takes effect once the mesh gets created from new, except for the lengths indicated by the axes. those update immediatelly
+        this.render()
     }
 
 

@@ -205,7 +205,6 @@ export default class ColorManager
             //manipulate the color
             if(filterColor) //if filtering is allowed (not the case for rgb, hsl and #hex values)
             {
-                
                 //now apply the filters and create a THREE color from the information stored in dfColors
                 for(let i = 0;i < df.length; i++)
                 {
