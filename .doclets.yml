@@ -1,0 +1,6 @@
+dir: src
+packageJson: package.json
+articles:
+        - Overwiew: README.md
+        - Building: MODE.md
+        - Todolist: MORE.md
