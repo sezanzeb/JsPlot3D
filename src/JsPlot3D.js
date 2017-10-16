@@ -3,7 +3,6 @@ const THREE = require("three")
 const OrbitControls = require('three-orbit-controls')(THREE)
 import MathParser from "./MathParser.js"
 import ColorManager from "./ColorManager.js"
-import FormatConverter from "./FormatConverter.js"
 
 
 
@@ -16,9 +15,8 @@ export class Plot
     /**
      * Creates a Plot instance, so that a single canvas can be rendered. After calling this constructor, rendering can
      * be done using plotFormula(s), plotCsvString(s) or plotDataFrame(df)
-     *
      * @param {object} container     html div DOM element which can then be selected using
-     *                               - Plot(document.getElementById("foobar"))
+     * - Plot(document.getElementById("foobar"))
      * @param {json}   options       at least one of backgroundClr or axesClr in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc
      */
     constructor(container, options={})
@@ -72,23 +70,22 @@ export class Plot
 
     /**
      * plots a formula into the container
-     *
      * @param {string}  originalFormula string of formula
      * @param {object} options
      * - mode {string}: "barchart" or "scatterplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
-     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
-     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
-     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
-     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     * numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     * Integers that are used as class for labeled data would result in various different hues in the same way.
+     * hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
      * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
      * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
-     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
      * - x1frac {number}: by how much to divide the datapoints x1 value
      * - x2frac {number}: by how much to divide the datapoints x2 value (y)
@@ -96,7 +93,7 @@ export class Plot
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     *                      as if it was a color. (converted to hexadecimal then). Default false
+     * as if it was a color. (converted to hexadecimal then). Default false
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -284,29 +281,28 @@ export class Plot
 
     /**
      * plots a .csv string into the container
-     *
      * @param {string}  sCsv        string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
      * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
      * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
      * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
      * @param {object}  options     json object with one or more of the following parameters:
      * - csvIsInGoodShape {boolean}: true if the .csv file is in a good shape. No quotation marks around numbers, no leading and ending whitespaces, no broken numbers (0.123b8),
-     *                          all lines have the same number of columns. true results in more performance. Default: false. If false, the function will try to fix it as good as it can.
+     * all lines have the same number of columns. true results in more performance. Default: false. If false, the function will try to fix it as good as it can.
      * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
      * - mode {string}: "barchart" or "scatterplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
-     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
-     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
-     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
-     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     * numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     * Integers that are used as class for labeled data would result in various different hues in the same way.
+     * hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
      * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
      * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
-     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
      * - x1frac {number}: by how much to divide the datapoints x1 value
      * - x2frac {number}: by how much to divide the datapoints x2 value (y)
@@ -314,7 +310,7 @@ export class Plot
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     *                      as if it was a color. (converted to hexadecimal then). Default false
+     * as if it was a color. (converted to hexadecimal then). Default false
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -539,7 +535,6 @@ export class Plot
 
     /**
      * plots a dataframe on the canvas element which was defined in the constructor of Plot()
-     *
      * @param {number[][]}  df      int[][] of datapoints. [row][column]
      * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
      * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
@@ -548,17 +543,17 @@ export class Plot
      * - mode {string}: "barchart" or "scatterplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
-     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
-     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
-     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
-     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     * numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     * Integers that are used as class for labeled data would result in various different hues in the same way.
+     * hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
      * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
      * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
-     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
      * - x1frac {number}: by how much to divide the datapoints x1 value
      * - x2frac {number}: by how much to divide the datapoints x2 value (y)
@@ -566,7 +561,7 @@ export class Plot
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     *                      as if it was a color. (converted to hexadecimal then). Default false
+     * as if it was a color. (converted to hexadecimal then). Default false
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -1410,17 +1405,17 @@ export class Plot
      * @param {object} options
      * - mode {string}: "barchart" or "scatterplot"
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
-     *                      (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
-     *                      numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
-     *                      Integers that are used as class for labeled data would result in various different hues in the same way.
-     *                      hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
+     * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
+     * numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
+     * Integers that are used as class for labeled data would result in various different hues in the same way.
+     * hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
      * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
      * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
-     *                      Having it false on string-labeled data will throw a warning, but it will continue as it was true
+     * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
      * - x1frac {number}: by how much to divide the datapoints x1 value
      * - x2frac {number}: by how much to divide the datapoints x2 value (y)
@@ -1428,7 +1423,7 @@ export class Plot
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.02
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     *                      as if it was a color. (converted to hexadecimal then). Default false
+     * as if it was a color. (converted to hexadecimal then). Default false
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -1679,14 +1674,13 @@ export class Plot
 
 
     /**
-     *
      * @param {object} dimensions json object can contain the following:
-     *                            - xRes number of vertices for the x-axis
-     *                            - zRes number of vertices for the z-axis
-     *                            - xLen length of the x-axis. This is for the frame for data normalisation and formula plotting
-     *                            - yLen length of the y-axis. This is for the frame for data normalisation and formula plotting
-     *                            - zLen length of the z-axis. This is for the frame for data normalisation and formula plotting
-     *                            TODO set offset of the plot
+     * - xRes number of vertices for the x-axis
+     * - zRes number of vertices for the z-axis
+     * - xLen length of the x-axis. This is for the frame for data normalisation and formula plotting
+     * - yLen length of the y-axis. This is for the frame for data normalisation and formula plotting
+     * - zLen length of the z-axis. This is for the frame for data normalisation and formula plotting
+     * TODO set offset of the plot
      */
     setDimensions(dimensions)
     {
@@ -1787,14 +1781,12 @@ export class Plot
     /**
      * tells this object to animate this. You can stop the animation using stopAnimation()
      * @example
-     *
-     * //animation
-     *
-     *    var i = 0;
-     *    plot.animate(function() {
-     *        i += 0.01;
-     *        plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart");
-     *    }.bind(this))
+     * 
+     *      var i = 0;
+     *      plot.animate(function() {
+     *              i += 0.01;
+     *              plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart");
+     *      }.bind(this))
      * @param {function} animationFunc
      */
     animate(animationFunc)
@@ -2054,7 +2046,6 @@ export class Plot
     /**
      * function that is used when calculating the x3 values f(x1, x3)
      * @private
-     *
      * @param {number} x1        x1 value in the coordinate system
      * @param {number} x3        x3 value in the coordinate system
      */
@@ -2068,7 +2059,6 @@ export class Plot
     /**
      * helper for f(x1,x3) in case there is recursion
      * @private
-     *
      * @param {number} x1        x1 value in the coordinate system
      * @param {number} x3        x3 value in the coordinate system
      */
