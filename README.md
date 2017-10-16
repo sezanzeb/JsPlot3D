@@ -1,4 +1,4 @@
-<p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/title.png"/></p>
+<p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/title.png"/></p>
 
 **beta**
 
