@@ -1,12 +1,10 @@
 <p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/3D-Plot-Js/threejs/images/title.png"/></p>
 
-**unstable**
+**beta**
 
 Plots functions and .csv files. Based on three.js.
 
 It is written in ES6 syntax and compiled using Webpack.
-
-default branch: "threejs"
 
 <p align="center">
     <img width="23%" src="images/scatterplots1.png">
@@ -14,6 +12,16 @@ default branch: "threejs"
     <img width="23%" src="images/barcharts1.png">
     <img width="23%" src="images/barcharts2.png">
 </p>
+
+
+## Live Example
+
+Click here for a live example:
+
+http://hip70890b.de/JsPlot3D_Playground/
+
+You can uploade one of the csvs in /examples/csvFiles, Recommended are Iris.csv, example2.csv and example.csv. Or get a .csv dataset (for example on kaggle.com).
+
 
 ## Building JsPlot3D.js
 
@@ -44,35 +52,7 @@ Take a look into the sourcode of the files in examples, especially in examples/t
 - reads .csv files
 
 
-## Live Example
-
-I'm going to put a live example online once all high priority features are complete. In the meantime you can use it like this:
-
-first, you need to build. See above.
-
-open examples/index.html in your browser for a live example.
-
-Example for f(x1,x2):
-
-    (cos(x1*10+sin(x2*10)))*0.3
-
-    (Math.cos(x1*10)+Math.sin(x2*10))*0.2
-
-    tanh(x1)! ^ (x2 + sqrt(2))*2 + ln(sin(x2) + e)*2 - π*1.1
-
-It has to be in JavaScript syntax, but some common functions are also supported in regular mathematical syntax. the ^ XOR Operator does not work anymore this way though
-
-Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on kaggle.com) and upload it to the upload button of the live example. Type in the indices of the .csv file columns that are used as datapoint dimensions
-
-
 ## Todo
-
-**needed for a first release:**
-
-- make a nice live example on a webspace.
-- make it easy to use as a framework and make a doku for it with some examples
-
-**what else is there to do:**
 
 - calculate the average color per bar (which are sums of y values that are near that grid position) depending on colorCol. At the moment it only dyes according to the y-height
 - how is the performance for very large dataframes? base64 decoding the uplaoded file takes ages and I can't change that. what about the plotting and data processing?
