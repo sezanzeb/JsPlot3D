@@ -71,7 +71,6 @@ Take one of the csvs in /examples/csvFiles or get a .csv dataset (for example on
 
 - make a nice live example on a webspace.
 - make it easy to use as a framework and make a doku for it with some examples
-- make a bundle without three.js, so that users don't link three.js twice if they already have it
 
 **what else is there to do:**
 

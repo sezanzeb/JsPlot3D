@@ -1,21 +1,29 @@
-<h1>Building up a Scatterplot Step by Step</h1>
-<div id="JsPlot3DContainer1" style="width:400px; height:350px;"></div>
-<p>Evenly distributed small yellow-orange-red datapoints on a dark blue background and lime axes. At the top there are a few large turqoise datapoints visible</p>
-<div id="JsPlot3DContainer2" style="width:400px; height:350px;"></div>
-<div id="JsPlot3DContainer3" style="width:400px; height:350px;"></div>
-<p>Blinking white points at random positions.</p>
-<div class="hidden" id="csv">
-        x;cos;tanh
-        1;0.9999500004166653;0.00999966667999949
-        2;0.9998000066665778;0.019997333759930885
-        3;0.9995500337489875;0.029991003238820143
-        4;0.9992001066609779;0.03997868031116358
-        5;0.9987502603949663;0.04995837495788006
-        6;0.9982005399352042;0.0599281035291435
-        7;0.9975510002532796;0.06988589031642899
-        8;0.9968017063026194;0.07982976911113135
-        9;0.9959527330119943;0.08975778474716013
-</div>
+<html>
+    <head>
+        <title>JsPlot3D - Building up a Scatterplot Step by Step</title>
+    </head>
+    <body>
+        <h1>Building up a Scatterplot Step by Step</h1>
+        <div id="JsPlot3DContainer1" style="width:400px; height:350px;"></div>
+        <p>Evenly distributed small yellow-orange-red datapoints on a dark blue background and lime axes. At the top there are a few large turqoise datapoints visible</p>
+        <div id="JsPlot3DContainer2" style="width:400px; height:350px;"></div>
+        <div id="JsPlot3DContainer3" style="width:400px; height:350px;"></div>
+        <p>Blinking white points at random positions.</p>
+        <div class="hidden" id="csv">
+            x;cos;tanh
+            1;0.9999500004166653;0.00999966667999949
+            2;0.9998000066665778;0.019997333759930885
+            3;0.9995500337489875;0.029991003238820143
+            4;0.9992001066609779;0.03997868031116358
+            5;0.9987502603949663;0.04995837495788006
+            6;0.9982005399352042;0.0599281035291435
+            7;0.9975510002532796;0.06988589031642899
+            8;0.9968017063026194;0.07982976911113135
+            9;0.9959527330119943;0.08975778474716013
+        </div>
+    </body>
+</html>
+<script src="http://threejs.org/build/three.min.js"></script>
 <script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
 <script>
     var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"),

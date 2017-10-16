@@ -18,4 +18,10 @@ module.exports = {
         query: { presets:["env"] }
       }]
   },
+
+  externals: {
+    // require("jquery") is external and available
+    //  on the global var jQuery
+    "three": "THREE"
+  }
 };

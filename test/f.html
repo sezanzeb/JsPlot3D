@@ -1,18 +1,26 @@
-<h1>Calculated Animated Barchart</h1>
-<div class="container" id="JsPlot3DContainer1" style="width:300px; height:300px;"></div>
-<div class="container" id="JsPlot3DContainer2" style="width:300px; height:300px;"></div>
-<div class="container" id="JsPlot3DContainer3" style="width:300px; height:300px;"></div>
-<div class="container" id="JsPlot3DContainer4" style="width:300px; height:300px;"></div>
-<p>
-    Bars should change their color upon changing their height. The highest bar is red, the lowest is blue. The bars inbetween turqoise, green, yellow and orange.<br/>
-    There is no space between the bars. They are supposed to move in a wave shape.<br/>
-    <b>- The first plot</b> inverts from time to time due to the plot approximating y(x,z) = 0 at some point. Once the sign flips, the whole plot flips and gets normalized<br/>
-    <b>- The fourth plot</b> is supposed to be very flat<br/>
-    Plot 2 and 3 don't have anything too suspicious about them by default. The waves behave differently, but that's all.<br/>
-</p>
-<p>
-    The background is blue. There are no  axes visible.
-</p>
+<html>
+    <head>
+        <title>JsPlot3D - Calculated Animated Barchart</title>
+    </head>
+    <body>
+        <h1>Calculated Animated Barchart</h1>
+        <div class="container" id="JsPlot3DContainer1" style="width:300px; height:300px;"></div>
+        <div class="container" id="JsPlot3DContainer2" style="width:300px; height:300px;"></div>
+        <div class="container" id="JsPlot3DContainer3" style="width:300px; height:300px;"></div>
+        <div class="container" id="JsPlot3DContainer4" style="width:300px; height:300px;"></div>
+        <p>
+            Bars should change their color upon changing their height. The highest bar is red, the lowest is blue. The bars inbetween turqoise, green, yellow and orange.<br/>
+            There is no space between the bars. They are supposed to move in a wave shape.<br/>
+            <b>- The first plot</b> inverts from time to time due to the plot approximating y(x,z) = 0 at some point. Once the sign flips, the whole plot flips and gets normalized<br/>
+            <b>- The fourth plot</b> is supposed to be very flat<br/>
+            Plot 2 and 3 don't have anything too suspicious about them by default. The waves behave differently, but that's all.<br/>
+        </p>
+        <p>
+            The background is blue. There are no  axes visible.
+        </p>
+    </body>
+</html>
+<script src="http://threejs.org/build/three.min.js"></script>
 <script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
 <script>
 

@@ -1,13 +1,21 @@
-<h1>Building up a Barchart Step by Step</h1>
-<div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
-<div id="JsPlot3DContainerLegend"></div>
-<p>
-    Evenly distributed heatmapcolored bars on a dark blue background and lime axes. Lowest bar is blue, highest is red.<br/>
-    They are all positive in their height. No axes should be visible. A legend should be displayed below the canvas.<br/>
-    The labels should say: "rainbow", "random x", "random y", "random z" and It should not be squashed to one side.<br/>
-    It's twice as long as deep (10 x 5 bars)
-</p>
-<p><i><small>The difference to f.html is, that this is not a formula that involves some random factor. Here, a new random datapoint is sent to plot each frame.</small></i></p>
+<html>
+    <head>
+        <title>JsPlot3D - Building up a Barchart Step by Step</title>
+    </head>
+    <body>
+        <h1>Building up a Barchart Step by Step</h1>
+        <div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
+        <div id="JsPlot3DContainerLegend"></div>
+        <p>
+            Evenly distributed heatmapcolored bars on a dark blue background and lime axes. Lowest bar is blue, highest is red.<br/>
+            They are all positive in their height. No axes should be visible. A legend should be displayed below the canvas.<br/>
+            The labels should say: "rainbow", "random x", "random y", "random z" and It should not be squashed to one side.<br/>
+            It's twice as long as deep (10 x 5 bars)
+        </p>
+        <p><i><small>The difference to f.html is, that this is not a formula that involves some random factor. Here, a new random datapoint is sent to plot each frame.</small></i></p>
+    </body>
+</html>
+<script src="http://threejs.org/build/three.min.js"></script>
 <script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
 <script>
     

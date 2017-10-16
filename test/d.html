@@ -1,23 +1,35 @@
-<h1>Calculation Tests</h1>
+<html>
+    <head>
+        <title>JsPlot3D - Calculation Tests</title>
+    </head>
+    <body>
+        <h1>Calculation Tests</h1>
 
-<div class="container" id="JsPlot3DContainer1"></div>
-<div class="container" id="JsPlot3DContainer2"></div>
-<p>They all should be rainbowcolored from <font style="color:red;">red (top)</font> to <font style="color:blue;">blue (bottom)</font>, have
-    <font style="color:blue;">a blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and have the same sin wave shape</p>
+        <div class="container" id="JsPlot3DContainer1"></div>
+        <div class="container" id="JsPlot3DContainer2"></div>
+        <p>
+            They all should be rainbowcolored from <font style="color:red;">red (top)</font> to <font style="color:blue;">blue (bottom)</font>, have
+            <font style="color:blue;">a blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and have the same sin wave shape
+        </p>
 
-<div class="container" id="JsPlot3DContainer3"></div>
-<div class="container" id="JsPlot3DContainer4"></div>
-<p>They all should have: rainbowcolored dots from <font style="color:red;">red (top)</font> to <font style="color:blue;">blue (bottom)</font>, 
-    <font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and have the same sin wave shape</p>
+        <div class="container" id="JsPlot3DContainer3"></div>
+        <div class="container" id="JsPlot3DContainer4"></div>
+        <p>
+            They all should have: rainbowcolored dots from <font style="color:red;">red (top)</font> to <font style="color:blue;">blue (bottom)</font>, 
+            <font style="color:blue;">blue background</font>, <font style="color:#aaaa00;">yellow axes</font> and have the same sin wave shape
+        </p>
 
-<div class="container" id="JsPlot3DContainer5"></div>
-<div class="container" id="JsPlot3DContainer6"></div>
-<p>Those should be barcharts. They all should have a <font style="color:blue;">blue background</font> and are sin wave shaped. They all should look the same. High bars should be 
-    <font style="color:red;">red</font>, negative bars should be <font style="color:blue;">blue</font></p>
+        <div class="container" id="JsPlot3DContainer5"></div>
+        <div class="container" id="JsPlot3DContainer6"></div>
+        <p>
+            Those should be barcharts. They all should have a <font style="color:blue;">blue background</font> and are sin wave shaped. They all should look the same. High bars should be 
+            <font style="color:red;">red</font>, negative bars should be <font style="color:blue;">blue</font>
+        </p>
 
-
+    </body>
+</html>
+<script src="http://threejs.org/build/three.min.js"></script>
 <script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
-
 <script>
     let formula1 = "(sin(x1*8)+sin(x3*8))*(1/3.3!)"
     let formula2 = "(cos(x1*8-pi/2)+cos(x3*8-pi/2))*(1/3.3!)"
