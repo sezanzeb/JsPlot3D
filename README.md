@@ -11,7 +11,7 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
     <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barcharts2.png">
 </p>
 
-Download: http://hip70890b.de/JsPlot3D_Playground/JsPlot3D.js
+Download: http://hip70890b.de/downloads/JsPlot3D.js
 
 For more information please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
 
