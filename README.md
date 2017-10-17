@@ -13,7 +13,9 @@ It is written in ES6 syntax and compiled using Webpack.
     <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barcharts2.png">
 </p>
 
-For building information take a look at MORE.md
+Download: http://hip70890b.de/JsPlot3D_Playground/JsPlot3D.js
+
+For more information please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
 
 You can find the documentation here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
 
@@ -39,7 +41,7 @@ You can uploade one of the csvs in /examples/csvFiles, Recommended are Iris.csv,
 - reads .csv files
 
 
-## Minimal Example
+## Example
 
 Make sure to get the path to JsPlot3D.js right. Build it using
 
