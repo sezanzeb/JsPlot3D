@@ -33,11 +33,9 @@ Take a look into the sourcode of the files in examples, especially in examples/t
 - arrange the live example settings in a more clean way
 
 
-## Creating a doc from the javadoc
+## Documentation
 
-    npm install jsdoc -g
-    #I had to reboot once afterswards to use the jsdoc command
-    jsdoc src/JsPlot3D.js -d ./documentation
+Currently there is a documentation here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
 
 
 ## Attribution

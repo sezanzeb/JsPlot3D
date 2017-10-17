@@ -34,6 +34,11 @@
                             <label id="fileuplabel"></label>
                             <button id="submitcsv" class="highlight" type="submit" style="display:none">plot</button>
                         </p>
+                        <small>
+                            download:
+                            <a target="blank" href="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/examples/csvFiles/iris.csv">example1</a> |
+                            <a target="blank" href="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/examples/csvFiles/example2.csv">example2</a>
+                        </small><br/>
                         <small>optional .csv realted options:</small>
                         <p>
                             <label>header:</label>
@@ -48,12 +53,6 @@
                             <label>separator:</label><input id="separator" type="text"></input>
                         </p>
                         <p>
-                            <label>active columns:</label>
-                            <input id="x1" class="indices" type="number" placeholder="x"></input>
-                            <input id="x2" class="indices" type="number" placeholder="y"></input>
-                            <input id="x3" class="indices" type="number" placeholder="z"></input>
-                        </p>
-                        <p>
                             <label>labeled:</label>
                             <select id="labeled">
                                 <option value=""></option>
@@ -61,6 +60,12 @@
                                 <option value="false">false</option>
                             </select>
                             <small>will group datapoint by using colors (based on colorCol)</small>
+                        </p>
+                        <p>
+                            <label>active columns:</label>
+                            <input id="x1" class="indices" type="number" placeholder="x"></input>
+                            <input id="x2" class="indices" type="number" placeholder="y"></input>
+                            <input id="x3" class="indices" type="number" placeholder="z"></input>
                         </p>
                         <small>type in the column indices of your csv file that you would<br/>like to plot for x1 (x), x2 (y) and x3 (z). Default is 0, 1 and 2</small>
                     </form>

@@ -1,10 +1,8 @@
 <p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/title.png"/></p>
 
-**beta**
+**v0.1-beta**
 
-Plots functions and .csv files. Based on three.js.
-
-It is written in ES6 syntax and compiled using Webpack.
+Plots functions and .csv files. Based on three.js. It is written in ES6 syntax and compiled using Webpack.
 
 <p align="center">
     <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatterplots1.png">
@@ -17,7 +15,7 @@ Download: http://hip70890b.de/JsPlot3D_Playground/JsPlot3D.js
 
 For more information please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
 
-You can find the documentation here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
+You can find the **documentation** here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
 
 
 ## Live Example
