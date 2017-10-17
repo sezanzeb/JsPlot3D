@@ -43,11 +43,11 @@ You can uploade one of the csvs in /examples/csvFiles, Recommended are Iris.csv,
 
 ## Example
 
-Make sure to get the path to JsPlot3D.js right. Build it using
+you can build JsPlot3D yourself using the following command:
 
     npm install && npm start
 
-and find it in compiled/JsPlot3D.js
+and find it afterwards in compiled/JsPlot3D.js
 
     <div id="plot" style="width:400px; height:350px;"></div>
     <div id="legend"></div>
@@ -61,7 +61,7 @@ and find it in compiled/JsPlot3D.js
         5.8,2.7,5.1,1.9,Iris-virginica
     </div>
     <script src="http://threejs.org/build/three.min.js"></script>
-    <script type="text/javascript" src="JsPlot3D.js"></script>
+    <script type="text/javascript" src="http://hip70890b.de/JsPlot3D_Playground/JsPlot3D.js"></script>
     <script>
 
         var plot = new JSPLOT3D.Plot(document.getElementById("plot"))
