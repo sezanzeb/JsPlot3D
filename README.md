@@ -13,7 +13,7 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
 
 Download: http://hip70890b.de/downloads/JsPlot3D.js
 
-For more information please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
+For more information (**building**) please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
 
 You can find the **documentation** here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
 
@@ -43,11 +43,7 @@ You can uploade one of the csvs in /examples/csvFiles, Recommended are Iris.csv,
 
 Please also take a look at the source codes of https://github.com/sezanzeb/JsPlot3D/tree/master/test because there are quite a few examples that show what you can do with this tool, also when it comes to **animating**
 
-you can build JsPlot3D yourself using the following command:
-
-    npm install && npm start
-
-and find it afterwards in compiled/JsPlot3D.js
+You can copy the following to a file.html and open it using your browser. It should work right away and show 6 datapoints in red, blue and green and a legend below it that explainins the colors and the axes
 
     <div id="plot" style="width:400px; height:350px;"></div>
     <div id="legend"></div>
