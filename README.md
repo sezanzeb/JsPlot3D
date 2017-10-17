@@ -41,6 +41,8 @@ You can uploade one of the csvs in /examples/csvFiles, Recommended are Iris.csv,
 
 ## Example
 
+Please also take a look at the source codes of https://github.com/sezanzeb/JsPlot3D/tree/master/test because there are quite a few examples that show what you can do with this tool, also when it comes to **animating**
+
 you can build JsPlot3D yourself using the following command:
 
     npm install && npm start
