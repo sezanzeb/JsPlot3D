@@ -1,9 +1,19 @@
 ## Building JsPlot3D.js
 
+For an unminified file, remove the -p parameter from package.json 
+
+    "start": "webpack"
+
+minified:
+
+    "start": "webpack -p"
+
+afterwards:
+
     npm install
     npm start
-    #3JsPlot3D.js is now created in compiled/JsPlot3D.js
-    #to minify the file, add the -p parameter to webpack in scripts.start in package.json
+
+JsPlot3D.js is now created in compiled/JsPlot3D.js
 
 
 ## How to Use

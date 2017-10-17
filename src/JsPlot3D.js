@@ -416,10 +416,10 @@ export class Plot
             if(fraction <= 1)
                 data = data.slice(0,data.length-data.length*(1-fraction))
 
-            if(data[0] == "") //to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
+            if(data[0].trim() == "") //to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
             //This probably happens when the csv data starts one line below the opening bracket of the Element
                 data = data.slice(-(data.length-1))
-            if(data[data.length-1] == "")
+            if(data[data.length-1].trim() == "")
                 data.pop()
 
             //now check if the dataframe is empty
