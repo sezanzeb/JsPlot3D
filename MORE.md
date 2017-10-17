@@ -1,5 +1,14 @@
 ## Building JsPlot3D.js
 
+You need to install npm first. It comes bundled with node.js
+
+https://nodejs.org/en/download/
+
+afterwards:
+
+    npm install
+    npm start
+
 For an unminified file, remove the -p parameter from package.json 
 
     "start": "webpack"
@@ -7,11 +16,6 @@ For an unminified file, remove the -p parameter from package.json
 minified:
 
     "start": "webpack -p"
-
-afterwards:
-
-    npm install
-    npm start
 
 JsPlot3D.js is now created in compiled/JsPlot3D.js
 
@@ -22,7 +26,10 @@ first, you need to build. See above.
     
 JsPlot3D.js will then be created in compiled/ automatically
     
-Take a look into the sourcode of the files in examples, especially in examples/test. There are 4 files a.html, b.html, c.html and d.html which contain a few examples.
+Take a look into the sourcode of the files in test/. There are a few examples that show what you can do with this tool.
+
+The live example can also help you to understand the parameters: http://hip70890b.de/JsPlot3D_Playground/
+
 
 
 ## Todo
