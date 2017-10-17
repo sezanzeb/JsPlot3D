@@ -61,7 +61,7 @@ and find it afterwards in compiled/JsPlot3D.js
         5.8,2.7,5.1,1.9,Iris-virginica
     </div>
     <script src="http://threejs.org/build/three.min.js"></script>
-    <script type="text/javascript" src="http://hip70890b.de/JsPlot3D_Playground/JsPlot3D.js"></script>
+    <script src="http://hip70890b.de/downloads/JsPlot3D.js"></script>
     <script>
 
         var plot = new JSPLOT3D.Plot(document.getElementById("plot"))
