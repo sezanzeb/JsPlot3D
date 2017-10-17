@@ -36,7 +36,7 @@ The live example can also help you to understand the parameters: http://hip70890
 
 **new modes:**
 
-- in case zLen = 0, enter a 2d mode. In that mode the camera is orthographic and can only be moved in y and x direction. Remove the zAxis line, arrow ,numbers (which are yet to implement) and letter. Move the axes to the front, so that they don't get hidden beneath bars.
+- in case zLen == 0 or zRes <= 1, enter a 2d mode. In that mode the camera is orthographic and can only be moved in y and x direction. Remove the zAxis line, arrow ,numbers (which are yet to implement) and letter. Move the axes to the front, so that they don't get hidden beneath bars.
 - add an isometric ortographic camera mode
 - csvplot: add a mode called "wire". Instead of sprites, connect each datapoint to a wire that goes through all the points, from the first point in the dataframe to the last
 
