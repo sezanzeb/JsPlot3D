@@ -55,6 +55,8 @@ The live example can also help you to understand the parameters: http://hip70890
 
 **performance and code quality:**
 
+- don't immediatelly create all the bars according to the xVerticesCound x zVerticesCount grid but rather only then, when they would actually hold data. Create new bars once new data adds on top of the plot. Don't remove them if the new data makes them flat. Only remove them when the old plot is discarded (!keepOldPlot) && if they would change to y==0.
+- what exactly happens to bars when the resolution and the dimensions change? Maybe I can keep those that still match the grid to improve performance.
 - how is the performance for very large dataframes?
 - increase barchart performance. e.g. by adding the option to define the normalization ranges (min and max) yourself (so that the tool does not have to calculate it on its own), and also when plotting formulas, data gets transformed to a dataframe and then transformed to a "x,z -> y" kind of 2D array, maybe there is a way to just directly calculate the 2D array, hand it over to PlotDataFrame, which then ignores the df variable.
 - add a module that handles the creation of dataframes from other data formats, which would help to clean up src/JsPlot3D.js a little
