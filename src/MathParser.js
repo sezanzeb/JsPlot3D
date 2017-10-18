@@ -1,4 +1,4 @@
-//converts mathematical syntax to javascript. has to be imported as "MathParser" at the moment so that evals know where to find this. expressions.
+//converts mathematical syntax to javascript.
 
 export default class MathParser
 {
@@ -9,7 +9,8 @@ export default class MathParser
      * @param {String} c Code to be evaluated 
      * @param {Number} x1 first parameter of f(x1,x3) (x)
      * @param {Number} x3 second parameter of f(x1,x3) (z)
-     * @param {Function} f function f(x1,x3) as object. e.g. function(x1,x3){return x1+x3}, Needed for recursive calls
+     * @param {Function} f function that is used to handle recursive calls. Supposed to call eval2 again,
+     * but can also do more than that e.g. caching, conditions to break and such
      */
     eval2(c, x1, x3, f)
     {

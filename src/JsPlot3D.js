@@ -261,7 +261,7 @@ export class Plot
             {
                 let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
                 let b = Math.abs(maxX2-minX2) //based on distance between min and max
-                x2frac = Math.max(a,b)*x2frac/this.yLen //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
+                x2frac = Math.max(a,b)/this.yLen //hybrid
                 this.plotmesh.geometry.scale(1,1/x2frac,1)
             }
 
@@ -894,9 +894,7 @@ export class Plot
                         minX1 = this.dfCache.dataframe[i][x1col]
                 }
             //a hybrid solution of checking the distance between the points and checking the |value|
-            let a = Math.max(Math.abs(maxX1),Math.abs(minX1)) //based on largest |value|
-            let b = Math.abs(maxX1-minX1) //based on distance between min and max
-            x1frac = Math.max(a,b)*x1frac/this.xLen //hybrid. The multiplication by x1frac is to take the user defined options.x1frac value into account
+            x1frac = Math.max(Math.abs(maxX1),Math.abs(minX1)) //based on largest |value|
             
         }
         
@@ -927,7 +925,7 @@ export class Plot
                 //a hybrid solution of checking the distance between the points and checking the |value|
                 let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
                 let b = Math.abs(maxX2-minX2) //based on distance between min and max
-                x2frac = Math.max(a,b)*x2frac/this.yLen //hybrid. The multiplication by x2frac is to take the user defined options.x2frac value into account
+                x2frac = Math.max(a,b)/this.yLen //hybrid
             }
         }
 
@@ -955,9 +953,7 @@ export class Plot
                         minX3 = this.dfCache.dataframe[i][x3col]
                 }
             //a hybrid solution of checking the distance between the points and checking the |value|
-            let a = Math.max(Math.abs(maxX3),Math.abs(minX3)) //based on largest |value|
-            let b = Math.abs(maxX3-minX3) //based on distance between min and max
-            x3frac = Math.max(a,b)*x3frac/this.zLen //hybrid. The multiplication by x3frac is to take the user defined options.x3frac value into account
+            x3frac = Math.max(Math.abs(maxX3),Math.abs(minX3)) //based on largest |value|
         }
 
         this.benchmarkStamp("normalized the data")
@@ -994,8 +990,8 @@ export class Plot
             // at [xVerticesCount/2][zVerticesCount/2] is displayed in the middle upon rendering
 
             //this.dfCache.previousX2frac = 1 //for normalizationSmoothing. Assume that the data does not need to be normalized at first
-            let xBarOffset = 1/this.xRes/2
-            let zBarOffset = 1/this.zRes/2
+            //let xBarOffset = 1/this.xRes/2
+            //let zBarOffset = 1/this.zRes/2
 
             //if needed, reconstruct the barchart
             let valid = this.IsPlotmeshValid("barchart")
@@ -1043,8 +1039,8 @@ export class Plot
 
                         let bar = new THREE.Mesh(shape,plotmat)
                         bar.position.set(x/this.xRes,0,z/this.zRes)
-                        //as the bars height are caulcated using a huge offset of xVerticesCount and zVerticesCount in addToHeights, translate it back to its right position
-                        bar.geometry.translate(-this.xLen,0,-this.zLen) //use translate when the position property should not be influenced
+                        //as the bars height are caulcated using a huge offset of xVerticesCount+1 and zVerticesCount+1 in addToHeights, translate it back to its right position
+                        bar.geometry.translate(-(this.xVerticesCount+1)/this.xRes,0,-(this.zVerticesCount+1)/this.zRes) //use translate when the position property should not be influenced
                         cubegroup.add(bar)
                     }
 
@@ -1082,19 +1078,27 @@ export class Plot
             
 
             //fill the barHeights array with the added heights of the bars
-            //maxX1 and maxX3 are the results of the normalization that happens for plot mode
-            let factorX1 = x1frac/(this.xRes)
-            let factorX3 = x3frac/(this.zRes)
+            //get a point from the dataframe. Calculate the coordinates from that.
+            //to do this, the value has to be brought down to the normalized value (/x1frac). It now has maximum values of [-1, +1].
+            //multiply by xVerticesCount, to get maximum values of [-xVerticesCount, +xVerticesCount]. Now apply the offset of +xVerticesCount to transform it to
+            //[0, 2*xVerticesCount]
+            //afterwards get that to an array index. remember, that the array has some parts reserved for negative x and z values by using an offset
+            //so, divide x_float by x1frac and multiply it by xVerticesCount.
+            //x_float = df[i][x1col]/x1frac*xVerticesCount = df[i][x1col]/(x1frac/xVerticesCount) = df[i][x1col]*(xVerticesCount/x1frac) = df[i][x1col]*xVerticesCount/x1frac
+            let factorX1 = (this.xVerticesCount)/x1frac
+            let factorX3 = (this.zVerticesCount)/x3frac
             for(let i = 0; i < df.length; i ++)
             {
 
                 //INTERPOLATE
 
                 //get coordinates that can fit into an array
-                //TODO interpolate. When x and z is at (in case of parseFloat) e.g. 2.5,1. Add one half to 2,1 and the other hald to 3,1 
-                let x_float = (df[i][x1col])/factorX1
-                let z_float = (df[i][x3col])/factorX3
-
+                //interpolate. When x and z is at (in case of parseFloat) e.g. 2.5,1. Add one half to 2,1 and the other hald to 3,1 
+                
+                //add the following, because the array is twice as large and the center is supposed to be at [xVertCount][zVertCount]
+                let x_float = df[i][x1col]*factorX1 + this.xVerticesCount+1
+                let z_float = df[i][x3col]*factorX3 + this.zVerticesCount+1
+                
                 let x_le = Math.floor(x_float) //left
                 let z_ba = Math.floor(z_float) //back
 
@@ -1116,10 +1120,6 @@ export class Plot
                     //large rectangle => large area => change value at d by a lot
                     
                     let oppositeSquareArea = Math.abs(1-Math.abs(x-x_float))*(1-Math.abs(z-z_float))
-
-                    //add the following, because the array is twice as large and the center is supposed to be at [xVertCount][zVertCount]
-                    x += this.xVerticesCount+1
-                    z += this.zVerticesCount+1
 
                     //make sure x and z are not out of bounds
                     if(this.dfCache.barHeights[x] != undefined)
@@ -1184,8 +1184,7 @@ export class Plot
             {
                 let a = Math.max(Math.abs(maxX2),Math.abs(minX2)) //based on largest |value|
                 let b = Math.abs(maxX2-minX2) //based on distance between min and max
-                x2frac = Math.max(a,b)*x2frac/this.yLen //hybrid. The multiplication by x1frac is to take the user defined options.x2frac value into account
-
+                x2frac = Math.max(a,b)/this.yLen //hybrid
                 //a lower value of normalizationSmoothing will result in faster jumping around plots. 0 Means no smoothing this happens, because 
                 //sometimes the plot might be close to 0 everywhere. This is not visible because of the normalization though one the sign
                 //changes, it will immediatelly jump to be normalized with a different sign. To prevent this one can smoothen the variable x2frac
@@ -1352,9 +1351,9 @@ export class Plot
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
-                vertex.x = df[i][x1col]/x1frac
+                vertex.x = df[i][x1col]/x1frac*this.xLen
                 vertex.y = df[i][x2col]/x2frac
-                vertex.z = df[i][x3col]/x3frac
+                vertex.z = df[i][x3col]/x3frac*this.zLen
 
                 //three.js handles invalid vertex already by skipping them
                 geometry.vertices.push(vertex)

@@ -110,8 +110,6 @@ function plotcsv()
         let tableData = plot.getCache().dataframe.slice(0,32)
         let table = "<table>"
 
-        console.log(tableData)
-
         table += "<tr>"
         for(var i = 0;i < tableData[0].length; i++)
             table += "<td>"+i+"</td>"
@@ -122,8 +120,6 @@ function plotcsv()
 
         table += "<tr>"+tableData.join("</tr><tr>")+"</tr>"
         table += "</table>"
-
-        console.log(table)
 
         document.getElementById("csvhead").innerHTML = "head of dataframe:<br/><br/>"+table
     }
