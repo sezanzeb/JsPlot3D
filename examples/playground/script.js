@@ -107,13 +107,23 @@ function plotcsv()
     //display the dataframes head
     if(plot.getCache().dataframe != undefined)
     {
-        let table = plot.getCache().dataframe.slice(0,32)
-        for(var i = 0;i < table.length; i++)
-        {
-            table[i] = "<td>"+table[i].join("</td><td>")+"</td>"
-        }
-        table = "<tr>"+table.join("</tr><tr>")+"</tr>"
-        table = "<table>"+table+"</table>"
+        let tableData = plot.getCache().dataframe.slice(0,32)
+        let table = "<table>"
+
+        console.log(tableData)
+
+        table += "<tr>"
+        for(var i = 0;i < tableData[0].length; i++)
+            table += "<td>"+i+"</td>"
+        table += "</tr>"
+
+        for(var i = 0;i < tableData.length; i++)
+            tableData[i] = "<td>"+tableData[i].join("</td><td>")+"</td>"
+
+        table += "<tr>"+tableData.join("</tr><tr>")+"</tr>"
+        table += "</table>"
+
+        console.log(table)
 
         document.getElementById("csvhead").innerHTML = "head of dataframe:<br/><br/>"+table
     }

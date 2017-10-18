@@ -411,7 +411,7 @@ export class Plot
             //new csv arrived:
 
             //transform the sCsv string to a dataframe
-            let data = sCsv.split("\n")
+            let data = sCsv.split(/[\n\r]+/g)
 
             if(fraction <= 1)
                 data = data.slice(0,data.length-data.length*(1-fraction))
