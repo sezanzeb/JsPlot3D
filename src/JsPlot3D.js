@@ -1014,8 +1014,8 @@ export class Plot
                 if(barchartPadding > barXWidth || barchartPadding > barZWidth)
                     console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth,barZWidth))*/
 
-                for(let x = 0; x < this.xVerticesCount*2; x++)
-                    for(let z = 0; z < this.zVerticesCount*2; z++)
+                for(let x = 0; x < (this.xVerticesCount+1)*2; x++)
+                    for(let z = 0; z < (this.zVerticesCount+1)*2; z++)
                     {
                         //create the bar
                         //I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
@@ -1057,10 +1057,10 @@ export class Plot
             {
                 //now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
                 //make it 4 times as large (*2 and *2) so that it can hold negative numbers
-                let barHeights = new Array(this.xVerticesCount*2)
+                let barHeights = new Array((this.xVerticesCount+1)*2)
                 for(let x = 0; x < barHeights.length; x++)
                 {
-                    barHeights[x] = new Array(this.zVerticesCount*2)
+                    barHeights[x] = new Array((this.zVerticesCount+1)*2)
                     for(let z = 0; z < barHeights[x].length; z++)
                         barHeights[x][z] = 0
                 }
@@ -1118,8 +1118,8 @@ export class Plot
                     let oppositeSquareArea = Math.abs(1-Math.abs(x-x_float))*(1-Math.abs(z-z_float))
 
                     //add the following, because the array is twice as large and the center is supposed to be at [xVertCount][zVertCount]
-                    x += this.xVerticesCount
-                    z += this.zVerticesCount
+                    x += this.xVerticesCount+1
+                    z += this.zVerticesCount+1
 
                     //make sure x and z are not out of bounds
                     if(this.dfCache.barHeights[x] != undefined)
