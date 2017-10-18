@@ -1129,15 +1129,10 @@ export class Plot
                 if(barsGrid[x] != undefined)
                     if(barsGrid[x][z] != undefined)
                     {
+                        
                         // update the heights
                         barsGrid[x][z].y += y*oppositeSquareArea // initialized with 0, now +=
                         //+=, because otherwise it won't interpolate. It has to add the value to the existing value
-                        
-                        if(isNaN(barsGrid[x][z].y))
-                        {
-                            console.error(barsGrid[x][z],"y is NaN. This is a bug.")
-                            barsGrid[x][z].y = 0
-                        }
 
                         // find the highest bar
                         // even in case of normalizeX2 being false, do this, so that the heatmapcolor can be created
@@ -1179,6 +1174,13 @@ export class Plot
                 let z_ba = Math.floor(z_float) // back
 
                 let y = (df[i][x2col]) // don't normalize yet
+
+                //handle invalid datapoints
+                if(isNaN(y))
+                {
+                    console.warn("the dataframe contained a non-number value at",i,x2col,"called \"",y,"\". skipping that datapoint now")
+                    continue //skip
+                }
 
                 // if x_float and z_float it somewhere inbewteen
                 if(x_float != x_le || z_float != z_ba)
