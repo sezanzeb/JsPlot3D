@@ -200,6 +200,7 @@ export class Plot
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
+            // no need to check keepOldPlot because it is allowed to use the old mesh every time (if IsPlotmeshValid says it's valid)
             if(!this.IsPlotmeshValid("polygonFormula"))
             {
                 // create plane, divided into segments
@@ -265,6 +266,7 @@ export class Plot
                 this.plotmesh.geometry.scale(1,1/x2frac,1)
             }
 
+            this.plotmesh.name = "polygonFormula"
             this.scene.add(this.plotmesh)
 
             // normals need to be recomputed so that the lighting works after the transformation
@@ -509,7 +511,8 @@ export class Plot
             }
 
             // cache the dataframe. If the same dataframe is used next time, don't parse it again
-            this.resetCache()
+            if(options.keepOldPlot != true)
+                this.resetCache()
             this.dfCache.dataframe = data
             this.dfCache.checkstring = checkstring
 
@@ -730,7 +733,8 @@ export class Plot
             x3col = parseFloat(x3col)
         else x3col = Math.min(2,df[0].length-1)
         
-        if(x1col > df[0].length || x2col > df[0].length || x3col > df[0].length)
+        //>= because comparing indices with numbers
+        if(x1col >= df[0].length || x2col >= df[0].length || x3col >= df[0].length)
         {
             console.error("one of the colum indices is out of bounds. The maximum index in this dataframe is "+(df[0].length-1)+". x1col: "+x1col+" x2col:"+x2col+" x3col:"+x3col)
             // detct the rightmost column index that contains numberes
@@ -1007,7 +1011,7 @@ export class Plot
                 let plotmat = new THREE.MeshStandardMaterial({
                     color: 0,
                     emissive: 0,
-                    emissiveIntensity: 1,
+                    emissiveIntensity: 0.98,
                     roughness: 1,
                     visible: false,
                     side: THREE.DoubleSide
@@ -1026,12 +1030,12 @@ export class Plot
             // if needed, reconstruct the barchart
             let valid = this.IsPlotmeshValid("barchart")
             // shape of bars changed? recreate from scratch
-            let paddingValid = (options.barchartPadding == undefined && this.dfCache.options.barchartPadding == undefined) || (barchartPadding == this.dfCache.options.barchartPadding)
+            // let paddingValid = (options.barchartPadding == undefined && this.dfCache.options.barchartPadding == undefined) || (barchartPadding == this.dfCache.options.barchartPadding)
 
-            if(!valid || !paddingValid)
+            if(!valid || !keepOldPlot)
             {
                 this.disposeMesh(this.plotmesh)
-                this.dfCache.barsGrid = undefined
+                this.resetCache()
                 
                 // into this group fill the bars
                 let cubegroup = new THREE.Group()
@@ -1058,8 +1062,7 @@ export class Plot
                     barsGrid[x] = new Array((this.zVerticesCount+1)*2)
                     for(let z = 0; z < barsGrid[x].length; z++)
                     {
-                        barsGrid[x][z] = {}
-                        barsGrid[x][z].y = 0
+                        barsGrid[x][z] = {y: 0}
                     }
                 }
                 this.dfCache.barsGrid = barsGrid
@@ -1130,6 +1133,12 @@ export class Plot
                         barsGrid[x][z].y += y*oppositeSquareArea // initialized with 0, now +=
                         //+=, because otherwise it won't interpolate. It has to add the value to the existing value
                         
+                        if(isNaN(barsGrid[x][z].y))
+                        {
+                            console.error(barsGrid[x][z],"y is NaN. This is a bug.")
+                            barsGrid[x][z].y = 0
+                        }
+
                         // find the highest bar
                         // even in case of normalizeX2 being false, do this, so that the heatmapcolor can be created
                         if(barsGrid[x][z].y > maxX2)
@@ -1139,14 +1148,16 @@ export class Plot
 
                         // if needed create the bar
                         if(barsGrid[x][z].bar == undefined)
+                        {
                             barsGrid[x][z].bar = createBar(x,z,this.plotmesh)
+                        }
                         
                         return
                     }
-                console.error(x,z,"is not defined in",barsGrid,
+                /*console.error(x,z,"is not defined in",barsGrid,
                     "this is a bug. This might happen because the code tries to interpolate beyond the "+
                     "bounds of the grid, but this normally should not be the case."
-                )
+                )*/
             }
 
             // don't get fooled and write code here and suspect it to run after the
@@ -1316,7 +1327,7 @@ export class Plot
             let oldMaterialDefined = this.dfCache != undefined && this.dfCache.material != undefined
             let isOldMaterialSimilar = (this.dfCache != undefined && this.dfCache.material != undefined && dataPointSize == this.dfCache.material.size)
 
-            if(!oldMaterialDefined || !isItValid || !isOldMaterialSimilar)
+            if(!keepOldPlot || !oldMaterialDefined || !isItValid || !isOldMaterialSimilar)
             {
                 // create a new material
                 let canvas = document.createElement("canvas")
@@ -1354,6 +1365,7 @@ export class Plot
                 this.dfCache.material = material
                 this.plotmesh = new THREE.Group()
                 this.plotmesh.name = "scatterplot"
+                this.scene.add(this.plotmesh)
             }
 
             let material = this.dfCache.material
@@ -1372,12 +1384,11 @@ export class Plot
                 geometry.colors.push(dfColors[i])
             }
 
+            geometry.verticesNeedUpdate = true
+
             let newDataPointSprites = new THREE.Points(geometry, material)
 
-            
-            this.plotmesh = group
             group.add(newDataPointSprites)
-            this.scene.add(group)
             this.benchmarkStamp("made a scatterplot")
         }
         
@@ -1585,7 +1596,7 @@ export class Plot
         this.dfCache.options = {}
         this.dfCache.minX2 = undefined
         this.dfCache.maxX2 = undefined
-        this.dfCache.barsGrid = []
+        this.dfCache.barsGrid = undefined
     }
 
 
@@ -1937,9 +1948,11 @@ export class Plot
         let color2 = 0x0033ff
         let directionalLight1 = new THREE.DirectionalLight(color1, 0.3)
         directionalLight1.position.y = 10;
+        directionalLight1.name = "lightFromTop"
         this.scene.add(directionalLight1)
         let directionalLight2 = new THREE.DirectionalLight(color2, 0.3)
         directionalLight2.position.y = -10;
+        directionalLight2.name = "lightFromBottom"
         this.scene.add(directionalLight2)
     }
 
@@ -2050,6 +2063,7 @@ export class Plot
         axes.add(yLetter)
         axes.add(zLetter)
 
+        axes.name = "axesGroup"
 
         // add the axes group to the scene and store it locally in the object
         this.scene.add(axes)
