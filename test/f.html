@@ -11,7 +11,6 @@
         <p>
             Bars should change their color upon changing their height. The highest bar is red, the lowest is blue. The bars inbetween turqoise, green, yellow and orange.<br/>
             There is no space between the bars. They are supposed to move in a wave shape.<br/>
-            <b>- The first plot</b> inverts from time to time due to the plot approximating y(x,z) = 0 at some point. Once the sign flips, the whole plot flips and gets normalized<br/>
             <b>- The fourth plot</b> is supposed to be very flat<br/>
             Plot 2 and 3 don't have anything too suspicious about them by default. The waves behave differently, but that's all.<br/>
         </p>
@@ -31,7 +30,7 @@
             backgroundColor: "#2266aa",
             axesColor: 0xffff00
         })
-    plot1.setDimensions({xLen:0.9,zLen:0.9,yLen:0.9})
+    plot1.setDimensions({xLen:0.9,zLen:0.9,yLen:1.1})
     plot1.removeAxes()
     plot1.setDimensions({xRes: 5, zRes: 5})
     var i1 = 1;
