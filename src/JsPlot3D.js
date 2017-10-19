@@ -961,6 +961,7 @@ export class Plot
 
         this.benchmarkStamp("normalized the data")
 
+        
         if(mode == "barchart")
         {
             // plotDataFrame
@@ -1293,7 +1294,7 @@ export class Plot
 
 
         }
-        else if(mode == "linechart")
+        else if(mode == "lineplot")
         {
 
             // plotDataFrame
@@ -1305,6 +1306,55 @@ export class Plot
             //  +---+---+---+--> +   +   +
             // it goes zig zag through the 3D Space
 
+            // Based on scatterplot
+        
+            let wireframeLinewidth = dataPointSize*100
+
+            let isItValid = this.IsPlotmeshValid("lineplot")
+            let isOldMaterialSimilar = (this.dfCache != undefined && this.dfCache.material != undefined && wireframeLinewidth == this.dfCache.material.wireframeLinewidth)
+
+            if(!keepOldPlot || !isItValid || !isOldMaterialSimilar)
+            {
+                this.SceneHelper.disposeMesh(this.plotmesh)
+
+                let material = new THREE.MeshBasicMaterial({
+                    wireframe: true,
+                    vertexColors: THREE.VertexColors,
+                    wireframeLinewidth: wireframeLinewidth
+                    })
+
+                this.dfCache.material = material
+                this.plotmesh = new THREE.Group()
+                this.plotmesh.name = "lineplot"
+                this.scene.add(this.plotmesh)
+            }
+
+            let material = this.dfCache.material
+            let group = this.plotmesh
+            let geometry = new THREE.Geometry()
+            
+            for(let i = 0; i < df.length; i ++)
+            {
+                let vertex = new THREE.Vector3()
+                vertex.x = df[i][x1col]/x1frac*this.xLen
+                vertex.y = df[i][x2col]/x2frac*this.yLen
+                vertex.z = df[i][x3col]/x3frac*this.zLen
+
+                // three.js handles invalid vertex already by skipping them
+                geometry.vertices.push(vertex)
+                if(i > 1)
+                {
+                    let newFace = new THREE.Face3(i-1,i-1,i)
+                    newFace.vertexColors[0] = new THREE.Color(dfColors[i-1])
+                    newFace.vertexColors[1] = new THREE.Color(dfColors[i-1])
+                    newFace.vertexColors[2] = new THREE.Color(dfColors[i])
+                    geometry.faces.push(newFace)
+                }
+            }
+
+            let newDataPointSprites = new THREE.Mesh(geometry, material)
+
+            group.add(newDataPointSprites)
 
         }
         else
@@ -1319,18 +1369,15 @@ export class Plot
 
             if(mode != "scatterplot" && mode != undefined)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
-    
-            if(!keepOldPlot)
-            {
-                this.SceneHelper.disposeMesh(this.plotmesh)
-            }
+
 
             let isItValid = this.IsPlotmeshValid("scatterplot")
-            let oldMaterialDefined = this.dfCache != undefined && this.dfCache.material != undefined
             let isOldMaterialSimilar = (this.dfCache != undefined && this.dfCache.material != undefined && dataPointSize == this.dfCache.material.size)
 
-            if(!keepOldPlot || !oldMaterialDefined || !isItValid || !isOldMaterialSimilar)
+            if(!keepOldPlot || !isItValid || !isOldMaterialSimilar)
             {
+                this.SceneHelper.disposeMesh(this.plotmesh)
+
                 // create a new material
                 let canvas = document.createElement("canvas")
                 let context = canvas.getContext("2d")

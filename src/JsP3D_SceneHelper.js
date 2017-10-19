@@ -69,11 +69,11 @@ export default class JsP3D_SceneHelper
         let color1 = 0xff9933
         let color2 = 0x0033ff
         let directionalLight1 = new THREE.DirectionalLight(color1, 0.3)
-        directionalLight1.position.y = 10;
+        directionalLight1.position.y = this.parent.yLen*10;
         directionalLight1.name = "lightFromTop"
         this.parent.scene.add(directionalLight1)
         let directionalLight2 = new THREE.DirectionalLight(color2, 0.3)
-        directionalLight2.position.y = -10;
+        directionalLight2.position.y = -this.parent.yLen*10;
         directionalLight2.name = "lightFromBottom"
         this.parent.scene.add(directionalLight2)
     }
