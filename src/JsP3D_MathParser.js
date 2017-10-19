@@ -1,26 +1,96 @@
 //converts mathematical syntax to javascript.
 
-export default class MathParser
+export default class JsP3D_MathParser
 {
+    /**
+     * 
+     * @param {object} parent instance of JsPlot3D 
+     */
+    constructor(parent)
+    {
+        this.parent = parent
+        this.resetCalculation() // configures the variables
+    }
 
     /**
      * runs eval
      * 
-     * @param {String} c Code to be evaluated 
      * @param {Number} x1 first parameter of f(x1,x3) (x)
      * @param {Number} x3 second parameter of f(x1,x3) (z)
-     * @param {Function} f function that is used to handle recursive calls. Supposed to call eval2 again,
-     * but can also do more than that e.g. caching, conditions to break and such
      */
-    eval2(c, x1, x3, f)
+    eval2(x1, x3)
     {
         this.x1 = x1
         this.x3 = x3
-        this.f = f
-        return eval(c)
+        console.log(this.parsedFormula)
+        return eval(this.parsedFormula)
     }
 
     
+
+
+    /**
+     * helper for f(x1,x3) in case there is recursion
+     * @private
+     * @param {number} x1        x1 value in the coordinate system
+     * @param {number} x3        x3 value in the coordinate system
+     */
+    frec(x1, x3)
+    {
+        if(x1 < 0 || x3 < 0 || x1 > this.parent.xLen || x3 > this.parent.zLen)
+            return 0
+
+        // checking for a point if it has been calculated already increases the performance and
+        // reduces the number of recursions.
+
+        let val = this.parent.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)]
+
+        if(val == undefined) // has this point has already been calculated before?
+        {
+            if(!this.stopRecursion)
+                // bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
+                // another solution would be probably if I would just hand the variables over to MathParser
+                val = this.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
+
+            this.parent.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)] = val
+        }
+
+        // val might return NaN for Math.sqrt(-1)
+        // that's fine. Handle this case in the loops that plot the function
+
+        return val
+    }
+
+
+
+    /**
+     * function that is used when calculating the x3 values f(x1, x3)
+     * @private
+     * @param {number} x1        x1 value in the coordinate system
+     * @param {number} x3        x3 value in the coordinate system
+     */
+    f(x1, x3)
+    {
+        return this.eval2(x1, x3)
+    }
+
+
+
+    /**
+     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started
+     * @private
+     */
+    resetCalculation()
+    {
+        this.calculatedPoints = new Array(this.xVerticesCount)
+        for(let i = 0;i < this.calculatedPoints.length; i++)
+            this.calculatedPoints[i] = new Array(this.zVerticesCount)
+
+        this.parsedFormula = ""
+        this.stopRecursion = false
+    }
+
+
 
     /**
      * thanks to https://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
@@ -88,8 +158,8 @@ export default class MathParser
     {
         //regex for numbers of x1 and x3: (x1|x3|\d+(\.\d+){0,1})
         
-        //for recursive calls, make sure that f is this.f
-        formula = formula.replace(/f\(/g,"this.f(")
+        //for recursive calls, make sure that the proper recursive handler is selected
+        formula = formula.replace(/f\(/g,"this.frec(")
 
         //x1 and x3 are attributes of this class once eval2 gets called
         formula = formula.replace(/x1/g,"this.x1")
@@ -185,7 +255,7 @@ export default class MathParser
         formula = formula.replace(/(Math\.)+/g,"Math.")
         formula = formula.replace(/(this\.)+/g,"this.") //in case there are two this.
 
-        return formula
+        this.parsedFormula = formula
     }
 
 }

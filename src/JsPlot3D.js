@@ -1,8 +1,8 @@
 /** @module JsPlot3D */
 const THREE = require("three")
-const OrbitControls = require('three-orbit-controls')(THREE)
-import MathParser from "./MathParser.js"
-import ColorManager from "./ColorManager.js"
+import JsP3D_MathParser from "./JsP3D_MathParser.js"
+import JsP3D_ColorManager from "./JsP3D_ColorManager.js"
+import JsP3D_SceneHelper from "./JsP3D_SceneHelper.js"
 
 
 
@@ -28,10 +28,9 @@ export class Plot
             return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
 
         // some plotdata specific variables. I want setters and getter for all those at some point
-        this.MathParser = new MathParser()
-        this.resetCalculation() // configures the variables
+        this.MathParser = new JsP3D_MathParser(this)
         // this.dataPointImage = "datapoint.png"
-        this.ColorManager = new ColorManager(THREE)
+        this.ColorManager = new JsP3D_ColorManager()
 
         if(options.backgroundColor != undefined)
             backgroundColor = options.backgroundColor
@@ -42,14 +41,15 @@ export class Plot
         // three.js setup
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
         this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(backgroundColor))
+        this.SceneHelper = new JsP3D_SceneHelper(this)
         this.scene = new THREE.Scene()
         this.setContainer(container)
 
         // boundaries and dimensions of the plot data
         this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
-        this.createLight()
-        this.createAxes(axesColor)
-        this.createArcCamera()
+        this.SceneHelper.createLight()
+        this.SceneHelper.createAxes(axesColor)
+        this.SceneHelper.createArcCamera()
 
         this.legend = {}
         this.legend.element = document.createElement("div")
@@ -121,8 +121,8 @@ export class Plot
         if(typeof(originalFormula) != "string")
             return console.error("first param of plotFormula (originalFormula) should be string")
 
-        this.resetCalculation()
-        this.parsedFormula = this.MathParser.parse(originalFormula)
+        this.MathParser.resetCalculation()
+        this.MathParser.parse(originalFormula) //tell the MathParser to prepare so that f can be executed
         this.dfCache.checkstring = "" // don't fool plotCsvString into believing the cache contains still old csv data
 
         if(mode == "scatterplot")
@@ -145,7 +145,7 @@ export class Plot
             {
                 for(let z = 0; z < this.zVerticesCount; z++)
                 {
-                    y = this.f(x/this.xRes,z/this.zRes) // calculate y. y = f(x1,x2)
+                    y = this.MathParser.f(x/this.xRes,z/this.zRes) // calculate y. y = f(x1,x2)
                     df[i] = [x,y,z] // store the datapoint
                     i++
                 }
@@ -178,7 +178,7 @@ export class Plot
             {
                 for(let z = 0; z <= this.zVerticesCount; z++)
                 {
-                    y = this.f(x/this.xRes,z/this.zRes) // calculate y. y = f(x1,x2)
+                    y = this.MathParser.f(x/this.xRes,z/this.zRes) // calculate y. y = f(x1,x2)
                     df[i] = [x,y,z] // store the datapoint
                     i++
                 }
@@ -244,7 +244,7 @@ export class Plot
             {
                 for(let x = 0; x <= this.xVerticesCount; x++)
                 {
-                    y = this.f(x1Actual,x3Actual)
+                    y = this.MathParser.f(x1Actual,x3Actual)
                     this.plotmesh.geometry.vertices[vIndex].y = y
                     this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
                     vIndex ++
@@ -275,7 +275,7 @@ export class Plot
             this.plotmesh.geometry.__dirtyNormals = true
             // make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
-            this.makeSureItRenders()
+            this.SceneHelper.makeSureItRenders()
         }
     }
 
@@ -1034,7 +1034,7 @@ export class Plot
 
             if(!valid || !keepOldPlot)
             {
-                this.disposeMesh(this.plotmesh)
+                this.SceneHelper.disposeMesh(this.plotmesh)
                 this.resetCache()
                 
                 // into this group fill the bars
@@ -1077,7 +1077,7 @@ export class Plot
                     for(let z = 0; z < barsGrid[x].length; z++)
                     {
                         barsGrid[x][z].y = 0
-                        this.disposeMesh(barsGrid[x][z].bar)
+                        this.SceneHelper.disposeMesh(barsGrid[x][z].bar)
                     }
                 }
             }
@@ -1322,7 +1322,7 @@ export class Plot
     
             if(!keepOldPlot)
             {
-                this.disposeMesh(this.plotmesh)
+                this.SceneHelper.disposeMesh(this.plotmesh)
             }
 
             let isItValid = this.IsPlotmeshValid("scatterplot")
@@ -1418,7 +1418,7 @@ export class Plot
             this.dfCache.options = options
         }
 
-        this.makeSureItRenders()
+        this.SceneHelper.makeSureItRenders()
     }
 
 
@@ -1526,24 +1526,6 @@ export class Plot
 
 
     /**
-     * sometimes it renders sometimes it does not (static images)
-     * super problematic. Make sure it gets rendered by using some timeouted renders
-     */
-    makeSureItRenders()
-    {
-        // if animated, don't render it here. In callAnimation it's going to render
-        if(this.animationFunc == undefined)
-        {
-            for(let i = 0;i < 5; i++)
-                window.setTimeout(()=>this.render(),100+i*33)
-            for(let i = 0;i < 5; i++)
-                window.setTimeout(()=>this.render(),(100+5*33)+i*66)
-        }
-    }
-
-
-
-    /**
      * if plotmesh is invalid it gets clered. The point of this is that materials and such don't have to be recreated again and again
      * It checks the mesh.type, mesh.name and mesh.geometry.type if it matches with the parameter check
      * @return returns true if plotmesh is still valid and existant
@@ -1562,7 +1544,7 @@ export class Plot
 
         if(this.redraw == true) // this is the only place where this.redraw is taken into account
         {
-            this.disposeMesh(obj)
+            this.SceneHelper.disposeMesh(obj)
             this.redraw = false
             return false
         }
@@ -1575,7 +1557,7 @@ export class Plot
             return true
 
             
-        this.disposeMesh(obj)
+        this.SceneHelper.disposeMesh(obj)
         this.redraw = false
         return false
     }
@@ -1614,34 +1596,6 @@ export class Plot
     }
 
 
-
-    /**
-     * frees memory and removes the plotmesh (by making it available for the garbage collegtor)
-     */
-    disposeMesh(mesh)
-    {   
-        if(mesh != undefined)
-        {
-            if(mesh.geometry != undefined)
-                mesh.geometry.dispose()
-            if(mesh.material != undefined)
-                mesh.material.dispose()
-            if(mesh.texture != undefined)
-                mesh.texture.dispose()
-
-            // recursively clear the children
-            for(let i = 0;i < mesh.children.length; i++)
-                this.disposeMesh(mesh.children[i])
-                
-            if(mesh.parent != null)
-                mesh.parent.remove(mesh)
-                
-            if(mesh != undefined)
-                mesh.remove()
-        }
-    }
-
-
     /**
      * changes the background color and triggers a rerender
      * @param {string} color
@@ -1664,7 +1618,7 @@ export class Plot
      */
     setAxesColor(color)
     {
-        this.createAxes(color)
+        this.SceneHelper.createAxes(color)
         this.render()
     }
 
@@ -1728,7 +1682,7 @@ export class Plot
         this.zVerticesCount = Math.max(1,Math.round(this.zLen*this.zRes))
 
         if(this.axes != undefined)
-            this.createAxes(this.axesColor) // recreate
+            this.SceneHelper.createAxes(this.axesColor) // recreate
         
         if(this.camera != undefined && this.cameraControls != undefined)
         {
@@ -1775,22 +1729,6 @@ export class Plot
         console.log("url: "+typeof(url))
         this.dataPointImage = url
     }*/
-
-
-
-    /**
-     * reinitializes the variables that are needed for calculating plots, so that a new plot can be started
-     * @private
-     */
-    resetCalculation()
-    {
-        this.calculatedPoints = new Array(this.xVerticesCount)
-        for(let i = 0;i < this.calculatedPoints.length; i++)
-            this.calculatedPoints[i] = new Array(this.zVerticesCount)
-
-        this.parsedFormula = ""
-        this.stopRecursion = false
-    }
 
 
 
@@ -1894,70 +1832,6 @@ export class Plot
     }
 
 
-    /** Creates the camera
-     * @private
-     */
-    createArcCamera()
-    {
-        let width = this.container.offsetWidth
-        let height = this.container.offsetHeight
-
-        let viewAngle = 80
-        let aspect = width / height
-        let near = 0.05 // when objects start to disappear at zoom-in
-        let far = 20 // when objects start to disappear at zoom-out
-        let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        // let zoom = 1000
-        // let camera = new THREE.OrthographicCamera(width/-zoom, width/zoom, height/-zoom, height/zoom, near, far)
-        camera.position.set(this.xLen/2,Math.max(this.zLen,this.yLen),this.zLen+this.xLen)
-
-        let controls = new OrbitControls(camera, this.renderer.domElement)
-        controls.enableKeys = false
-        controls.target.set(0.5,0.5,0.5)
-
-        // the point of this is, that i can disable this by overwriting it
-        // when doing animations no need to use the event listener anymore
-        this.onChangeCamera = function()
-        {
-            this.render()
-        }
-        controls.addEventListener("change", ()=>this.onChangeCamera())
-
-        controls.enableDamping = true
-        controls.dampingFactor = 0.25
-        controls.enableZoom = true
-        controls.rotateSpeed = 0.3
-        controls.maxDistance = 5
-        controls.minDistance = 0.3
-
-        // start looking at the target initially
-        camera.lookAt(controls.target)
-
-        this.camera = camera
-        this.cameraControls = controls
-    }
-
-
-
-    /**
-     * takes care of creating the light
-     * @private
-     */
-    createLight()
-    {
-        // set a directional light
-        let color1 = 0xff9933
-        let color2 = 0x0033ff
-        let directionalLight1 = new THREE.DirectionalLight(color1, 0.3)
-        directionalLight1.position.y = 10;
-        directionalLight1.name = "lightFromTop"
-        this.scene.add(directionalLight1)
-        let directionalLight2 = new THREE.DirectionalLight(color2, 0.3)
-        directionalLight2.position.y = -10;
-        directionalLight2.name = "lightFromBottom"
-        this.scene.add(directionalLight2)
-    }
-
 
 
     /**
@@ -1965,158 +1839,6 @@ export class Plot
      */
     removeAxes()
     {
-        this.disposeMesh(this.axes)
-        this.axes = undefined
-    }
-
-
-    /**
-     * creates the axes that point into the three x, y and z directions as wireframes
-     * @private
-     * @param {string} color     hex string of the axes color. default black #000000
-     */
-    createAxes(color="#000000")
-    {
-        this.axesColor = color // to be able to easily redraw it later with the same color
-        this.disposeMesh(this.axes)
-
-        let axes = new THREE.Group()
-        let percentage = 1.1 // how long the axes are to xLen, yLen and zLen
-
-        let colorObject = this.ColorManager.getColorObjectFromAnyString(color)
-        if(colorObject != undefined)
-            color = colorObject
-
-
-        // lines that point into the dimensions
-        let axesWireGeom = new THREE.Geometry()
-        let cent = new THREE.Vector3(0,0,0)
-        let xend = new THREE.Vector3(this.xLen*percentage,0,0)
-        let yend = new THREE.Vector3(0,this.yLen*percentage,0)
-        let zend = new THREE.Vector3(0,0,this.zLen*percentage)
-        axesWireGeom.vertices.push(cent) // 0
-        axesWireGeom.vertices.push(xend) // 1
-        axesWireGeom.vertices.push(yend) //2
-        axesWireGeom.vertices.push(zend) //3
-        axesWireGeom.faces.push(new THREE.Face3(0,0,1))
-        axesWireGeom.faces.push(new THREE.Face3(0,0,2))
-        axesWireGeom.faces.push(new THREE.Face3(0,0,3))
-        // wireframe and color those paths
-        let axesWireMat = new THREE.MeshBasicMaterial({
-            color: color,
-            wireframe: true,
-            side: THREE.DoubleSide
-          });
-        let axesWire = new THREE.Mesh(axesWireGeom, axesWireMat)
-        axes.add(axesWire)
-
-
-        // arrows that sit at the end of the lines
-        let arrowMat = new THREE.MeshBasicMaterial({
-            color: color
-        });
-        let arrowGeom = new THREE.ConeGeometry(0.02,0.066,12)
-        let arrowMesh1 = new THREE.Mesh(arrowGeom, arrowMat)
-        let arrowMesh2 = new THREE.Mesh(arrowGeom, arrowMat)
-        let arrowMesh3 = new THREE.Mesh(arrowGeom, arrowMat)
-        arrowMesh1.rotateZ(-Math.PI/2)
-        arrowMesh3.rotateX(Math.PI/2)
-        arrowMesh1.position.set(this.xLen*percentage,0,0)
-        arrowMesh2.position.set(0,this.yLen*percentage,0)
-        arrowMesh3.position.set(0,0,this.zLen*percentage)
-        axes.add(arrowMesh1)
-        axes.add(arrowMesh2)
-        axes.add(arrowMesh3)
-
-        let placeLetter = function(letter, textColor, position)
-        {
-            // write text to a canvas
-            let textCanvas = document.createElement('canvas')
-            textCanvas.height = 128
-            textCanvas.width = 64
-            let context2d = textCanvas.getContext('2d')
-            context2d.font = "Bold 80px sans-serif"
-            context2d.fillStyle = textColor // textclr
-            context2d.fillText(letter,0,80) // write
-    
-            // create a texture from the canvas
-            let canvasToTexture = new THREE.Texture(textCanvas)
-            let textureToSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: canvasToTexture,
-                alphaTest: 0.6
-            }))
-    
-            // transform
-            let size = 0.05
-            textureToSprite.scale.set(size,2*size)
-            textureToSprite.position.set(position.x,position.y,position.z)
-    
-            // finish
-            canvasToTexture.needsUpdate = true
-            return textureToSprite
-        }
-
-        // text indicating the dimension name
-        let offset = 0.1
-        let xLetter = placeLetter("x","#"+colorObject.getHexString(), new THREE.Vector3(this.xLen*percentage+offset,0,0))
-        let yLetter = placeLetter("y","#"+colorObject.getHexString(), new THREE.Vector3(0,this.yLen*percentage+offset,0))
-        let zLetter = placeLetter("z","#"+colorObject.getHexString(), new THREE.Vector3(0,0,this.zLen*percentage+offset))
-        axes.add(xLetter)
-        axes.add(yLetter)
-        axes.add(zLetter)
-
-        axes.name = "axesGroup"
-
-        // add the axes group to the scene and store it locally in the object
-        this.scene.add(axes)
-        this.axes = axes
-    }
-
-
-
-
-    /**
-     * function that is used when calculating the x3 values f(x1, x3)
-     * @private
-     * @param {number} x1        x1 value in the coordinate system
-     * @param {number} x3        x3 value in the coordinate system
-     */
-    f(x1, x3)
-    {
-        return this.MathParser.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
-    }
-
-
-
-    /**
-     * helper for f(x1,x3) in case there is recursion
-     * @private
-     * @param {number} x1        x1 value in the coordinate system
-     * @param {number} x3        x3 value in the coordinate system
-     */
-    frec(x1, x3)
-    {
-        if(x1 < 0 || x3 < 0 || x1 > this.xLen || x3 > this.zLen)
-            return 0
-
-        // checking for a point if it has been calculated already increases the performance and
-        // reduces the number of recursions.
-
-        let val = this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x3*this.zRes)]
-
-        if(val == undefined) // has this point has already been calculated before?
-        {
-            if(!this.stopRecursion)
-                // bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
-                // another solution would be probably if I would just hand the variables over to MathParser
-                val = this.MathParser.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
-
-            this.calculatedPoints[parseInt(x1*this.xRes)][parseInt(x3*this.zRes)] = val
-        }
-
-        // val might return NaN for Math.sqrt(-1)
-        // that's fine. Handle this case in the loops that plot the function
-
-        return val
+        this.SceneHelper.removeAxes()
     }
 }

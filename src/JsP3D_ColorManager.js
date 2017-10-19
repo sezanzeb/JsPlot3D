@@ -1,14 +1,7 @@
-export default class ColorManager
-{
-    /**
-     * handles a few color related tasks
-     * @param {object} THREE three.js framework object. TODO make a better description on how to get this object
-     */
-    constructor(THREE)
-    {
-        this.THREE = THREE
-    }
+const THREE = require("three")
 
+export default class JsP3D_ColorManager
+{
 
     /**
      * converts a number to a heat color
@@ -31,18 +24,18 @@ export default class ColorManager
         value = value * (1 - lowerColorBoundary - (1-upperColorBoundary)) + lowerColorBoundary
 
         //return that color
-        return new this.THREE.Color(0).setHSL(value,0.95,0.55)
+        return new THREE.Color(0).setHSL(value,0.95,0.55)
     }
 
 
     /**
      * returns dfColors. An array, indexes are the same as the vertices of the
-     * scatterplot in the geometry.vertices array. dfColors contains this.THREE.Color objects
+     * scatterplot in the geometry.vertices array. dfColors contains THREE.Color objects
      * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
      * The parameters have the same names as in JsPlot3D.js. Just forward them to this function
      * @param {any[][]} df the dataframe without the headers
      * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
-     * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains this.THREE.Color objects
+     * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains THREE.Color objects
      */
     getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true,hueOffset=0)
     {
@@ -117,7 +110,7 @@ export default class ColorManager
                 let hueDistance = 1/(numberOfLabels)
                 for(let i = 0; i < dfColors.length; i++)
                 {
-                    dfColors[i] = new this.THREE.Color(0).setHSL(dfColors[i]*hueDistance+hueOffset,0.95,0.55)
+                    dfColors[i] = new THREE.Color(0).setHSL(dfColors[i]*hueDistance+hueOffset,0.95,0.55)
                     labelColorMap[df[i][colorCol]] = dfColors[i] //store the label name together with the color
                 }
 
@@ -146,14 +139,14 @@ export default class ColorManager
                         {
                             //remove "rgb", brackets and split it into an array of [r,g,b]
                             let rgb = (df[i][colorCol]+"").substring(4,df[i][colorCol].length-1).split(",")
-                            dfColors[i] = new this.THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
+                            dfColors[i] = new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
                         }
                     }
                     else if((df[1][colorCol]+"").toLowerCase().indexOf("#") == 0)
                     {
                         //hex strings are supported by three.js right away
                         for(let i = 0; i < df.length; i++)
-                            dfColors[i] = new this.THREE.Color(df[i][colorCol])
+                            dfColors[i] = new THREE.Color(df[i][colorCol])
                     }
                     else if((df[1][colorCol]+"").toLowerCase().indexOf("hsl") == 0)
                     {
@@ -161,7 +154,7 @@ export default class ColorManager
                         {
                             //remove "hsl", brackets and split it into an array of [r,g,b]
                             let hsl = (df[i][colorCol]+"").substring(4,df[i][colorCol].length-1).split(",")
-                            dfColors[i] = new this.THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
+                            dfColors[i] = new THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
                         }
                     }
                     else
@@ -243,13 +236,13 @@ export default class ColorManager
 
 
     /**
-     * converts the param color to a this.THREE.Color object
+     * converts the param color to a THREE.Color object
      * @param {any} color examples: "rgb(0,0.5,1)" "hsl(0.3,0.4,0.7)" 0xff6600 "#72825a"
      */
     getColorObjectFromAnyString(color)
     {
         if(typeof(color) == "number")
-            return new this.THREE.Color(color) //number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
+            return new THREE.Color(color) //number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
             //numbers are supported by three.js by default
 
         if(typeof(color) != "number" && typeof(color) != "string")
@@ -259,18 +252,18 @@ export default class ColorManager
         {
             //remove "rgb", brackets and split it into an array of [r,g,b]
             let rgb = color.substring(4,color.length-1).split(",")
-            return new this.THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
+            return new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
         }
         else if(color.toLowerCase().indexOf("#") == 0)
         {
             //hex strings are supported by three.js right away
-            return new this.THREE.Color(color)
+            return new THREE.Color(color)
         }
         else if(color.toLowerCase().indexOf("hsl") == 0)
         {
             //remove "hsl", brackets and split it into an array of [r,g,b]
             let hsl = color.substring(4,color.length-1).split(",")
-            return new this.THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
+            return new THREE.Color(0).setHSL(hsl[0],hsl[1],hsl[2])
         }
         return undefined
     }
