@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css?family=Codystar');
-@import url('https://fonts.googleapis.com/css?family=Work+Sans:300');
-
 body {
     background: #19212f;
     color:#ddd;
@@ -11,7 +8,7 @@ body {
 }
 
 h1,h2 {
-    font-family: 'Work Sans', sans-serif;
+    font-family: sans-serif;
 }
 
 .jsP3D_legend {
@@ -27,6 +24,7 @@ h1,h2 {
 }
 
 .jsP3D_legend h1 {
+    font-family: "RetroscapeRegular";
     margin: 0px 0px 5px;
     font-size: 20px;
     border-bottom: 1px solid white;
@@ -74,7 +72,6 @@ h1,h2 {
 }
 
 #pageheader h1 {
-    font-family: 'Codystar', cursive;
     margin: 0px;
     position: relative;
     bottom: 7px;
@@ -83,7 +80,7 @@ h1,h2 {
 }
 
 #pageheader h1:nth-child(3) {
-    font-family: 'Work Sans', sans-serif;
+    font-family: sans-serif;
 }
 
 #main h2:not(:first-child) {

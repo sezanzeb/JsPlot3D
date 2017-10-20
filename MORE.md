@@ -74,6 +74,4 @@ Currently there is a documentation here: https://doclets.io/sezanzeb/JsPlot3D/ma
 
 ## Attribution
 
-iris.csv Dataset by Ronald Fisher
-
-Codystar font by Neapolitan Principal design https://fonts.google.com/specimen/Codystar, released under the Open Font License
+https://fontlibrary.org/en/font/retroscape by Robert Jablonski (public domain)
