@@ -20,10 +20,11 @@ export default class JsP3D_MathParser
      */
     eval2(x1, x3)
     {
+        //this.x1 and this.x3 are going to be used during the eval process
         this.x1 = x1
         this.x3 = x3
-        console.log(this.parsedFormula)
-        return eval(this.parsedFormula)
+        let y = eval(this.parsedFormula)
+        return y
     }
 
     
@@ -43,7 +44,7 @@ export default class JsP3D_MathParser
         // checking for a point if it has been calculated already increases the performance and
         // reduces the number of recursions.
 
-        let val = this.parent.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)]
+        let val = this.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)]
 
         if(val == undefined) // has this point has already been calculated before?
         {
@@ -52,7 +53,7 @@ export default class JsP3D_MathParser
                 // another solution would be probably if I would just hand the variables over to MathParser
                 val = this.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
 
-            this.parent.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)] = val
+            this.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)] = val
         }
 
         // val might return NaN for Math.sqrt(-1)
@@ -136,18 +137,6 @@ export default class JsP3D_MathParser
 
 
     /**
-     * logarithm to the base of e
-     * 
-     * @param x     x as in ln(x), the inverse to e^x
-     */
-    ln(x)
-    {
-        return Math.log(x,Math.E)
-    }
-
-
-
-    /**
      * converts mathematical formulas to javascript syntax
      * 
      * @param formula       string of a formula that contains !, ^, sin, cos, etc. expressions 
@@ -172,14 +161,14 @@ export default class JsP3D_MathParser
         formula = formula.replace(/(pi|PI|Pi|π)/g,"Math.PI")
         formula = formula.replace(/(e|E)/g,"Math.E")
 
-        //support ln()
-        formula = formula.replace(/ln\(/g,"this.ln(")
-
         //support powers (to my susprise, current browsers support this (ES7 feature). Testet with firefox and chromium-browser)
         formula = formula.replace(/\^/g,"**")
         
         //support expressions without Math. as suffix.
         formula = formula.replace(/(sin\(|cos\(|tan\(|log\(|max\(|min\(|abs\(|sinh\(|cosh\(|tanh\(|acos\(|asin\(|atan\(|exp\(|sqrt\()/g,"Math.$1")
+
+        //support ln()
+        formula = formula.replace(/ln\(/g,"Math.log(")
 
 
         //factorial

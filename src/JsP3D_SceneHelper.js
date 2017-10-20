@@ -1,37 +1,96 @@
 const THREE = require("three")
 const OrbitControls = require('three-orbit-controls')(THREE)
+const COLORLIB = require("./JsP3D_ColorLib.js")
 
 export default class JsP3D_SceneHelper
 {
 
     /**
      * 
-     * @param {object} parent instance of JsPlot3D 
      */
-    constructor(parent)
+    constructor()
     {
-        this.parent = parent
+        this.renderer = new THREE.WebGLRenderer({ antialias: true })
+    }
+
+
+
+    /**
+     * scene setup. Szene, Camera, Lighting, Axes
+     * @param {*} dimensions 
+     * @param {*} sceneOptions 
+     * @param {*} cameraOptions 
+     */
+    createScene(dimensions,sceneOptions,cameraOptions)
+    {
+        if(this.renderer == undefined)
+            return console.error("createScene has to be called after setupRendering. this.renderer is undefined")
+
+        let backgroundColor = 0xffffff
+        let axesColor = 0x000000
+
+        if(sceneOptions.backgroundColor != undefined)
+            backgroundColor = sceneOptions.backgroundColor
+        if(sceneOptions.axesColor != undefined)
+            axesColor = sceneOptions.axesColor
+
+        this.scene = new THREE.Scene()
+        this.createLight()
+        this.createAxes(axesColor, dimensions)
+        this.createArcCamera(cameraOptions.width,cameraOptions.height)
+
+        this.renderer.setClearColor(COLORLIB.getColorObjectFromAnyString(backgroundColor))
+    }
+
+
+
+    /**
+     * 
+     * @param {number[]} pos THREE.Vector3 camera position {x,y,z}
+     * @param {number[]} target THREE.Vector3 camera target. The center of what can be seen on the screen {x,y,z}
+     */
+    moveCamera(pos,target)
+    {
+        this.camera.position.set(pos.x,pos.y,pos.z)
+        this.cameraControls.target.set(target.x,target.y,target.z)
+        this.camera.lookAt(this.cameraControls.target)
+    }
+
+
+
+    /**
+     * moves the camera to a good position to watch over the whole plot
+     * @param {object} dimensions {xLen,yLen,zLen} 
+     */
+    centerCamera(dimensions)
+    {
+        //camera already created? It might be called by setDimensions in the constructor before the camera creation
+        if(this.camera == undefined)
+            return
+
+        let xLen = dimensions.xLen
+        let yLen = dimensions.yLen
+        let zLen = dimensions.zLen
+
+        this.camera.position.set(xLen/2,Math.max(zLen,yLen),zLen+xLen)
+        this.cameraControls.target.set(xLen/2,yLen/2,zLen/2)
+        this.camera.lookAt(this.cameraControls.target)
     }
 
 
     /** Creates the camera
      * @private
      */
-    createArcCamera()
+    createArcCamera(width,height)
     {
-        let width = this.parent.container.offsetWidth
-        let height = this.parent.container.offsetHeight
 
         let viewAngle = 80
         let aspect = width / height
         let near = 0.05 // when objects start to disappear at zoom-in
         let far = 20 // when objects start to disappear at zoom-out
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        // let zoom = 1000
-        // let camera = new THREE.OrthographicCamera(width/-zoom, width/zoom, height/-zoom, height/zoom, near, far)
-        camera.position.set(this.parent.xLen/2,Math.max(this.parent.zLen,this.parent.yLen),this.parent.zLen+this.parent.xLen)
 
-        let controls = new OrbitControls(camera, this.parent.renderer.domElement)
+        let controls = new OrbitControls(camera, this.renderer.domElement)
         controls.enableKeys = false
         controls.target.set(0.5,0.5,0.5)
 
@@ -39,9 +98,9 @@ export default class JsP3D_SceneHelper
         // when doing animations no need to use the event listener anymore
         this.onChangeCamera = function()
         {
-            this.parent.render()
+            this.render()
         }
-        controls.addEventListener("change", ()=>this.onChangeCamera())
+        controls.addEventListener("change", ()=>this.render())
 
         controls.enableDamping = true
         controls.dampingFactor = 0.25
@@ -53,8 +112,8 @@ export default class JsP3D_SceneHelper
         // start looking at the target initially
         camera.lookAt(controls.target)
 
-        this.parent.camera = camera
-        this.parent.cameraControls = controls
+        this.camera = camera
+        this.cameraControls = controls
     }
 
 
@@ -68,14 +127,16 @@ export default class JsP3D_SceneHelper
         // set a directional light
         let color1 = 0xff9933
         let color2 = 0x0033ff
+
         let directionalLight1 = new THREE.DirectionalLight(color1, 0.3)
-        directionalLight1.position.y = this.parent.yLen*10;
+        directionalLight1.position.y = 1;
         directionalLight1.name = "lightFromTop"
-        this.parent.scene.add(directionalLight1)
+        this.scene.add(directionalLight1)
+
         let directionalLight2 = new THREE.DirectionalLight(color2, 0.3)
-        directionalLight2.position.y = -this.parent.yLen*10;
+        directionalLight2.position.y = -1;
         directionalLight2.name = "lightFromBottom"
-        this.parent.scene.add(directionalLight2)
+        this.scene.add(directionalLight2)
     }
 
 
@@ -96,25 +157,28 @@ export default class JsP3D_SceneHelper
      * @private
      * @param {string} color     hex string of the axes color. default black #000000
      */
-    createAxes(color="#000000")
+    createAxes(color="#000000",dimensions)
     {
-        this.parent.axesColor = color // to be able to easily redraw it later with the same color
+        this.axesColor = color // to be able to easily redraw it later with the same color
         this.disposeMesh(this.axes)
+
+        let xLen = dimensions.xLen
+        let yLen = dimensions.yLen
+        let zLen = dimensions.zLen
 
         let axes = new THREE.Group()
         let percentage = 1.1 // how long the axes are to xLen, yLen and zLen
 
-        let colorObject = this.parent.ColorManager.getColorObjectFromAnyString(color)
+        let colorObject = COLORLIB.getColorObjectFromAnyString(color)
         if(colorObject != undefined)
             color = colorObject
-
 
         // lines that point into the dimensions
         let axesWireGeom = new THREE.Geometry()
         let cent = new THREE.Vector3(0,0,0)
-        let xend = new THREE.Vector3(this.parent.xLen*percentage,0,0)
-        let yend = new THREE.Vector3(0,this.parent.yLen*percentage,0)
-        let zend = new THREE.Vector3(0,0,this.parent.zLen*percentage)
+        let xend = new THREE.Vector3(xLen*percentage,0,0)
+        let yend = new THREE.Vector3(0,yLen*percentage,0)
+        let zend = new THREE.Vector3(0,0,zLen*percentage)
         axesWireGeom.vertices.push(cent) // 0
         axesWireGeom.vertices.push(xend) // 1
         axesWireGeom.vertices.push(yend) //2
@@ -142,9 +206,9 @@ export default class JsP3D_SceneHelper
         let arrowMesh3 = new THREE.Mesh(arrowGeom, arrowMat)
         arrowMesh1.rotateZ(-Math.PI/2)
         arrowMesh3.rotateX(Math.PI/2)
-        arrowMesh1.position.set(this.parent.xLen*percentage,0,0)
-        arrowMesh2.position.set(0,this.parent.yLen*percentage,0)
-        arrowMesh3.position.set(0,0,this.parent.zLen*percentage)
+        arrowMesh1.position.set(xLen*percentage,0,0)
+        arrowMesh2.position.set(0,yLen*percentage,0)
+        arrowMesh3.position.set(0,0,zLen*percentage)
         axes.add(arrowMesh1)
         axes.add(arrowMesh2)
         axes.add(arrowMesh3)
@@ -179,9 +243,9 @@ export default class JsP3D_SceneHelper
 
         // text indicating the dimension name
         let offset = 0.1
-        let xLetter = placeLetter("x","#"+colorObject.getHexString(), new THREE.Vector3(this.parent.xLen*percentage+offset,0,0))
-        let yLetter = placeLetter("y","#"+colorObject.getHexString(), new THREE.Vector3(0,this.parent.yLen*percentage+offset,0))
-        let zLetter = placeLetter("z","#"+colorObject.getHexString(), new THREE.Vector3(0,0,this.parent.zLen*percentage+offset))
+        let xLetter = placeLetter("x","#"+colorObject.getHexString(), new THREE.Vector3(xLen*percentage+offset,0,0))
+        let yLetter = placeLetter("y","#"+colorObject.getHexString(), new THREE.Vector3(0,yLen*percentage+offset,0))
+        let zLetter = placeLetter("z","#"+colorObject.getHexString(), new THREE.Vector3(0,0,zLen*percentage+offset))
         axes.add(xLetter)
         axes.add(yLetter)
         axes.add(zLetter)
@@ -189,7 +253,7 @@ export default class JsP3D_SceneHelper
         axes.name = "axesGroup"
 
         // add the axes group to the scene and store it locally in the object
-        this.parent.scene.add(axes)
+        this.scene.add(axes)
         this.axes = axes
     }
     
@@ -204,8 +268,21 @@ export default class JsP3D_SceneHelper
         {
             if(mesh.geometry != undefined)
                 mesh.geometry.dispose()
+
+            //disppose material
             if(mesh.material != undefined)
-                mesh.material.dispose()
+            {
+                if(mesh.material.length == undefined && mesh.material != undefined)
+                    mesh.material.dispose()
+                    
+                if(!isNaN(mesh.material.length))
+                {
+                    //material is an array
+                    for(let i = 0;i < mesh.material.length; i++)
+                        mesh.material[i].dispose()
+                }
+            }
+
             if(mesh.texture != undefined)
                 mesh.texture.dispose()
 
@@ -227,15 +304,41 @@ export default class JsP3D_SceneHelper
      * sometimes it renders sometimes it does not (static images)
      * super problematic. Make sure it gets rendered by using some timeouted renders
      */
-    makeSureItRenders()
+    makeSureItRenders(animationFunc)
     {
         // if animated, don't render it here. In callAnimation it's going to render
-        if(this.parent.animationFunc == undefined)
+        if(animationFunc == undefined)
         {
             for(let i = 0;i < 5; i++)
-                window.setTimeout(()=>this.parent.render(),100+i*33)
+                window.setTimeout(()=>this.render(),100+i*33)
             for(let i = 0;i < 5; i++)
-                window.setTimeout(()=>this.parent.render(),(100+5*33)+i*66)
+                window.setTimeout(()=>this.render(),(100+5*33)+i*66)
         }
+    }
+
+
+
+    /**
+     * changes the background color and triggers a rerender
+     * @param {string} color
+     */
+    setBackgroundColor(color)
+    {
+        let colorObject = COLORLIB.getColorObjectFromAnyString(color)
+        if(colorObject != undefined)
+            this.renderer.setClearColor(COLORLIB.getColorObjectFromAnyString(color))
+        else
+            this.renderer.setClearColor(color)
+        this.render()
+    }
+    
+    
+    
+    /**
+     * updates what is visible on the screen.
+     */
+    render()
+    {
+        this.renderer.render(this.scene, this.camera)
     }
 }

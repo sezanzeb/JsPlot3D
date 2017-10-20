@@ -1,9 +1,8 @@
 /** @module JsPlot3D */
 const THREE = require("three")
 import JsP3D_MathParser from "./JsP3D_MathParser.js"
-import JsP3D_ColorManager from "./JsP3D_ColorManager.js"
 import JsP3D_SceneHelper from "./JsP3D_SceneHelper.js"
-
+const COLORLIB = require("./JsP3D_ColorLib.js")
 
 
 /**
@@ -15,55 +14,36 @@ export class Plot
     /**
      * Creates a Plot instance, so that a single canvas can be rendered. After calling this constructor, rendering can
      * be done using plotFormula(s), plotCsvString(s) or plotDataFrame(df)
-     * @param {object} container     html div DOM element which can then be selected using
-     * - Plot(document.getElementById("foobar"))
-     * @param {json}   options       at least one of backgroundClr or axesClr in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc
+     * @param {object} container     html div DOM element which can then be selected using document.getElementById("foobar") with foobar being the html id of the container
+     * @param {json}   sceneOptions  optional. at least one of backgroundColor or axesColor in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc, rgb and hsl (e.g. "rgb(0.3,0.7,0.1)")
      */
-    constructor(container, options={})
+    constructor(container, sceneOptions={})
     {
         // parameter checking
-        let backgroundColor = 0xffffff
-        let axesColor = 0x000000
         if(typeof(container) != "object")
             return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
-
-        // some plotdata specific variables. I want setters and getter for all those at some point
+            
+        // creating the helper objects
         this.MathParser = new JsP3D_MathParser(this)
-        // this.dataPointImage = "datapoint.png"
-        this.ColorManager = new JsP3D_ColorManager()
-
-        if(options.backgroundColor != undefined)
-            backgroundColor = options.backgroundColor
-        if(options.axesColor != undefined)
-            axesColor = options.axesColor
-
-
-        // three.js setup
-        this.renderer = new THREE.WebGLRenderer({ antialias: true })
-        this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(backgroundColor))
         this.SceneHelper = new JsP3D_SceneHelper(this)
-        this.scene = new THREE.Scene()
+
+        // first set up the container and the dimensions
         this.setContainer(container)
+        this.dimensions = {}
+        this.setDimensions({xRes:20,zRes:20,xLen:1,yLen:1,zLen:1})
 
-        // boundaries and dimensions of the plot data
-        this.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
-        this.SceneHelper.createLight()
-        this.SceneHelper.createAxes(axesColor)
-        this.SceneHelper.createArcCamera()
+        // then setup the children of the scene (camera, light, axes)
+        this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
+        this.SceneHelper.centerCamera(this.dimensions)
 
-        this.legend = {}
-        this.legend.element = document.createElement("div")
-        this.legend.element.className = "jsP3D_legend"
-        this.legend.title = ""
-        this.legend.x1title = ""
-        this.legend.x2title = ""
-        this.legend.x3title = ""
-        this.legend.colors = {}
+        // legend
+        this.initializeLegend()
 
+        // cache
         this.resetCache()
 
         // this.enableBenchmarking()
-        this.render()
+        this.SceneHelper.render()
     }
 
 
@@ -131,7 +111,7 @@ export class Plot
             ////////  SCATTERPLOT    ////////
 
             // if scatterplot, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.xVerticesCount * this.zVerticesCount)
+            let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
 
             // the three values that are going to be stored in the dataframe
             let y = 0
@@ -141,11 +121,11 @@ export class Plot
             // line number in the new dataframe
             let i = 0
 
-            for(let x = 0; x < this.xVerticesCount; x++)
+            for(let x = 0; x < this.dimensions.xVerticesCount; x++)
             {
-                for(let z = 0; z < this.zVerticesCount; z++)
+                for(let z = 0; z < this.dimensions.zVerticesCount; z++)
                 {
-                    y = this.MathParser.f(x/this.xRes,z/this.zRes) // calculate y. y = f(x1,x2)
+                    y = this.MathParser.f(x/this.dimensions.xRes,z/this.dimensions.zRes) // calculate y. y = f(x1,x2)
                     df[i] = [x,y,z] // store the datapoint
                     i++
                 }
@@ -164,7 +144,7 @@ export class Plot
 
 
             // if barchart, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.xVerticesCount * this.zVerticesCount)
+            let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
 
             // the three values that are going to be stored in the dataframe
             let y = 0
@@ -174,11 +154,11 @@ export class Plot
             // line number in the new dataframe
             let i = 0
 
-            for(let x = 0; x <= this.xVerticesCount; x++)
+            for(let x = 0; x <= this.dimensions.xVerticesCount; x++)
             {
-                for(let z = 0; z <= this.zVerticesCount; z++)
+                for(let z = 0; z <= this.dimensions.zVerticesCount; z++)
                 {
-                    y = this.MathParser.f(x/this.xRes,z/this.zRes) // calculate y. y = f(x1,x2)
+                    y = this.MathParser.f(x/this.dimensions.xRes,z/this.dimensions.zRes) // calculate y. y = f(x1,x2)
                     df[i] = [x,y,z] // store the datapoint
                     i++
                 }
@@ -197,26 +177,35 @@ export class Plot
 
             ////////  POLYGON ////////
 
+            // TODO:
+            // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
+            // color heatmap like
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
             // no need to check keepOldPlot because it is allowed to use the old mesh every time (if IsPlotmeshValid says it's valid)
             if(!this.IsPlotmeshValid("polygonFormula"))
             {
+                // this.SceneHelper.disposeMesh(this.plotmesh)
                 // create plane, divided into segments
-                let planegeometry = new THREE.PlaneGeometry(this.xLen,this.zLen,this.xVerticesCount,this.zVerticesCount)
+                let planegeometry = new THREE.PlaneGeometry(this.dimensions.xLen,this.dimensions.zLen,this.dimensions.xVerticesCount,this.dimensions.zVerticesCount)
                 // move it
                 planegeometry.rotateX(Math.PI/2)
-                planegeometry.translate(this.xLen/2,0,this.zLen/2)
+                planegeometry.translate(this.dimensions.xLen/2,0,this.dimensions.zLen/2)
 
                 // color the plane
-                let plotmat = new THREE.MeshStandardMaterial({
-                    color: 0xff3b00,
-                    emissive: 0x2f7b8c,
-                    roughness: 0.8,
-                    // wireframe: true,
-                    side: THREE.DoubleSide
-                    })
+                let plotmat = [
+                    new THREE.MeshStandardMaterial({
+                        color: 0xff3b00,
+                        emissive: 0x2f7b8c,
+                        roughness: 0.8,
+                        // wireframe: true,
+                        side: THREE.DoubleSide
+                        }),
+                    new THREE.MeshBasicMaterial({
+                        transparent: true, opacity: 0
+                        })
+                    ];
 
                 this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
                 this.plotmesh.name = "polygonFormula"
@@ -225,34 +214,71 @@ export class Plot
             // if not, go ahead and manipulate the vertices
 
             // TODO hiding faces if typeof y is not number:
-            // https:// stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
+            // https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
 
             // modifying vertex positions:
-            // https:// github.com/mrdoob/three.js/issues/972
+            // https://github.com/mrdoob/three.js/issues/972
             let y = 0
             let vIndex = 0
 
             // to counter the need for dividing each iteration
             let x1Actual = 0 // x
-            let x3Actual = (this.zVerticesCount-1)/this.zRes // z
-            let x1ActualStep = 1/this.xRes
-            let x3ActualStep = 1/this.zRes
+            let x3Actual = (this.dimensions.zVerticesCount-1)/this.dimensions.zRes // z
+            let x1ActualStep = 1/this.dimensions.xRes
+            let x3ActualStep = 1/this.dimensions.zRes
             let minX2 = 0
             let maxX2 = 0
 
-            for(let z = this.zVerticesCount; z >= 0; z--)
+            let faceIndex1 = 0
+            let faceIndex2 = 0
+
+
+            for(let z = this.dimensions.zVerticesCount; z >= 0; z--)
             {
-                for(let x = 0; x <= this.xVerticesCount; x++)
+                for(let x = 0; x <= this.dimensions.xVerticesCount; x++)
                 {
                     y = this.MathParser.f(x1Actual,x3Actual)
-                    this.plotmesh.geometry.vertices[vIndex].y = y
+
+                    // in each face there are 3 attributes, which stand for the vertex Indices (Which are vIndex basically)
+                    // faces are ordered so that the vIndex in .c is in increasing order. If faceIndex.c has an unmatching value, increase
+                    // the faceindex and therefore switch to a different face which mathes .c with vIndex.
+                    for(;faceIndex1 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex1].c < vIndex; faceIndex1++) {}
+                    // the result of this operation is: faces[faceIndex].c == vIndex
+
+                    // do similar for faceIndex2.
+                    for(;faceIndex2 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex2].a < vIndex; faceIndex2++) {}
+                    
                     this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
+
+                    if(!isNaN(y) && Math.abs(y) != Number.POSITIVE_INFINITY)
+                    {
+                        this.plotmesh.geometry.vertices[vIndex].y = y
+                        
+                        if(y > maxX2)
+                            maxX2 = y
+                        if(y < minX2)
+                            minX2 = y
+                    }
+                    else
+                    {
+                        // console.warn("this does not fully work yet. Some vertex are at y=0 but that face should be invisible")
+                        // there are two faces per vertex in this case. make them transparent
+                        /*if(this.plotmesh.geometry.faces[faceIndex1+1] != undefined)
+                        {
+                            this.plotmesh.geometry.faces[faceIndex1].materialIndex = 1
+                            this.plotmesh.geometry.faces[faceIndex1+1].materialIndex = 1
+                            this.plotmesh.geometry.faces[faceIndex1+2].materialIndex = 1
+                        }
+
+                        //every second face has vIndex as a. 0 _ 1 _ 2 _ 3
+                        if(this.plotmesh.geometry.faces[faceIndex2] != undefined)
+                        {
+                            this.plotmesh.geometry.faces[faceIndex2].materialIndex = 1
+                        }*/
+                        // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
+                    }
                     vIndex ++
                     x1Actual += x1ActualStep
-                    if(y > maxX2)
-                        maxX2 = y
-                    if(y < minX2)
-                        minX2 = y
                 }
                 x1Actual = 0
                 x3Actual -= x3ActualStep
@@ -267,7 +293,7 @@ export class Plot
             }
 
             this.plotmesh.name = "polygonFormula"
-            this.scene.add(this.plotmesh)
+            this.SceneHelper.scene.add(this.plotmesh)
 
             // normals need to be recomputed so that the lighting works after the transformation
             this.plotmesh.geometry.computeFaceNormals()
@@ -275,7 +301,10 @@ export class Plot
             this.plotmesh.geometry.__dirtyNormals = true
             // make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
-            this.SceneHelper.makeSureItRenders()
+            
+            this.plotmesh.material.needsUpdate = true
+
+            this.SceneHelper.makeSureItRenders(this.animationFunc)
         }
     }
 
@@ -806,13 +835,13 @@ export class Plot
         //(unnormalized numbers or color strings (#fff,rgb,hsl)) for each vertex (by index)
 
         // headers are already removed from df by now
-        let colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
+        let colorMap = COLORLIB.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
         if(colorMap == -1)
         {
-            // colorManager requests to restart "getColorMap" using labeled = true
+            // COLORLIB requests to restart "getColorMap" using labeled = true
             labeled = true
             options.labeled = labeled
-            colorMap = this.ColorManager.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
+            colorMap = COLORLIB.getColorMap(df,colorCol,defaultColor,labeled,header,filterColor,hueOffset)
         }
         let dfColors = colorMap.dfColors
 
@@ -994,15 +1023,15 @@ export class Plot
             // at [xVerticesCount/2][zVerticesCount/2] is displayed in the middle upon rendering
 
             // this.dfCache.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
-            // let xBarOffset = 1/this.xRes/2
-            // let zBarOffset = 1/this.zRes/2
+            // let xBarOffset = 1/this.dimensions.xRes/2
+            // let zBarOffset = 1/this.dimensions.zRes/2
 
             // helper function
             let createBar = (x,z,cubegroup) =>
             {
                 // create the bar
                 // I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
-                let shape = new THREE.CubeGeometry((1-barchartPadding)/this.xRes,1,(1-barchartPadding)/this.zRes)
+                let shape = new THREE.CubeGeometry((1-barchartPadding)/this.dimensions.xRes,1,(1-barchartPadding)/this.dimensions.zRes)
                 // manually set the height to 0:
                 shape.scale(1,0,1)
 
@@ -1019,9 +1048,9 @@ export class Plot
                 })
 
                 let bar = new THREE.Mesh(shape,plotmat)
-                bar.position.set(x/this.xRes,0,z/this.zRes)
+                bar.position.set(x/this.dimensions.xRes,0,z/this.dimensions.zRes)
                 // as the bars height are caulcated using a huge offset of xVerticesCount+1 and zVerticesCount+1 in addToHeights, translate it back to its right position
-                bar.geometry.translate(-(this.xVerticesCount+1)/this.xRes,0,-(this.zVerticesCount+1)/this.zRes) // use translate when the position property should not be influenced
+                bar.geometry.translate(-(this.dimensions.xVerticesCount+1)/this.dimensions.xRes,0,-(this.dimensions.zVerticesCount+1)/this.dimensions.zRes) // use translate when the position property should not be influenced
                 cubegroup.add(bar)
 
                 return bar
@@ -1043,24 +1072,24 @@ export class Plot
                 cubegroup.name = "barchart"
                 
                 // dimensions of the bars
-                /*let barXWidth = 1/this.xRes
-                let barZWidth = 1/this.zRes
+                /*let barXWidth = 1/this.dimensions.xRes
+                let barZWidth = 1/this.dimensions.zRes
                 if(barchartPadding > barXWidth || barchartPadding > barZWidth)
                     console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth,barZWidth))*/
 
                 this.plotmesh = cubegroup
-                this.scene.add(cubegroup)
+                this.SceneHelper.scene.add(cubegroup)
             }
 
             let barsGrid = this.dfCache.barsGrid
             if(barsGrid == undefined)
             {
-                // now create an array that has one element for each bar. Bars are aligned in a grid of this.xRes and this.zRes elements
+                // now create an array that has one element for each bar. Bars are aligned in a grid of this.dimensions.xRes and this.dimensions.zRes elements
                 // make it 4 times as large (*2 and *2) so that it can hold negative numbers
-                barsGrid = new Array((this.xVerticesCount+1)*2)
+                barsGrid = new Array((this.dimensions.xVerticesCount+1)*2)
                 for(let x = 0; x < barsGrid.length; x++)
                 {
-                    barsGrid[x] = new Array((this.zVerticesCount+1)*2)
+                    barsGrid[x] = new Array((this.dimensions.zVerticesCount+1)*2)
                     for(let z = 0; z < barsGrid[x].length; z++)
                     {
                         barsGrid[x][z] = {y: 0}
@@ -1092,8 +1121,8 @@ export class Plot
             // afterwards get that to an array index. remember, that the array has some parts reserved for negative x and z values by using an offset
             // so, divide x_float by x1frac and multiply it by xVerticesCount.
             // x_float = df[i][x1col]/x1frac*xVerticesCount = df[i][x1col]/(x1frac/xVerticesCount) = df[i][x1col]*(xVerticesCount/x1frac) = df[i][x1col]*xVerticesCount/x1frac
-            let factorX1 = (this.xVerticesCount)/x1frac
-            let factorX3 = (this.zVerticesCount)/x3frac
+            let factorX1 = (this.dimensions.xVerticesCount)/x1frac
+            let factorX3 = (this.dimensions.zVerticesCount)/x3frac
 
             // use the maximums from the recent run if keepOldPlot
             let maxX2 = this.dfCache.maxX2
@@ -1168,8 +1197,8 @@ export class Plot
                 // interpolate. When x and z is at (in case of parseFloat) e.g. 2.5,1. Add one half to 2,1 and the other hald to 3,1 
                 
                 // add the following, because the array is twice as large and the center is supposed to be at [xVertCount][zVertCount]
-                let x_float = df[i][x1col]*factorX1 + this.xVerticesCount+1
-                let z_float = df[i][x3col]*factorX3 + this.zVerticesCount+1
+                let x_float = df[i][x1col]*factorX1 + this.dimensions.xVerticesCount+1
+                let z_float = df[i][x3col]*factorX3 + this.dimensions.zVerticesCount+1
                 
                 let x_le = Math.floor(x_float) // left
                 let z_ba = Math.floor(z_float) // back
@@ -1234,7 +1263,7 @@ export class Plot
                     {
                         let y = barsGrid[x][z].y
                         
-                        let color = this.ColorManager.convertToHeat(y,minX2,maxX2,hueOffset)
+                        let color = COLORLIB.convertToHeat(y,minX2,maxX2,hueOffset)
                         bar.material.color.set(color)
                         bar.material.emissive.set(color)
 
@@ -1251,7 +1280,7 @@ export class Plot
                             bar.material.visible = false
                         }
 
-                        y = y/x2frac*this.yLen
+                        y = y/x2frac*this.dimensions.yLen
                         
                         // those are the vertex of the barchart that surround the top face
                         bar.geometry.vertices[0].y = y
@@ -1326,7 +1355,7 @@ export class Plot
                 this.dfCache.material = material
                 this.plotmesh = new THREE.Group()
                 this.plotmesh.name = "lineplot"
-                this.scene.add(this.plotmesh)
+                this.SceneHelper.scene.add(this.plotmesh)
             }
 
             let material = this.dfCache.material
@@ -1336,9 +1365,9 @@ export class Plot
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
-                vertex.x = df[i][x1col]/x1frac*this.xLen
-                vertex.y = df[i][x2col]/x2frac*this.yLen
-                vertex.z = df[i][x3col]/x3frac*this.zLen
+                vertex.x = df[i][x1col]/x1frac*this.dimensions.xLen
+                vertex.y = df[i][x2col]/x2frac*this.dimensions.yLen
+                vertex.z = df[i][x3col]/x3frac*this.dimensions.zLen
 
                 // three.js handles invalid vertex already by skipping them
                 geometry.vertices.push(vertex)
@@ -1414,7 +1443,7 @@ export class Plot
                 this.dfCache.material = material
                 this.plotmesh = new THREE.Group()
                 this.plotmesh.name = "scatterplot"
-                this.scene.add(this.plotmesh)
+                this.SceneHelper.scene.add(this.plotmesh)
             }
 
             let material = this.dfCache.material
@@ -1424,9 +1453,9 @@ export class Plot
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
-                vertex.x = df[i][x1col]/x1frac*this.xLen
-                vertex.y = df[i][x2col]/x2frac*this.yLen
-                vertex.z = df[i][x3col]/x3frac*this.zLen
+                vertex.x = df[i][x1col]/x1frac*this.dimensions.xLen
+                vertex.y = df[i][x2col]/x2frac*this.dimensions.yLen
+                vertex.z = df[i][x3col]/x3frac*this.dimensions.zLen
 
                 // three.js handles invalid vertex already by skipping them
                 geometry.vertices.push(vertex)
@@ -1465,7 +1494,7 @@ export class Plot
             this.dfCache.options = options
         }
 
-        this.SceneHelper.makeSureItRenders()
+        this.SceneHelper.makeSureItRenders(this.animationFunc)
     }
 
 
@@ -1553,6 +1582,23 @@ export class Plot
             true)
 
         return 0
+    }
+
+
+
+    /**
+     * can be used to reset or initialize the legend variables
+     */
+    initializeLegend()
+    {
+        this.legend = {}
+        this.legend.element = document.createElement("div")
+        this.legend.element.className = "jsP3D_legend"
+        this.legend.title = ""
+        this.legend.x1title = ""
+        this.legend.x2title = ""
+        this.legend.x3title = ""
+        this.legend.colors = {}
     }
 
 
@@ -1649,12 +1695,7 @@ export class Plot
      */
     setBackgroundColor(color)
     {
-        let colorObject = this.ColorManager.getColorObjectFromAnyString(color)
-        if(colorObject != undefined)
-            this.renderer.setClearColor(this.ColorManager.getColorObjectFromAnyString(color))
-        else
-            this.renderer.setClearColor(color)
-        this.render()
+        this.SceneHelper.setBackgroundColor(color)
     }
 
 
@@ -1665,8 +1706,7 @@ export class Plot
      */
     setAxesColor(color)
     {
-        this.SceneHelper.createAxes(color)
-        this.render()
+        this.SceneHelper.createAxes(color,this.dimensions)
     }
 
 
@@ -1682,9 +1722,9 @@ export class Plot
             return console.error("param of setContainer (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
 
         this.container = container
-        this.renderer.setSize(container.offsetWidth,container.offsetHeight)
+        this.SceneHelper.renderer.setSize(container.offsetWidth,container.offsetHeight)
 
-        this.container.appendChild(this.renderer.domElement)
+        this.container.appendChild(this.SceneHelper.renderer.domElement)
     }
 
 
@@ -1701,6 +1741,7 @@ export class Plot
 
 
     /**
+     * not used for initialization, but rather for changing dimensions during runtime. will trigger axes recreation
      * @param {object} dimensions json object can contain the following:
      * - xRes number of vertices for the x-axis
      * - zRes number of vertices for the z-axis
@@ -1715,35 +1756,36 @@ export class Plot
             return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen")
 
         if(dimensions.xRes != undefined)
-            this.xRes = Math.max(1,Math.abs(parseInt(dimensions.xRes)))
+            this.dimensions.xRes = Math.max(1,Math.abs(parseInt(dimensions.xRes)))
         if(dimensions.zRes != undefined)
-            this.zRes = Math.max(1,Math.abs(parseInt(dimensions.zRes)))
+            this.dimensions.zRes = Math.max(1,Math.abs(parseInt(dimensions.zRes)))
         if(dimensions.xLen != undefined)
-            this.xLen = Math.abs(dimensions.xLen)
+            this.dimensions.xLen = Math.abs(dimensions.xLen)
         if(dimensions.yLen != undefined)
-            this.yLen = Math.abs(dimensions.yLen)
+            this.dimensions.yLen = Math.abs(dimensions.yLen)
         if(dimensions.zLen != undefined)
-            this.zLen = Math.abs(dimensions.zLen)
+            this.dimensions.zLen = Math.abs(dimensions.zLen)
 
-        this.xVerticesCount = Math.max(1,Math.round(this.xLen*this.xRes))
-        this.zVerticesCount = Math.max(1,Math.round(this.zLen*this.zRes))
+        if(dimensions.xVerticesCount != undefined || dimensions.zVerticesCount != undefined)
+            console.warn("xVerticesCount and zVerticesCount cannot be manually overwritten. They are the product of Length and Resolution.",
+            "Example: setDimensions({xRes:10,xLen:2}) xVerticesCount now has a value of 20")
 
-        if(this.axes != undefined)
+        this.dimensions.xVerticesCount = Math.max(1,Math.round(this.dimensions.xLen*this.dimensions.xRes))
+        this.dimensions.zVerticesCount = Math.max(1,Math.round(this.dimensions.zLen*this.dimensions.zRes))
+
+        if(this.axes != undefined) //check that because axes might have been removed at some point manually using removeAxes()
             this.SceneHelper.createAxes(this.axesColor) // recreate
-        
-        if(this.camera != undefined && this.cameraControls != undefined)
-        {
-            // move
-            this.camera.position.set(this.xLen/2,Math.max(this.zLen,this.yLen),this.zLen+this.xLen)
-            this.cameraControls.target.set(this.xLen/2,this.yLen/2,this.zLen/2)
-            this.camera.lookAt(this.cameraControls.target)
-        }
+    
+
+        // move
+        this.SceneHelper.centerCamera(this.dimensions)
+    
 
         // vertices counts changed, so the mesh has to be recreated
         this.redraw = true
 
         // takes effect once the mesh gets created from new, except for the lengths indicated by the axes. those update immediatelly
-        this.render()
+        //this.SceneHelper.render()
     }
 
 
@@ -1751,40 +1793,11 @@ export class Plot
     /**
      * returns a JSON object that contains the dimensions
      * TODO print also min and max x, y and z (offset of the plot)
-     * @return {object} {xRes, zRes, xLen, yLen, zLen}
+     * @return {object} {xRes, zRes, xLen, yLen, zLen, xVerticesCount, zVerticesCount}
      */
     getDimensions()
     {
-        return {
-            xRes: this.xRes,
-            zRes: this.zRes,
-            xLen: this.xLen,
-            yLen: this.yLen,
-            zLen: this.zLen
-        }
-    }
-
-
-
-    /**
-     * Deprecated
-     * changes the datapoint image. You need to plot the data again after this function so that the change takes effect
-     * @param {string} url url of the image.
-     */
-    /*setDataPointImage(url)
-    {
-        console.log("url: "+typeof(url))
-        this.dataPointImage = url
-    }*/
-
-
-
-    /**
-     * updates what is visible on the screen.
-     */
-    render()
-    {
-        this.renderer.render(this.scene, this.camera)
+        return this.dimensions
     }
 
 
@@ -1802,7 +1815,7 @@ export class Plot
      */
     animate(animationFunc)
     {
-        this.onChangeCamera = function() {}
+        this.SceneHelper.onChangeCamera = function() {}
         this.animationFunc = animationFunc
         this.callAnimation()
     }
@@ -1828,7 +1841,7 @@ export class Plot
         if(this.animationFunc != undefined)
         {
             this.animationFunc()
-            this.render()
+            this.SceneHelper.render()
         }
         requestAnimationFrame(()=>this.callAnimation())
     }
@@ -1877,7 +1890,6 @@ export class Plot
             this.benchmark.recentTime = window.performance.now()
         }
     }
-
 
 
 
