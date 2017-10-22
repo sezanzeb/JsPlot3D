@@ -6,7 +6,6 @@
         <h1>Reading a CSV as Barchart</h1>
         <div class="container" id="JsPlot3DContainer1"></div>
         <div class="container" id="JsPlot3DContainer2"></div>
-        <div class="container" id="JsPlot3DContainer3"></div>
         <p>
             The previous 3 were not displaying bars that are very thin. The following 3 are supposed to throw some errors but still manage to plot.<br/> 
             They will display small bars aswell. Still, there should be plenty of space around the x and z arrows (1,0,0) and (0,0,1) without any bars, not even thin ones.
@@ -18,6 +17,10 @@
             They all should look the same (besides the missing thin bars) <front style="color:blue;">blue background</front>, <font style="color:#aaaa00;">yellow axes</font>, 
             colorful bars from from <font style="color:red;">red (highest)</font> to <font style="color:blue;">blue (lowest)</font>. <br/>
             Between the bars there is supposed to be some distance.
+        </p>
+        <div class="container" id="JsPlot3DContainer3"></div>
+        <p>
+            This plot should show exactly 2 bars
         </p>
 
         <div class="hidden" id="csv">
@@ -525,113 +528,7 @@
     </body>
 </html>
 
-<script src="http://threejs.org/build/three.min.js"></script>
-<script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
-
-<script>
-    let data = document.getElementById("csv").innerHTML
-
-    window.onload = function() {
-
-        console.log()
-        console.log("plot1")
-        
-        var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
-            backgroundColor: "rgb(0.15,0.35,0.7)",
-            axesColor: "hsl(0.1667,1,0.5)"
-        })
-        plot1.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
-        plot1.plotCsvString(data,0,1,2,{
-            defaultColor: "rgb(0.1,1,0.3)",
-            mode: "barchart",
-            barSizeThreshold: 0.1,
-            csvIsInGoodShape: true
-        })
-
-        console.log()
-        console.log("plot2")
-
-        var plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"), {
-            backgroundColor: "rgb(0.15,0.35,0.7)",
-            axesColor: "hsl(0.1667,1,0.5)"
-        })
-        plot2.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
-        plot2.plotCsvString(data,0,1,2,{
-            defaultColor: "rgb(0.1,1,0.3)",
-            separator: ";",
-            header: true,
-            mode: "barchart",
-            barSizeThreshold: 0.1,
-            csvIsInGoodShape: true
-        })
-
-        console.log()
-        console.log("plot3")
-
-        var plot3 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer3"), {
-            backgroundColor: "rgb(0.15,0.35,0.7)",
-            axesColor: "hsl(0.1667,1,0.5)"
-        })
-        plot3.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
-        plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
-        plot3.plotCsvString(data,0,1,2,{
-            defaultColor: "rgb(0.1,1,0.3)",
-            fraction: 0.95,
-            mode: "barchart",
-            normalize: false,
-            colorCol: -1,
-            maxX2: 0.19991472060830104,
-            barSizeThreshold: 0.1
-        })
-
-        console.log()
-        console.log("plot4")
-
-        var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"), {
-            backgroundColor: "rgb(0.15,0.35,0.7)",
-            axesColor: "hsl(0.1667,1,0.5)"
-        })
-        plot4.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
-        plot4.plotCsvString(data,"tree","flower","rock",{
-            defaultColor: "rgb(0.1,1,0.3)",
-            mode: "barchart",
-            separator: ";"
-        })
-
-        console.log()
-        console.log("plot5")
-
-        var plot5 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer5"), {
-            backgroundColor: "rgb(0.15,0.35,0.7)",
-            axesColor: "hsl(0.1667,1,0.5)"
-        })
-        plot5.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
-        plot5.plotCsvString(data,0,1,2,{
-            defaultColor: "rgb(0.1,1,0.3)",
-            header: "tomato",
-            labeled: true,
-            mode: "barchart",
-            csvIsInGoodShape: true
-        })
-
-        console.log()
-        console.log("plot6")
-
-        var plot6 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer6"), {
-            backgroundColor: "rgb(0.15,0.35,0.7)",
-            axesColor: "hsl(0.1667,1,0.5)"
-        })
-        plot6.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
-        plot6.plotCsvString(data,0,1,30,{
-            defaultColor: "rgb(0.1,1,0.3)",
-            mode: "barchart",
-            csvIsInGoodShape: true
-        })
-    }
-    
-</script>
 <style>
-
     body
     {
         margin: 20px;
@@ -656,3 +553,106 @@
     }
     
 </style>
+
+<script src="http://threejs.org/build/three.min.js"></script>
+<script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
+
+<script>
+    let data = document.getElementById("csv").innerHTML
+
+    console.log()
+    console.log("plot1")
+    
+    var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
+        backgroundColor: "rgb(0.15,0.35,0.7)",
+        axesColor: "hsl(0.1667,1,0.5)"
+    })
+    plot1.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
+    plot1.plotCsvString(data,0,1,2,{
+        defaultColor: "rgb(0.1,1,0.3)",
+        mode: "barchart",
+        barSizeThreshold: 0.1,
+        csvIsInGoodShape: true
+    })
+
+    console.log()
+    console.log("plot2")
+
+    var plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"), {
+        backgroundColor: "rgb(0.15,0.35,0.7)",
+        axesColor: "hsl(0.1667,1,0.5)"
+    })
+    plot2.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
+    plot2.plotCsvString(data,0,1,2,{
+        defaultColor: "rgb(0.1,1,0.3)",
+        separator: ";",
+        header: true,
+        mode: "barchart",
+        barSizeThreshold: 0.1,
+        csvIsInGoodShape: true
+    })
+
+    console.log()
+    console.log("plot3")
+
+    var plot3 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer3"), {
+        backgroundColor: "rgb(0.15,0.35,0.7)",
+        axesColor: "hsl(0.1667,1,0.5)"
+    })
+    plot3.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
+    plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
+    plot3.plotCsvString(data,0,1,2,{
+        defaultColor: "rgb(0.1,1,0.3)",
+        fraction: 0.001,
+        mode: "barchart",
+        normalize: false,
+        colorCol: -1,
+        maxX2: 0.19991472060830104,
+        barSizeThreshold: 0.1
+    })
+
+    console.log()
+    console.log("plot4")
+
+    var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"), {
+        backgroundColor: "rgb(0.15,0.35,0.7)",
+        axesColor: "hsl(0.1667,1,0.5)"
+    })
+    plot4.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
+    plot4.plotCsvString(data,"tree","flower","rock",{
+        defaultColor: "rgb(0.1,1,0.3)",
+        mode: "barchart",
+        separator: ";"
+    })
+
+    console.log()
+    console.log("plot5")
+
+    var plot5 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer5"), {
+        backgroundColor: "rgb(0.15,0.35,0.7)",
+        axesColor: "hsl(0.1667,1,0.5)"
+    })
+    plot5.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
+    plot5.plotCsvString(data,0,1,2,{
+        defaultColor: "rgb(0.1,1,0.3)",
+        header: "tomato",
+        labeled: true,
+        mode: "barchart",
+        csvIsInGoodShape: true
+    })
+
+    console.log()
+    console.log("plot6")
+
+    var plot6 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer6"), {
+        backgroundColor: "rgb(0.15,0.35,0.7)",
+        axesColor: "hsl(0.1667,1,0.5)"
+    })
+    plot6.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
+    plot6.plotCsvString(data,0,1,30,{
+        defaultColor: "rgb(0.1,1,0.3)",
+        mode: "barchart",
+        csvIsInGoodShape: true
+    })
+    
+</script>

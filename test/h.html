@@ -36,7 +36,7 @@
 
     plot1.plotCsvString(data,0,1,2,{
         defaultColor: 0x00ffff,
-        dataPointSize: 0.1
+        dataPointSize: 0.3
     })
 
     plot1.animate(function() {
@@ -45,7 +45,7 @@
         let randb = 0
         plot1.addDataPoint([Math.abs(Math.random()),Math.abs(Math.random()),Math.abs(Math.random())],{
             defaultColor: "rgb(" + randr + "," + randg + "," + randb + ")",
-            dataPointSize: 0.03
+            dataPointSize: 0.1
         })
     })
 

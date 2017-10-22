@@ -141,8 +141,8 @@ a {
 }
 
 #right, #threecanvas, #csvhead {
-    min-width:700px;
-    width:700px;
+    min-width:600px;
+    width:600px;
 }
 
 #threecanvas, #csvhead {
@@ -207,12 +207,12 @@ button, .button {
     border: 2px solid rgba(51, 153, 202, 0.35);
 }
 
-.button:hover, button:hover, select:hover {
+.button:hover, button:hover, select:hover, input:focus {
     border: 2px solid #3399ca;
     cursor: pointer;
 }
 
-.button, button, select {
+.button, button, select, input {
     margin-left: 0px;
     display: inline-block;
     transition: border-color 0.1s linear;
@@ -280,4 +280,63 @@ label {
     box-sizing: border-box;
     opacity: 0.5;
     padding: 15px 20px;
+}
+
+@media screen and (max-width: 1300px) {
+    #csvhead
+    {
+        max-height:300px;
+        overflow-y:auto;
+        margin-bottom:50px;
+    }
+
+    #left, #right {
+        display: block;
+    }
+}
+
+@media screen and (max-width: 700px) {
+
+    #left, #right
+    {
+        /*padding:0px;*/
+    }
+
+    canvas, #threecanvas {
+        text-align: center;
+        width: 100% !important;
+        height: 80vw !important;
+    }
+
+    #right, #threecanvas, #csvhead {
+        min-width: 0px;
+        width: auto;
+        display:block;
+        margin: 0px;
+    }
+
+    #csvhead
+    {
+        margin-bottom:50px;
+    }
+
+    .jsP3D_legend {
+        position: static;
+        margin: 10px auto;
+    }
+
+    #formulaText
+    {
+        width: auto;
+    }
+
+    #csvhead table
+    {
+        word-break: break-all;
+    }
+
+    #threecanvas
+    {
+        border-radius: 0px;
+    }
 }
