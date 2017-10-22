@@ -1,6 +1,6 @@
 <p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/title.png"/></p>
 
-**v0.1-beta**
+**v0.2**
 
 Plots functions and .csv files. Based on three.js. It is written in ES6 syntax and compiled using Webpack.
 
