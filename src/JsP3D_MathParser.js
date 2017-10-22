@@ -1,9 +1,13 @@
 //converts mathematical syntax to javascript.
 
+/**
+ * @private
+ */
 export default class JsP3D_MathParser
 {
     /**
-     * 
+     * this is the constructor for the class called "JsP3D_MathParser" which is used to handle calculations.
+     * There is nothing api relevant here
      * @param {object} parent instance of JsPlot3D 
      */
     constructor(parent)

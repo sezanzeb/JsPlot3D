@@ -1173,7 +1173,7 @@ export class Plot
             // helper function for interpolation
             let addToHeights = (x, y, z, x_float, z_float) =>
             {
-                /**
+                /*
                  *       a +----------+ b
                  *         |     |    |
                  *         |-----+    |
@@ -1798,7 +1798,6 @@ export class Plot
 
    /**
      * sets the container of this plot
-     * @memberof Plot
      * @param {object} container DOM-Element of the new container
      */
     setContainer(container)

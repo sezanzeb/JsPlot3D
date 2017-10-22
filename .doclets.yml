@@ -1,4 +1,5 @@
-dir: src
+files:
+        - src/JsPlot3D.js
 packageJson: package.json
 articles:
         - Overwiew: README.md

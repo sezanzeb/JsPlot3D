@@ -2,11 +2,15 @@ const THREE = require("three")
 const OrbitControls = require('three-orbit-controls')(THREE)
 const COLORLIB = require("./JsP3D_ColorLib.js")
 
+/**
+ * Takes care of rendering, axes, lightening, camera, scene, disposing etc.
+ * @private
+ */
 export default class JsP3D_SceneHelper
 {
 
     /**
-     * 
+     * Constructor for the scene helper. Initializes some variables and creates the WebGL Renderer
      */
     constructor()
     {

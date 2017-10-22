@@ -8,7 +8,7 @@ const THREE = require("three")
  * @param {number} max minimum value present in your dataframe. Default 1
  * @return THREE.Color object
  */
-export function convertToHeat(value,min=-1,max=1,hueOffset)
+export function convertToHeat(value,min=-1,max=1,hueOffset=0)
 {
     //set color boundaries so that the colors are heatmap like
     let upperColorBoundary = 0+hueOffset //equals red //what the highest value will get
@@ -34,6 +34,7 @@ export function convertToHeat(value,min=-1,max=1,hueOffset)
  * @param {any[][]} df the dataframe without the headers
  * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
  * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains THREE.Color objects
+ * @private
  */
 export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true,hueOffset=0)
 {

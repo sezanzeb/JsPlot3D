@@ -4,7 +4,7 @@
   "description": "Plots functions aswell as .csv data",
   "main": "webpack.config.js",
   "scripts": {
-    "start": "webpack"
+    "start": "webpack -p"
   },
   "repository": {
     "type": "git",
