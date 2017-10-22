@@ -24,7 +24,7 @@ Click here for a live example:
 
 http://hip70890b.de/JsPlot3D_Playground/
 
-You can uploade one of the csvs in /examples/csvFiles, Recommended are Iris.csv, example2.csv and example.csv. Or get a .csv dataset (for example on kaggle.com). The live example also gives insight about the settings that can be handed over to plotCsvString, plotDataFrame, plotFormula and addDataPoint.
+You can uploade one of the csvs in /examples/csvFiles. Or get a .csv dataset (for example on kaggle.com). The live example also gives insight about the settings that can be handed over to plotCsvString, plotDataFrame, plotFormula and addDataPoint.
 
 
 ## Features
