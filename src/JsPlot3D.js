@@ -1,4 +1,3 @@
-/** @module JsPlot3D */
 const THREE = require("three")
 import JsP3D_MathParser from "./JsP3D_MathParser.js"
 import JsP3D_SceneHelper from "./JsP3D_SceneHelper.js"
@@ -7,6 +6,7 @@ const COLORLIB = require("./JsP3D_ColorLib.js")
 
 /**
  * Plots Dataframes and Formulas into a 3D Space
+ * @module JsPlot3D
  */
 export class Plot
 {
@@ -49,10 +49,10 @@ export class Plot
 
 
     /**
-     * plots a formula into the container
+     * plots a formula into the container as 3D Plot
      * @param {string}  originalFormula string of formula
      * @param {object} options
-     * - mode {string}: "barchart" or "scatterplot"
+     * - mode {string}: "barchart", "scatterplot", "polygon" or "lineplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
      * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
@@ -67,9 +67,9 @@ export class Plot
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
-     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]
-     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]
-     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]
+     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]. will be overwritten if normalization is on
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]. will be overwritten if normalization is on
+     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
@@ -180,6 +180,21 @@ export class Plot
             // TODO:
             // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
             // color heatmap like
+
+            // creating the legend
+            let title=""
+            let x1title="x1"
+            let x2title="x2"
+            let x3title="x3"
+            if(options.title != undefined)
+                title = options.title
+            if(options.x1title != undefined)
+                x1title = options.x1title
+            if(options.x2title != undefined)
+                x2title = options.x2title
+            if(options.x3title != undefined)
+                x3title = options.x3title
+            this.populateLegend({x1title, x2title, x3title, title})
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
@@ -312,7 +327,7 @@ export class Plot
 
 
     /**
-     * plots a .csv string into the container
+     * plots a .csv string into the container as 3D Plot according to the configuration.
      * @param {string}  sCsv        string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
      * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
      * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
@@ -336,9 +351,9 @@ export class Plot
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
-     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]
-     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]
-     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]
+     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]. will be overwritten if normalization is on
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]. will be overwritten if normalization is on
+     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
@@ -461,7 +476,6 @@ export class Plot
                     minimumLineCount ++
                     
                 data = data.slice(0, Math.max(Math.min(3,data.length),data.length*fraction))
-                console.log(data)
             }
 
             // find out the separator automatically if the user didn't define it
@@ -579,7 +593,7 @@ export class Plot
      * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
      * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
      * @param {object}  options     json object with one or more of the following parameters:
-     * - mode {string}: "barchart" or "scatterplot"
+     * - mode {string}: "barchart", "scatterplot" or "lineplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
      * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
@@ -594,9 +608,9 @@ export class Plot
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
-     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]
-     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]
-     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]
+     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]. will be overwritten if normalization is on
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]. will be overwritten if normalization is on
+     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
@@ -844,53 +858,22 @@ export class Plot
         //(unnormalized numbers or color strings (#fff, rgb, hsl)) for each vertex (by index)
 
         // headers are already removed from df by now
-        let colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset)
-        if(colorMap == -1)
+        let colorMap, dfColors
+        if(mode != "barchart")
         {
-            // COLORLIB requests to restart "getColorMap" using labeled = true
-            labeled = true
-            options.labeled = labeled
             colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset)
-        }
-        let dfColors = colorMap.dfColors
-
-        // update the legend with the label color information
-        // open legend, add title
-        let legendHTML = ""
-        if(title != undefined && title != "")
-            legendHTML += "<h1>"+title+"</h1>"
-
-        // add info about the labels and the colors
-        if(colorMap.labelColorMap != {})
-        {
-            if(mode != "barchart") // no labels available in barchart mode (yet)
+            if(colorMap == -1)
             {
-                // label colors:
-                legendHTML += "<table class=\"jsP3D_labelColorLegend\">" // can't append to innerHTML directly for some funny reason
-                for(let key in colorMap.labelColorMap)
-                {
-                    legendHTML += "<tr>"
-                    legendHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + colorMap.labelColorMap[key].getHexString() + ";\"></span></td>"
-                    legendHTML += "<td>" + key + "</td>"
-                    legendHTML += "</tr>"
-                }
-                legendHTML += "</table>"
+                // COLORLIB requests to restart "getColorMap" using labeled = true
+                labeled = true
+                options.labeled = labeled
+                colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset)
             }
+            dfColors = colorMap.dfColors
         }
 
-        // axes titles:
-        legendHTML += "<table class=\"jsP3D_axesTitleLegend\">"
-        if(x1title != undefined)
-            legendHTML += "<tr><td>x:</td><td>"+x1title+"</td></tr>"
-        if(x2title != undefined)
-            legendHTML += "<tr><td>y:</td><td>"+x2title+"</td></tr>"
-        if(x3title != undefined)
-            legendHTML += "<tr><td>z:</td><td>"+x3title+"</td></tr>"
-        legendHTML += "</table>"
-
-        // closing tag of the legend
-        this.legend.element.innerHTML = legendHTML
-        this.benchmarkStamp("created the Legend")
+        // display information about the labels
+        this.populateLegend({colorMap, x1title, x2title, x3title, title})
 
         // by this point only dfColors stays relevant. So the function above can be easily moved to a different class to clear up the code here
 
@@ -927,7 +910,6 @@ export class Plot
                 // determine max for normalisation
                 for(let i = 0; i < df.length; i++)
                 {
-                    // in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
                     if((df[i][x1col]) > maxX1)
                         maxX1 = df[i][x1col]
                     if((df[i][x1col]) < minX1)
@@ -938,7 +920,6 @@ export class Plot
                 if(keepOldPlot)
                     for(let i = 0; i < this.dfCache.dataframe.length; i++)
                     {
-                        // in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
                         if(parseFloat(this.dfCache.dataframe[i][x1col]) > maxX1)
                             maxX1 = this.dfCache.dataframe[i][x1col]
                         if(parseFloat(this.dfCache.dataframe[i][x1col]) < minX1)
@@ -968,7 +949,6 @@ export class Plot
                     if(keepOldPlot)
                         for(let i = 0; i < this.dfCache.dataframe.length; i++)
                         {
-                            // in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
                             if(parseFloat(this.dfCache.dataframe[i][x2col]) > maxX2)
                                 maxX2 = this.dfCache.dataframe[i][x2col]
                             if(parseFloat(this.dfCache.dataframe[i][x2col]) < minX2)
@@ -1058,7 +1038,6 @@ export class Plot
             // Afterwards the whole group of bars just has to be translated by -xLen and -zLen so that the bar
             // at [xVerticesCount/2][zVerticesCount/2] is displayed in the middle upon rendering
 
-            // I don't even know what this was supposed to be anymore:
             // this.dfCache.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
             // let xBarOffset = 1/this.dimensions.xRes/2
             // let zBarOffset = 1/this.dimensions.zRes/2
@@ -1583,10 +1562,10 @@ export class Plot
 
 
     /**
-     * repeats the drawing using dfCache, but adds a new datapoint to it
-     * @param {any} newDatapoint String or Array
+     * repeats the drawing using the dataframe memorized in dfCache, but adds a new datapoint to it
+     * @param {any} newDatapoint Array that contains the attributes of the datapoints in terms of x1, x2, x3, x4, x5 etc.
      * @param {object} options
-     * - mode {string}: "barchart" or "scatterplot"
+     * - mode {string}: "barchart", "scatterplot" or "lineplot"
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
      * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
      * numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
@@ -1600,9 +1579,9 @@ export class Plot
      * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
      * Having it false on string-labeled data will throw a warning, but it will continue as it was true
      * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
-     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]
-     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]
-     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]
+     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]. will be overwritten if normalization is on
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]. will be overwritten if normalization is on
+     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
      * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
@@ -1670,7 +1649,50 @@ export class Plot
 
 
     /**
-     * can be used to reset or initialize the legend variables
+     * updates the legend with new information. basically recreates the innerHTML of this.legend.element
+     * @param {object} colorMap COLORLIB.getColorMap(...) information. can be null
+     * @param {object} options json object containing one or more of x1title, x2title, x3title and title
+     */
+    populateLegend(options)
+    {
+        // update the legend with the label color information
+        // open legend, add title
+        let legendHTML = ""
+        if(options.title != undefined && options.title != "")
+            legendHTML += "<h1>"+options.title+"</h1>"
+
+        // add info about the labels and the colors
+        if(options.colorMap != undefined && options.colorMap.labelColorMap != {})
+        {
+            // label colors:
+            legendHTML += "<table class=\"jsP3D_labelColorLegend\">" // can't append to innerHTML directly for some funny reason
+            for(let key in options.colorMap.labelColorMap)
+            {
+                legendHTML += "<tr>"
+                legendHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + options.colorMap.labelColorMap[key].getHexString() + ";\"></span></td>"
+                legendHTML += "<td>" + key + "</td>"
+                legendHTML += "</tr>"
+            }
+            legendHTML += "</table>"
+        }
+
+        // axes titles:
+        legendHTML += "<table class=\"jsP3D_axesTitleLegend\">"
+        if(options.x1title != undefined)
+            legendHTML += "<tr><td>x:</td><td>"+options.x1title+"</td></tr>"
+        if(options.x2title != undefined)
+            legendHTML += "<tr><td>y:</td><td>"+options.x2title+"</td></tr>"
+        if(options.x3title != undefined)
+            legendHTML += "<tr><td>z:</td><td>"+options.x3title+"</td></tr>"
+        legendHTML += "</table>"
+
+        this.legend.element.innerHTML = legendHTML
+    }
+
+
+    /**
+     * private method to to initialize the legend variables and creates a dom object for it. Happens in the constructor.
+     * @private
      */
     initializeLegend()
     {
@@ -1687,7 +1709,18 @@ export class Plot
 
 
     /**
-     * appends the legend to a specific container. Make sure tostyle it because otherwise the colored span elements will not be visible.
+     * resets the legend content and removes it from the DOM.
+     */
+    resetLegend()
+    {
+        this.legend.element.parentElement.removeChild(this.legend.element)
+        this.initializeLegend()
+    }
+
+
+
+    /**
+     * appends the legend to a specific container. Make sure to style it using the css of your website because otherwise the colored span elements will not be visible.
      * @param {DOM} container
      * @return returns the dom element of the legend
      */
@@ -1702,7 +1735,7 @@ export class Plot
 
 
     /**
-     * if plotmesh is invalid it gets clered. The point of this is that materials and such don't have to be recreated again and again
+     * if plotmesh is invalid it gets cleared. The point of this is that materials and such don't have to be recreated again and again
      * It checks the mesh.type, mesh.name and mesh.geometry.type if it matches with the parameter check
      * @return returns true if plotmesh is still valid and existant
      */
@@ -1742,6 +1775,7 @@ export class Plot
 
     /**
      * clears the cache and initializes it
+     * @private
      */
     resetCache()
     {
@@ -1798,6 +1832,7 @@ export class Plot
 
    /**
      * sets the container of this plot
+     * TODO what happens when this function is used during runtime? Can the container be changed? What if the containers have different width and height?
      * @param {object} container DOM-Element of the new container
      */
     setContainer(container)
@@ -1876,11 +1911,16 @@ export class Plot
 
     /**
      * returns a JSON object that contains the dimensions
-     * TODO print also min and max x, y and z (offset of the plot)
-     * @return {object} {xRes, zRes, xLen, yLen, zLen, xVerticesCount, zVerticesCount}
+     * @return {object} {xRes, zRes, xLen, yLen, zLen, xVerticesCount, zVerticesCount, minX1, maxX1, minX2, maxX2, minX3, maxX3}
      */
-    getDimensions()
+    getDimensionsAndNormalization()
     {
+        let dimensions = this.dimensions
+
+        //merge the normalization info into dimensions
+        for(let key in this.dfCache.normalization)
+            dimensions[key] = this.dfCache.normalization[key]
+
         return this.dimensions
     }
 
@@ -1934,7 +1974,7 @@ export class Plot
 
     /**
      * enables benchmarking. Results will be printed into the console.
-     * To disable it, use: disableBenchmarking(). To print a timestamp to the console, use  this.benchmarkStamp("foobar")
+     * To disable it, use: disableBenchmarking(). To print a timestamp to the console, use benchmarkStamp("foobar")
      */
     enableBenchmarking()
     {
@@ -1946,7 +1986,7 @@ export class Plot
 
 
     /**
-     * disables benchmarking. To enable it, use: enableBenchmarking(). To print a timestamp to the console, use  this.benchmarkStamp("foobar")
+     * disables benchmarking. To enable it, use: enableBenchmarking(). To print a timestamp to the console, use benchmarkStamp("foobar")
      */
     disableBenchmarking()
     {
@@ -1957,7 +1997,7 @@ export class Plot
 
 
     /**
-     * prints time and an identifier to the console, if enabled
+     * prints time and an identifier to the console, if benchmarking is enabled. You can enable it using enableBenchmarking() and stop it using disableBenchmarking()
      * @param {string} identifier printed at the beginning of the line
      */
     benchmarkStamp(identifier)

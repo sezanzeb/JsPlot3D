@@ -83,9 +83,9 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
             //e.g. "group1" "group2" "tall" "small" "0" "1" "flower" "tree"
 
             //check the second line, because there might be headers accidentally in the first row
-            if((df[1][colorCol]+"").indexOf("rgb") == 0 ||
-            (df[1][colorCol]+"").indexOf("hsl") == 0 ||
-            ((df[1][colorCol]+"").indexOf("#") == 0 && df[0][colorCol].length == 7))
+            if((df[1][colorCol]+"").startsWith("rgb") ||
+            (df[1][colorCol]+"").startsWith("hsl") ||
+            ((df[1][colorCol]+"").startsWith("#") && df[0][colorCol].length == 7))
             {
                 console.warn(df[0][colorCol]+" might be a color. \"labeled\" is set true. For the stored colors to show up, try \"labeled=false\"")
             }
@@ -132,7 +132,7 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
 
                 //try to extract color information from the string
                 //check the second line, because there might be headers accidentally in the first row
-                if((df[1][colorCol]+"").toLowerCase().indexOf("rgb") == 0)
+                if((df[1][colorCol]+"").toLowerCase().startsWith("rgb"))
                 {
                     for(let i = 0; i < df.length; i++)
                     {
@@ -141,13 +141,13 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
                         dfColors[i] = new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
                     }
                 }
-                else if((df[1][colorCol]+"").toLowerCase().indexOf("#") == 0)
+                else if((df[1][colorCol]+"").toLowerCase().startsWith("#"))
                 {
                     //hex strings are supported by three.js right away
                     for(let i = 0; i < df.length; i++)
                         dfColors[i] = new THREE.Color(df[i][colorCol])
                 }
-                else if((df[1][colorCol]+"").toLowerCase().indexOf("hsl") == 0)
+                else if((df[1][colorCol]+"").toLowerCase().startsWith("hsl"))
                 {
                     for(let i = 0; i < df.length; i++)
                     {
@@ -247,18 +247,18 @@ export function getColorObjectFromAnyString(color)
     if(typeof(color) != "number" && typeof(color) != "string")
         return console.error("getColorObjectFromAnyString expected String or Number as parameter but got "+typeof(color))
 
-    if(color.toLowerCase().indexOf("rgb") == 0)
+    if(color.toLowerCase().startsWith("rgb"))
     {
         //remove "rgb", brackets and split it into an array of [r,g,b]
         let rgb = color.substring(4,color.length-1).split(",")
         return new THREE.Color(0).setRGB(rgb[0],rgb[1],rgb[2])
     }
-    else if(color.toLowerCase().indexOf("#") == 0)
+    else if(color.toLowerCase().startsWith("#"))
     {
         //hex strings are supported by three.js right away
         return new THREE.Color(color)
     }
-    else if(color.toLowerCase().indexOf("hsl") == 0)
+    else if(color.toLowerCase().startsWith("hsl"))
     {
         //remove "hsl", brackets and split it into an array of [r,g,b]
         let hsl = color.substring(4,color.length-1).split(",")

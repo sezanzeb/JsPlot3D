@@ -40,7 +40,7 @@ function getVal(id)
 
     //0xhex
     if(!isNaN(parseFloat(value)))
-        if(value.indexOf("0x") == 0)
+        if(value.startsWith("0x"))
             value = parseInt(value)
 
     return value

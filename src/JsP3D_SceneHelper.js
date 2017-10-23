@@ -268,7 +268,6 @@ export default class JsP3D_SceneHelper
      */
     updateAxesNumbers(dimensions, normalization)
     {
-        console.error(normalization)
         // is there even all the information needed for normalization available?
         if(isNaN(normalization.maxX1 + normalization.maxX2 + normalization.maxX3))
             // undefined + 2 = NaN
