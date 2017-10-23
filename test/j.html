@@ -36,21 +36,21 @@
 <script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
 <script>
     
-    //do some testing on how the tool works when changing modes and similar
+    // do some testing on how the tool works when changing modes and similar
 
-    //step 1 plot csv
+    // step 1 plot csv
     var data1 = document.getElementById("csv").innerHTML
     var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"))
     plot1.setDimensions({xRes:10,zRes:10})
     plot1.plotCsvString(data1,0,1,2)
 
-    //step 2 animate a point into it
+    // step 2 animate a point into it
     plot1.animate(function(){
         plot1.addDataPoint([Math.random(),Math.random(),Math.random(),Math.random(),0])
     })
 
 
-    //step 3 stop the animation and plot a formula
+    // step 3 stop the animation and plot a formula
     plot1.stopAnimation()
     plot1.plotFormula("sin(x1*5)+sin(x3*5)",{
         normalizeX2: true,
@@ -58,7 +58,7 @@
         barchartPadding: 0
     })
 
-    //step 4 extract the dataframe from the formulaplot and display it on the canvas next to it using a different resolution
+    // step 4 extract the dataframe from the formulaplot and display it on the canvas next to it using a different resolution
     var data2 = plot1.getCache().dataframe
     var plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"))
     plot2.setDimensions({xRes:12,zRes:12})

@@ -1099,6 +1099,7 @@ export class Plot
             let barsGrid = this.dfCache.barsGrid
             if(barsGrid == undefined)
             {
+                /*
                 // now create an array that has one element for each bar. Bars are aligned in a grid of this.dimensions.xRes and this.dimensions.zRes elements
                 // make it 4 times as large (*2 and *2) so that it can hold negative numbers
                 barsGrid = new Array((this.dimensions.xVerticesCount+1))
@@ -1110,6 +1111,8 @@ export class Plot
                         barsGrid[x][z] = {y: 0}
                     }
                 }
+                */
+                barsGrid = {}
                 this.dfCache.barsGrid = barsGrid
             }
 
@@ -1117,14 +1120,20 @@ export class Plot
             // overwrite with zeros, reset
             if(!keepOldPlot)
             {
-                for(let x = 0; x < barsGrid.length; x++)
+                for(let key in barsGrid)
+                {
+                    this.SceneHelper.disposeMesh(barsGrid[key].bar)
+                }
+                barsGrid = {}
+                
+                /*for(let x = 0; x < barsGrid.length; x++)
                 {
                     for(let z = 0; z < barsGrid[x].length; z++)
                     {
                         barsGrid[x][z].y = 0
                         this.SceneHelper.disposeMesh(barsGrid[x][z].bar)
                     }
-                }
+                }*/
             }
             
 
@@ -1144,9 +1153,9 @@ export class Plot
             minX2 = this.dfCache.normalization.minX2
             if(minX2 == undefined || maxX2 == undefined || !keepOldPlot)
             {
-                // Those are 0 anyway. Should I keep it? What if I implement something that changes barsGrid before this check?
-                maxX2 = barsGrid[0][0].y
-                minX2 = barsGrid[0][0].y
+                // bars all start at y = 0 and grow towards -inf and +inf, so 0 is safe to assume
+                maxX2 = 0
+                minX2 = 0
             }
 
             // helper function for interpolation
@@ -1171,35 +1180,41 @@ export class Plot
                 if(oppositeSquareArea == 0)
                     return
 
-                // make sure x and z are not out of bounds (should not happen!)
-                if(barsGrid[x] != undefined)
-                    if(barsGrid[x][z] != undefined)
-                    {
-                        
-                        // update the heights
-                        barsGrid[x][z].y += y*oppositeSquareArea // initialized with 0, now +=
-                        //+=, because otherwise it won't interpolate. It has to add the value to the existing value
+                // create x and z indices if needed
+                if(barsGrid[x] === undefined)
+                {
+                    barsGrid[x] = {}
+                }
+                if(barsGrid[x][z] === undefined)
+                {
+                    barsGrid[x][z] = {} // holds the bar object and y for this x, z position
+                    barsGrid[x][z].y = 0
+                }
 
-                        // find the highest bar
-                        // even in case of normalizeX2 being false, do this, so that the heatmapcolor can be created
-                        if(barsGrid[x][z].y > maxX2)
-                            maxX2 = barsGrid[x][z].y
-                        if(barsGrid[x][z].y < minX2)
-                            minX2 = barsGrid[x][z].y
+                // update the heights
+                barsGrid[x][z].y += y*oppositeSquareArea // initialized with 0, now +=
+                // +=, because otherwise it won't interpolate. It has to add the value to the existing value
 
-                        // if needed create the bar
-                        if(barsGrid[x][z].bar == undefined)
-                        {
-                            barsGrid[x][z].bar = createBar(x, z, this.plotmesh)
-                        }
-                        
-                        return
-                    }
+                // find the highest bar
+                // even in case of normalizeX2 being false, do this, so that the heatmapcolor can be created
+                if(barsGrid[x][z].y > maxX2)
+                    maxX2 = barsGrid[x][z].y
+                if(barsGrid[x][z].y < minX2)
+                    minX2 = barsGrid[x][z].y
+
+                // if needed create the bar
+                if(barsGrid[x][z].bar == undefined)
+                {
+                    barsGrid[x][z].bar = createBar(x, z, this.plotmesh)
+                }
+                
                 /*console.error(x, z,"is not defined in", barsGrid,
                     "this is a bug. This might happen because the code tries to interpolate beyond the "+
                     "bounds of the grid, but this normally should not be the case."
                 )*/
-            }
+
+                return
+            } // end function declaration of addToHeights
 
             // don't get fooled and write code here and suspect it to run after the
             // normalization. Write it below the loop that calls addToHeights
@@ -1272,9 +1287,9 @@ export class Plot
             }
 
             // now color the children & normalize
-            for(let x = 0; x < barsGrid.length; x++)
+            for(let x in barsGrid)
             {
-                for(let z = 0; z < barsGrid[x].length; z++)
+                for(let z in barsGrid[x])
                 {
                     let bar = barsGrid[x][z].bar
                     if(bar != undefined)
@@ -1738,6 +1753,7 @@ export class Plot
      * if plotmesh is invalid it gets cleared. The point of this is that materials and such don't have to be recreated again and again
      * It checks the mesh.type, mesh.name and mesh.geometry.type if it matches with the parameter check
      * @return returns true if plotmesh is still valid and existant
+     * @private
      */
     IsPlotmeshValid(check)
     {

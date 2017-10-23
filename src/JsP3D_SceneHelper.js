@@ -70,7 +70,7 @@ export default class JsP3D_SceneHelper
      */
     centerCamera(dimensions)
     {
-        //camera already created? It might be called by setDimensions in the constructor before the camera creation
+        // camera already created? It might be called by setDimensions in the constructor before the camera creation
         if(this.camera == undefined)
             return
 
@@ -98,8 +98,8 @@ export default class JsP3D_SceneHelper
         let near = 0.05 // when objects start to disappear at zoom-in
         let far = 20 // when objects start to disappear at zoom-out
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        //let a = Math.min(width, height)
-        //let camera = new THREE.OrthographicCamera(-width/a, width/a, height/a,-height/a, near, far)
+        // let a = Math.min(width, height)
+        // let camera = new THREE.OrthographicCamera(-width/a, width/a, height/a,-height/a, near, far)
 
         let controls = new OrbitControls(camera, this.renderer.domElement)
         controls.enableKeys = false
@@ -117,8 +117,8 @@ export default class JsP3D_SceneHelper
         controls.dampingFactor = 0.25
         controls.enableZoom = true
         controls.rotateSpeed = 0.3
-        //controls.maxDistance = 5
-        //controls.minDistance = 0.3
+        // controls.maxDistance = 5
+        // controls.minDistance = 0.3
 
         // start looking at the target initially
         camera.lookAt(controls.target)
@@ -180,21 +180,21 @@ export default class JsP3D_SceneHelper
         let textureToSprite = new THREE.Points(geometry, new THREE.PointsMaterial({
             map: canvasToTexture,
             depthTest: false,
-            //depthWrite: false,
+            // depthWrite: false,
             sizeAttenuation: false,
             size: canvasToTexture.image.width/6,
             transparent: true,
         }))
         textureToSprite.position.set(position.x, position.y, position.z)
 
-        //make sure it renders on the top
+        // make sure it renders on the top
         textureToSprite.renderOrder = Number.MAX_SAFE_INTEGER
 
         textureToSprite.name = "sprite_"+letter
 
         // transform scale
-        //textureToSprite.scale.set(size*Math.pow(2, letter.length),2*size)
-        //textureToSprite.scale.set(size,size)
+        // textureToSprite.scale.set(size*Math.pow(2, letter.length),2*size)
+        // textureToSprite.scale.set(size,size)
 
 
         return textureToSprite
@@ -212,9 +212,9 @@ export default class JsP3D_SceneHelper
         letter = ""+letter
         // write text to a canvas
         let textCanvas = document.createElement('canvas')
-        //textCanvas.height = 128
+        // textCanvas.height = 128
 
-        //textCanvas.width = letter.length * 64
+        // textCanvas.width = letter.length * 64
         // the texture size has to be a power of two for each dimension
         // letter.length -> width. 2 -> 2, 3 -> 4, 4 -> 4, 5 -> 8, 6 -> 8, 7 -> 8, etc.
         textCanvas.width = Math.pow(2, parseInt(Math.log2(letter.length))+1)*64
@@ -229,7 +229,7 @@ export default class JsP3D_SceneHelper
         context2d.shadowColor = "rgba(" + this.backgroundColor.r*255 + "," + this.backgroundColor.g*255 + "," + this.backgroundColor.b*255 + "," + "1" + ")"
         
         // write it centered
-        let textwidth = letter.length*64 //this would be the approach for a monospace fonts, but it somewhat approximates other fonts aswell
+        let textwidth = letter.length*64 // this would be the approach for a monospace fonts, but it somewhat approximates other fonts aswell
         
         // write
         context2d.fillText(letter, (textCanvas.width - textwidth)/2, textCanvas.height/2) // write
@@ -296,7 +296,7 @@ export default class JsP3D_SceneHelper
         if(normalization != undefined && normalization != {})
         {
             let offset2 = -0.075
-            //round to significant number (toPrecision) and then remove the zeros at the end (parseFloat) if there are any
+            // round to significant number (toPrecision) and then remove the zeros at the end (parseFloat) if there are any
             let x1 = parseFloat(normalization.maxX1.toPrecision(3))
             let x2 = parseFloat(normalization.maxX2.toPrecision(3))
             let x3 = parseFloat(normalization.maxX3.toPrecision(3))
@@ -516,7 +516,7 @@ export default class JsP3D_SceneHelper
             if(mesh.geometry != undefined)
                 mesh.geometry.dispose()
 
-            //disppose material
+            // disppose material
             if(mesh.material != undefined)
             {
                 if(mesh.material.length == undefined && mesh.material != undefined)
@@ -524,7 +524,7 @@ export default class JsP3D_SceneHelper
                     
                 if(!isNaN(mesh.material.length))
                 {
-                    //material is an array
+                    // material is an array
                     for(let i = 0;i < mesh.material.length; i++)
                         mesh.material[i].dispose()
                 }

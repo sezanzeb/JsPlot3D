@@ -9,8 +9,8 @@ plot.createLegend(document.getElementById("Legend"))
 var data = ""
 var cached = false
 var fname = ""
-var recentplot = function(){} //stores the event that was used recently to plot (formula or csv)
-var recentplote = null //so that it can be easily repeated
+var recentplot = function(){} // stores the event that was used recently to plot (formula or csv)
+var recentplote = null // so that it can be easily repeated
 
 
 main()
@@ -28,17 +28,17 @@ function getVal(id)
 
     var value = elem.value
 
-    //boolean
+    // boolean
     if(value == "true")
         value = true
     if(value == "false")
         value = false
     
-    //undefined by default
+    // undefined by default
     if(value === "")
         value = undefined
 
-    //0xhex
+    // 0xhex
     if(!isNaN(parseFloat(value)))
         if(value.startsWith("0x"))
             value = parseInt(value)
@@ -96,7 +96,7 @@ function getOptions()
 /**
  * plots a .csv file using the contents of the decodedData variable
  */
-//calling it plot() throws an error
+// calling it plot() throws an error
 function plotcsv()
 {
     let x1 = document.getElementById("x1").value
@@ -104,7 +104,7 @@ function plotcsv()
     let x3 = document.getElementById("x3").value
     plot.plotCsvString(data,x1,x2,x3,getOptions())
 
-    //display the dataframes head
+    // display the dataframes head
     if(plot.getCache().dataframe != undefined)
     {
         let tableData = plot.getCache().dataframe.slice(0,32)
@@ -132,7 +132,7 @@ function plotcsv()
  */
 function main()
 {
-    //plot the formula
+    // plot the formula
     var formulaFormSubmit = function(e)
     {
         e.preventDefault()
@@ -144,13 +144,13 @@ function main()
     }
 
 
-    //plot the csv
+    // plot the csv
     var csvFormSubmit = function(e)
     {
         e.preventDefault()
         recentplot = csvFormSubmit
         recentplote = e
-        //read file only if it has changed (event on fileup "change")
+        // read file only if it has changed (event on fileup "change")
         if(!cached)
         {
             let reader = new FileReader()
@@ -173,8 +173,8 @@ function main()
 
 
 
-    //add those two functions to the event listeners
-    //I'm doing this because i want to keep track of the recently used function using recentplot and recentplote
+    // add those two functions to the event listeners
+    // I'm doing this because i want to keep track of the recently used function using recentplot and recentplote
     document.getElementById("formulaForm").addEventListener("submit",function(e){formulaFormSubmit(e)})
     document.getElementById("csvform").addEventListener("submit",function(e){csvFormSubmit(e)})
 
@@ -207,7 +207,7 @@ function main()
     })
 
 
-    //add the filename as string next to the button
+    // add the filename as string next to the button
     document.getElementById("fileup").addEventListener("change",function(e)
     {
         cached = false
@@ -218,7 +218,7 @@ function main()
 
 
 
-    //repeat the recent plot when hitting enter in the settings form
+    // repeat the recent plot when hitting enter in the settings form
     document.getElementById("settings").addEventListener("submit",function(e)
     {
         e.preventDefault()
