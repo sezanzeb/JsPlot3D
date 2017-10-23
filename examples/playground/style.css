@@ -128,6 +128,7 @@ a {
 
 #csvhead td {
     overflow: hidden;
+    padding: 2px 5px;
 }
 
 #left {
@@ -154,8 +155,7 @@ a {
     text-align:left;
 }
 
-.section
-{
+.section {
     margin-bottom:60px;
 }
 
@@ -218,8 +218,7 @@ button, .button {
     transition: border-color 0.1s linear;
 }
 
-#right table
-{
+#right table {
     table-layout:fixed;
     width:100%;
 }
@@ -283,8 +282,7 @@ label {
 }
 
 @media screen and (max-width: 1300px) {
-    #csvhead
-    {
+    #csvhead {
         max-height:300px;
         overflow-y:auto;
         margin-bottom:50px;
@@ -295,10 +293,14 @@ label {
     }
 }
 
+
+.responsivebreak {
+    display:none;
+}
+
 @media screen and (max-width: 700px) {
 
-    #left, #right
-    {
+    #left, #right {
         /*padding:0px;*/
     }
 
@@ -315,28 +317,65 @@ label {
         margin: 0px;
     }
 
-    #csvhead
-    {
-        margin-bottom:50px;
+    #csvhead:empty {
+        padding: 0px;
+    }
+
+    #csvhead {
+        margin: 20px 0px 50px;
+        background: rgba(0, 0, 0, 0.21);
+        padding: 15px;
+        border-radius: 0px;
     }
 
     .jsP3D_legend {
         position: static;
-        margin: 10px auto;
+        border: 0px;
+        background: #293542;
+        border-radius: 0px;
+        margin: 0px auto;
+        padding: 10px 20px;
     }
 
-    #formulaText
-    {
+    #formulaText {
         width: auto;
     }
 
-    #csvhead table
-    {
-        word-break: break-all;
+    #csvhead table {
     }
 
-    #threecanvas
-    {
+    #threecanvas {
         border-radius: 0px;
+    }
+
+    #right p {
+        border-top: 1px solid rgba(0, 0, 0, 0.3);
+        padding-top: 5px;
+        padding-bottom: 10px;
+    }
+
+    #right p {
+        line-height: 44px;
+    }
+
+    .responsivebreak {
+        display:block;
+    }
+
+    small {
+        display:block;
+    }
+
+    button {
+        margin: 6px 0px;
+    }
+
+    #main {
+        width: 100%;
+        display:block;
+    }
+    
+    input, select {
+        max-width: 50vw;
     }
 }

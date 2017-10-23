@@ -62,6 +62,7 @@
                         </p>
                         <p>
                             <label>active columns:</label>
+                            <span class="responsivebreak"></span>
                             <input id="x1" class="indices" type="number" placeholder="x"></input>
                             <input id="x2" class="indices" type="number" placeholder="y"></input>
                             <input id="x3" class="indices" type="number" placeholder="z"></input>
@@ -75,17 +76,13 @@
                         <p>
                             y(x1,x3) = <input id="formulaText" type="text" placeholder="javascript syntax"></input><button id="formulaButton" type="submit">calc</button>
                         </p>
-                        <p>
-                            <small>Examples: sin(x1*5)+sin(x3*5)</small>
-                        </p>
+                        <small>Example: sin(x1*5)+sin(x3*5)</small>
                     </form>
                 </div>
                 <div class="section">
                     <h2>Settings</h2>
                     <form id="settings">
-                        <p>
-                            <small>options object:</small>
-                        </p>
+                        <small>(options object)</small>
                         <p>
                             <label>mode:</label>
                             <select id="mode">
@@ -99,22 +96,26 @@
                         </p>
                         <p>
                             <label>colorCol:</label><input id="colorCol" type="number"></input>
+                            <span class="responsivebreak"></span>
                             <label>hueOffset:</label><input id="hueOffset" type="number" step="0.05"></input>
                         </p>
                         <p>
                             <label>normalize:</label>
+                            <span class="responsivebreak"></span>
                             <label>x</label>
                             <select id="normalizeX1">
                                 <option value=""></option>
                                 <option value="true">true</option>
                                 <option value="false">false</option>
                             </select>
+                            <span class="responsivebreak"></span>
                             <label>y</label>
                             <select id="normalizeX2">
                                 <option value=""></option>
                                 <option value="true">true</option>
                                 <option value="false">false</option>
                             </select>
+                            <span class="responsivebreak"></span>
                             <label>z</label>
                             <select id="normalizeX3">
                                 <option value=""></option>
@@ -124,6 +125,7 @@
                         </p>
                         <p>
                             <label>barchartPadding:</label><input id="barchartPadding" type="number" max="1" min="0" step="0.1"></input>
+                            <span class="responsivebreak"></span>
                             <label>dataPointSize:</label><input id="dataPointSize" type="number" min="0" step="0.005"></input>
                         </p>
                         <p>
@@ -131,14 +133,16 @@
                         </p>
                         <p>
                             <label>defaultColor:</label><input id="defaultColor" type="text" value="rgb(0.6,1,0)"></input>
-                            <small>e.g.:0xffffff,#ff6600,rgb(1,0.5,0),hsl(0.7,0.6,0.3)</small>
+                            <small>e.g.:0xffffff, #ff6600, rgb(1,0.5,0), hsl(0.7,0.6,0.3)</small>
                         </p>
                         <p>
                             <label>title:</label><input id="title" type="text"></input>
                         </p>
                         <p>
                             <label>x1title:</label><input id="x1title" class="short" type="text"></input>
+                            <span class="responsivebreak"></span>
                             <label>x2title:</label><input id="x2title" class="short" type="text"></input>
+                            <span class="responsivebreak"></span>
                             <label>x3title:</label><input id="x3title" class="short" type="text"></input>
                         </p>
                         <p>
@@ -160,32 +164,40 @@
                         </p>
                     </form>
                         <br/>
-                        <p>
-                            <small>using setters:</small>
-                        </p>
+                        <br/>
+                        <br/>
+                        <small>(using setters):</small>
                         <form id="setDimensions">
                             <p>
                                 resolution:
+                                <span class="responsivebreak"></span>
                                 <label>x</label>
                                 <input type="number" id="xRes">
+                                <span class="responsivebreak"></span>
                                 <label>z</label>
                                 <input type="number" id="zRes">
+                                <span class="responsivebreak"></span>
                                 <button type="submit">set</button>
                             </p>
                             <p>
                                 length:
+                                <span class="responsivebreak"></span>
                                 <label>x</label>
                                 <input type="number" step="0.1" id="xLen">
+                                <span class="responsivebreak"></span>
                                 <label>y</label>
                                 <input type="number" step="0.1" id="yLen">
+                                <span class="responsivebreak"></span>
                                 <label>z</label>
                                 <input type="number" step="0.1" id="zLen">
+                                <span class="responsivebreak"></span>
                                 <button type="submit">set</button>
                             </p>
                         </form>
                         <form id="setBackgroundColor">
                             <p>
                                 <label>background color:</label>
+                                <span class="responsivebreak"></span>
                                 <input type="text" id="backgroundColor">
                                 <button type="submit">set</button>
                             </p>
@@ -193,6 +205,7 @@
                         <form id="setAxesColor">
                             <p>
                                 <label>axes color:</label>
+                                <span class="responsivebreak"></span>
                                 <input type="text" id="axesColor">
                                 <button type="submit">set</button>
                             </p>

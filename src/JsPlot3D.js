@@ -1837,11 +1837,12 @@ export class Plot
 
     /**
      * Creates new axes with the defined color and triggers a rerender
-     * @param {String} color     hex string of the axes color
+     * @param {String} color    axes color. Examples: 0xffffff, "#ff6600", "rgb(1,0.5,0)", "hsl(0.7,0.6,0.3)"
      */
     setAxesColor(color)
     {
         this.SceneHelper.createAxes(color, this.dimensions, this.dfCache.normalization)
+        this.SceneHelper.makeSureItRenders(this.animationFunc)
     }
 
 
