@@ -119,7 +119,7 @@ export default class JsP3D_MathParser
 
             let x = C[0]
             for (let i = 1; i < g + 2; i++)
-            x += C[i] / (z + i)
+                x += C[i] / (z + i)
 
             let t = z + g + 0.5
             return Math.sqrt(2 * Math.PI) * Math.pow(t, (z + 0.5)) * Math.exp(-t) * x
@@ -151,6 +151,8 @@ export default class JsP3D_MathParser
     {
         //regex for numbers of x1 and x3: (x1|x3|\d+(\.\d+){0,1})
         
+        formula = formula.toLowerCase()
+
         //for recursive calls, make sure that the proper recursive handler is selected
         formula = formula.replace(/f\(/g,"this.frec(")
 
