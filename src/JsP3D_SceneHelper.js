@@ -33,7 +33,7 @@ export default class JsP3D_SceneHelper
         if(this.renderer == undefined)
             return console.error("createScene has to be called after setupRendering. this.renderer is undefined")
 
-        let backgroundColor = 0xffffff
+        let backgroundColor =0xffffff
         let axesColor = 0x000000
 
         if(sceneOptions.backgroundColor != undefined)
@@ -41,12 +41,13 @@ export default class JsP3D_SceneHelper
         if(sceneOptions.axesColor != undefined)
             axesColor = sceneOptions.axesColor
         
+        this.scene = new THREE.Scene()
+        this.createArcCamera(cameraOptions.width, cameraOptions.height)
+
         this.setBackgroundColor(backgroundColor)
 
-        this.scene = new THREE.Scene()
         this.createLight()
         this.createAxes(axesColor, dimensions)
-        this.createArcCamera(cameraOptions.width, cameraOptions.height)
     }
 
 
@@ -85,6 +86,7 @@ export default class JsP3D_SceneHelper
         this.camera.position.set(zoom*(xLen/2), zoom*(Math.max(zLen, yLen)), zoom*(zLen+xLen))
         this.cameraControls.target.set(xLen/2, yLen/2, zLen/2)
         this.camera.lookAt(this.cameraControls.target)
+        this.render()
     }
 
 
@@ -167,13 +169,12 @@ export default class JsP3D_SceneHelper
     /**
      * creates a THREE.Sprite object that has a canvas as texture that was filled with text. uses createLetterTexture to create the texture.
      * @param {string} letter examples: "a", "lksdfj", 0.546, 91734917, "78n6"
-     * @param {string} textColor examples: "#fff000", "#987a63"
      * @param {Vector3} position Vector3 object {x, y, z}
      */
-    placeLetter(letter, textColor, position)
+    placeLetter(letter, position)
     {
         letter = ""+letter
-        let canvasToTexture = this.createLetterTexture(letter, textColor)
+        let canvasToTexture = this.createLetterTexture(letter)
         let geometry = new THREE.Geometry()
 
         // I'm using Points and PointsMaterial instead of SpriteMaterial so that sizeAttenuation can be used
@@ -206,9 +207,8 @@ export default class JsP3D_SceneHelper
     /**
      * returns a THREE.Material object that contains text as texture
      * @param {string} letter examples: "a", "lksdfj", 0.546, 91734917, "78n6"
-     * @param {string} textColor examples: "#fff000", "#987a63"
      */
-    createLetterTexture(letter, textColor)
+    createLetterTexture(letter)
     {
         letter = ""+letter
         // write text to a canvas
@@ -226,18 +226,48 @@ export default class JsP3D_SceneHelper
         let fontSize = 80
         //let bgColorRGBa = "rgba(" + this.backgroundColor.r*255 + "," + this.backgroundColor.g*255 + "," + this.backgroundColor.b*255 + "," + "1" + ")"
         context2d.font = "Bold "+fontSize+"px sans-serif"
-        context2d.fillStyle = textColor // textclr
+        
+        // IMPRTANT: when editing this, keep in mind that light text produces slight black outlines (because of the nature of THREE.js)
+        // the same goes for light outlines drawn on the canvas. They also have some slightly black pixels around them. Even white shadows have some darkish fragments.
+        // that means: try to hide those slight black pixels with a bold black outline. If the background is dark, they can't be seen anyway luckily.
 
-        // at the moment three.js draws slight black outlines to every sprite I use. So to make it appear as clean as possible, draw a nice black outline
-        
-        // shadow
-        //context2d.shadowBlur = 8 // use the background color as shadow:
-        //context2d.shadowColor = "black"
-        
-        // outline
-        context2d.strokeStyle = "rgba(0,0,0,0.8)"
-        context2d.miterLimit = 1 // curved outline edges
-        context2d.lineWidth = 10
+        // make sure the text is always readable
+        let axL = this.axesColor.getHSL().l
+        context2d.fillStyle = "#"+this.axesColor.getHexString() // text color is always the axesColor
+
+        // now try to find the best outline color (in case of black text on white background don't draw one)
+        if(axL > 0.4)
+        {
+            console.log("a")
+            // if axesColor is light, use black outlines
+            // always use them, even when the background is black, because white might be hard to make out
+            // on top of heatmaps (yellow and turqoise are heatmap colors and very light)
+
+            // outline
+            context2d.strokeStyle = "rgba(0,0,0,0.8)"
+            context2d.miterLimit = 1 // curved outline edges
+            context2d.lineWidth = 10
+        }
+        else
+        {
+            let bgL = this.backgroundColor.getHSL().l
+            if(bgL < 0.4)
+            {
+                console.log("b")
+                // if axes are dark and background is dark (that means black outlines would fail)
+                // use white outlines
+
+                // outline
+                context2d.strokeStyle = "rgba(255,255,255,0.8)"
+                context2d.miterLimit = 1 // curved outline edges
+                context2d.lineWidth = 10
+            }
+            else
+            {
+                console.log("c")
+                // if axesColor is dark and background is light, draw without outlines
+            }
+        }
         
         // write it centered
         let textwidth = letter.length*64 // this would be the approach for a monospace fonts, but it somewhat approximates other fonts aswell
@@ -258,13 +288,12 @@ export default class JsP3D_SceneHelper
      * updates the text shown on a sprite (creates a new lettertexture using createLetterTexture and updates a THREE.Mesh/Sprite/etc.)
      * @param {object} sprite sprite object that contains the text as texture (THREE.Sprite)
      * @param {string} letter new text to be displayed on the sprite
-     * @param {string} color hex color of the text. e.g. (#76ba98)
      */
-    updateLetterTextureOnSprite(sprite, letter, color)
+    updateLetterTextureOnSprite(sprite, letter)
     {
         letter = ""+letter
         sprite.material.map.dispose()
-        sprite.material.map = this.createLetterTexture(letter, color, 80)
+        sprite.material.map = this.createLetterTexture(letter, 80)
         sprite.material.size = sprite.material.map.image.width * this.textScale
         sprite.material.needsUpdate = true
     }
@@ -315,13 +344,13 @@ export default class JsP3D_SceneHelper
             {
                 if(this.xNumber == undefined)
                 {
-                    xNumber = this.placeLetter(x1, "#ffffff", new THREE.Vector3(xLen, offset2, offset2))
+                    xNumber = this.placeLetter(x1, new THREE.Vector3(xLen, offset2, offset2))
                     this.axes.add(xNumber)
                     this.xNumber = xNumber
                 }
                 else
                 {
-                    this.updateLetterTextureOnSprite(this.xNumber, x1, "#ffffff")
+                    this.updateLetterTextureOnSprite(this.xNumber, x1)
                     this.xNumber.position.set(xLen, offset2, offset2)
                 }
             }
@@ -331,13 +360,13 @@ export default class JsP3D_SceneHelper
                 let ypos = ((normalization.maxX2 - normalization.minX2) / normalization.x2frac) * yLen
                 if(this.yNumber == undefined)
                 {
-                    yNumber = this.placeLetter(x2, "#ffffff", new THREE.Vector3(offset2, ypos, offset2))
+                    yNumber = this.placeLetter(x2, new THREE.Vector3(offset2, ypos, offset2))
                     this.axes.add(yNumber)
                     this.yNumber = yNumber
                 }
                 else
                 {
-                    this.updateLetterTextureOnSprite(this.yNumber, x2, "#ffffff")
+                    this.updateLetterTextureOnSprite(this.yNumber, x2)
                     this.yNumber.position.set(offset2, ypos, offset2)
                 }
             }
@@ -346,13 +375,13 @@ export default class JsP3D_SceneHelper
             {
                 if(this.zNumber == undefined)
                 {
-                    zNumber = this.placeLetter(x3, "#ffffff", new THREE.Vector3(offset2, offset2, zLen))
+                    zNumber = this.placeLetter(x3, new THREE.Vector3(offset2, offset2, zLen))
                     this.axes.add(zNumber)
                     this.zNumber = zNumber
                 }
                 else
                 {
-                    this.updateLetterTextureOnSprite(this.zNumber, x3, "#ffffff")
+                    this.updateLetterTextureOnSprite(this.zNumber, x3)
                     this.zNumber.position.set(offset2, offset2, zLen)
                 }
             }
@@ -425,7 +454,7 @@ export default class JsP3D_SceneHelper
 
 
 
-        this.axesColor = "#"+colorObject.getHexString() // to be able to easily redraw it later with the same color
+        this.axesColor = colorObject
 
         // lines that point into the dimensions
         let axesWireGeom = new THREE.Geometry()
@@ -485,19 +514,19 @@ export default class JsP3D_SceneHelper
 
         if(showx1) {
             let xLetter
-            xLetter = this.placeLetter("x", "#ffffff", new THREE.Vector3(xLen*percentage+offset,0,0), 80, 0.05)
+            xLetter = this.placeLetter("x", new THREE.Vector3(xLen*percentage+offset,0,0), 80, 0.05)
             axes.add(xLetter)
         }
 
         if(showx2) {
             let yLetter
-            yLetter = this.placeLetter("y", "#ffffff", new THREE.Vector3(0, yLen*percentage+offset,0), 80, 0.05)
+            yLetter = this.placeLetter("y", new THREE.Vector3(0, yLen*percentage+offset,0), 80, 0.05)
             axes.add(yLetter)
         }
 
         if(showx3) {
             let zLetter
-            zLetter = this.placeLetter("z", "#ffffff", new THREE.Vector3(0,0, zLen*percentage+offset), 80, 0.05)
+            zLetter = this.placeLetter("z", new THREE.Vector3(0,0, zLen*percentage+offset), 80, 0.05)
             axes.add(zLetter)
         }
 
@@ -552,8 +581,7 @@ export default class JsP3D_SceneHelper
             if(mesh.parent != null)
                 mesh.parent.remove(mesh)
                 
-            if(mesh != undefined)
-                mesh.remove()
+            mesh.remove()
         }
     }
 

@@ -111,7 +111,8 @@ export class Plot
             ////////  SCATTERPLOT    ////////
 
             // if scatterplot, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
+            // multiply those two values for the ArraySize because plotFormula will create that many datapoints
+            let df = new Float32Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
 
             // the three values that are going to be stored in the dataframe
             let y = 0
@@ -375,7 +376,7 @@ export class Plot
         // a more complete checking will be done in plotDataFrame once the dataframe is generated.
         // only check what is needed in plotCsvString
 
-        if(sCsv === "" || sCsv == undefined)
+        if(sCsv === "" || sCsv === undefined)
             return console.error("dataframe is empty")
         // default config
         let separator=","
@@ -389,7 +390,7 @@ export class Plot
         let checkBoolean = (varname, variable) => {
             if(variable == undefined)
                 return // not defined in the (optional) options, don't do anything then
-            let a = (variable == true || variable == false)
+            let a = (variable === true || variable === false)
             if(!a) errorParamType(varname, variable, "boolean")
             return(a) // returns true (valid) or false
         }
@@ -624,7 +625,7 @@ export class Plot
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      */
                 
-    plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={})
+    plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={}, normalization={})
     {
         // to optimize for performance, use:
         // {
@@ -680,7 +681,7 @@ export class Plot
         let checkBoolean = (varname, variable) => {
             if(variable == undefined)
                 return false// not defined in the (optional) options, don't do anything then
-            let a = (variable == true || variable == false)
+            let a = (variable === true || variable === false)
             if(!a)
             { errorParamType(varname, variable, "boolean"); return false }
             return(a) // returns true (valid) or false
@@ -902,141 +903,106 @@ export class Plot
         
         //keep old plot and normalization has not been calculated yet?
         //if(keepOldPlot && this.dfCache.normalization == {})
+        if(normalizeX1)
         {
-            if(normalizeX1)
+            maxX1 = df[startValueIndex][x1col]
+            minX1 = df[startValueIndex][x1col]
+            // determine max for normalisation
+            for(let i = 0; i < df.length; i++)
             {
-                maxX1 = df[startValueIndex][x1col]
-                minX1 = df[startValueIndex][x1col]
-                // determine max for normalisation
-                for(let i = 0; i < df.length; i++)
-                {
-                    if((df[i][x1col]) > maxX1)
-                        maxX1 = df[i][x1col]
-                    if((df[i][x1col]) < minX1)
-                        minX1 = df[i][x1col]
-                }
-
-                // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
-                if(keepOldPlot)
-                    for(let i = 0; i < this.dfCache.dataframe.length; i++)
-                    {
-                        if(parseFloat(this.dfCache.dataframe[i][x1col]) > maxX1)
-                            maxX1 = this.dfCache.dataframe[i][x1col]
-                        if(parseFloat(this.dfCache.dataframe[i][x1col]) < minX1)
-                            minX1 = this.dfCache.dataframe[i][x1col]
-                    }
-                    
-                //x1frac = Math.max(Math.abs(maxX1), Math.abs(minX1)) // based on largest |value|
-                x1frac = Math.abs(maxX1-minX1) // based on distance between min and max
-                
+                if((df[i][x1col]) > maxX1)
+                    maxX1 = df[i][x1col]
+                if((df[i][x1col]) < minX1)
+                    minX1 = df[i][x1col]
             }
 
-            if(mode != "barchart") // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
-            {
-                if(normalizeX2)
+            // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+            if(keepOldPlot)
+                for(let i = 0; i < this.dfCache.dataframe.length; i++)
                 {
-                    maxX2 = df[startValueIndex][x2col]
-                    minX2 = df[startValueIndex][x2col]
-                    for(let i = 0; i < df.length; i++)
-                    {
-                        if((df[i][x2col]) > maxX2)
-                            maxX2 = df[i][x2col]
-                        if((df[i][x2col]) < minX2)
-                            minX2 = df[i][x2col]
-                    }
-
-                    // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
-                    if(keepOldPlot)
-                        for(let i = 0; i < this.dfCache.dataframe.length; i++)
-                        {
-                            if(parseFloat(this.dfCache.dataframe[i][x2col]) > maxX2)
-                                maxX2 = this.dfCache.dataframe[i][x2col]
-                            if(parseFloat(this.dfCache.dataframe[i][x2col]) < minX2)
-                                minX2 = this.dfCache.dataframe[i][x2col]
-                        }
-                    // a hybrid solution of checking the distance between the points and checking the |value|
-                    //let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
-                    //let b = Math.abs(maxX2-minX2) // based on distance between min and max
-                    //x2frac = Math.max(a, b) // hybrid
-
-                    x2frac = Math.abs(maxX2-minX2) // based on distance between min and max
-                }
-            }
-
-            if(normalizeX3)
-            {
-                maxX3 = df[startValueIndex][x3col]
-                minX3 = df[startValueIndex][x3col]
-                
-                for(let i = 0; i < df.length; i++)
-                {
-                    if((df[i][x3col]) > maxX3)
-                        maxX3 = df[i][x3col]
-                    if((df[i][x3col]) < minX3)
-                        minX3 = df[i][x3col]
+                    if(parseFloat(this.dfCache.dataframe[i][x1col]) > maxX1)
+                        maxX1 = this.dfCache.dataframe[i][x1col]
+                    if(parseFloat(this.dfCache.dataframe[i][x1col]) < minX1)
+                        minX1 = this.dfCache.dataframe[i][x1col]
                 }
                 
-                // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
-                if(keepOldPlot)
-                    for(let i = 0; i < this.dfCache.dataframe.length; i++)
-                    {
-                        // in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                        if(parseFloat(this.dfCache.dataframe[i][x3col]) > maxX3)
-                            maxX3 = this.dfCache.dataframe[i][x3col]
-                        if(parseFloat(this.dfCache.dataframe[i][x3col]) < minX3)
-                            minX3 = this.dfCache.dataframe[i][x3col]
-                    }
-                    
-                //x3frac = Math.max(Math.abs(maxX3), Math.abs(minX3)) // based on largest |value|
-                x3frac = Math.abs(maxX3-minX3) // based on distance between min and max
-            }
+            //x1frac = Math.max(Math.abs(maxX1), Math.abs(minX1)) // based on largest |value|
+            x1frac = Math.abs(maxX1-minX1) // based on distance between min and max
             
         }
-        /*else
-        {
-            if(keepOldPlot)
-            {
-                // use the minimas and maximas from recently
-                minX1 = this.dfCache.normalization.minX1
-                maxX1 = this.dfCache.normalization.maxX1
-                minX3 = this.dfCache.normalization.minX3
-                maxX3 = this.dfCache.normalization.maxX3
 
-                // if the mode is barchart, it will overwrite the following two:
-                minX2 = this.dfCache.normalization.minX2
-                maxX2 = this.dfCache.normalization.maxX2
+        if(mode != "barchart") // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
+        {
+            if(normalizeX2)
+            {
+                maxX2 = df[startValueIndex][x2col]
+                minX2 = df[startValueIndex][x2col]
+                for(let i = 0; i < df.length; i++)
+                {
+                    if((df[i][x2col]) > maxX2)
+                        maxX2 = df[i][x2col]
+                    if((df[i][x2col]) < minX2)
+                        minX2 = df[i][x2col]
+                }
+
+                // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+                if(keepOldPlot)
+                    for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                    {
+                        if(parseFloat(this.dfCache.dataframe[i][x2col]) > maxX2)
+                            maxX2 = this.dfCache.dataframe[i][x2col]
+                        if(parseFloat(this.dfCache.dataframe[i][x2col]) < minX2)
+                            minX2 = this.dfCache.dataframe[i][x2col]
+                    }
+                // a hybrid solution of checking the distance between the points and checking the |value|
+                //let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
+                //let b = Math.abs(maxX2-minX2) // based on distance between min and max
+                //x2frac = Math.max(a, b) // hybrid
+
+                x2frac = Math.abs(maxX2-minX2) // based on distance between min and max
             }
-        }*/
+        }
+
+        if(normalizeX3)
+        {
+            maxX3 = df[startValueIndex][x3col]
+            minX3 = df[startValueIndex][x3col]
+            
+            for(let i = 0; i < df.length; i++)
+            {
+                if((df[i][x3col]) > maxX3)
+                    maxX3 = df[i][x3col]
+                if((df[i][x3col]) < minX3)
+                    minX3 = df[i][x3col]
+            }
+            
+            // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+            if(keepOldPlot)
+                for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                {
+                    // in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
+                    if(parseFloat(this.dfCache.dataframe[i][x3col]) > maxX3)
+                        maxX3 = this.dfCache.dataframe[i][x3col]
+                    if(parseFloat(this.dfCache.dataframe[i][x3col]) < minX3)
+                        minX3 = this.dfCache.dataframe[i][x3col]
+                }
+                
+            //x3frac = Math.max(Math.abs(maxX3), Math.abs(minX3)) // based on largest |value|
+            x3frac = Math.abs(maxX3-minX3) // based on distance between min and max
+        }
 
         this.benchmarkStamp("normalized the data")
 
         
         if(mode == "barchart")
         {
+
             // plotDataFrame
             //-------------------------//
             //        Bar Chart        //
             //-------------------------//
 
 
-            // DEPRECATED:
-            // how are negative positions created?
-            //
-            //              -1
-            //         +-----+-----+
-            //         |     |     |
-            //      -1 |_____|_____| 1
-            //         |     |     |
-            //         |     |     |
-            //         +-----+-----+
-            //               1
-            //
-            // this rectangle is being filled with invisible bars. Number of bars: (xVerticesCount * zVerticesCount)
-            // how do i adress bars using negative numbers?
-            // bar heights are stored in a 2D array. They are accessed using positive integers from 0 to xVerticesCount*2
-            // I just have to add xVerticesCount and zVerticesCount to the array index to get the bar for e.g. (-5, 2).
-            // Afterwards the whole group of bars just has to be translated by -xLen and -zLen so that the bar
-            // at [xVerticesCount/2][zVerticesCount/2] is displayed in the middle upon rendering
 
             // this.dfCache.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
             // let xBarOffset = 1/this.dimensions.xRes/2
@@ -1064,15 +1030,13 @@ export class Plot
                 let bar = new THREE.Mesh(shape, plotmat)
                 bar.position.set(x/this.dimensions.xRes,0, z/this.dimensions.zRes)
                 bar.geometry.translate(0,0.5,0)
-                // as the bars height are caulcated using a huge offset of xVerticesCount+1 and zVerticesCount+1 in addToHeights, translate it back to its right position
-                // bar.geometry.translate(-(this.dimensions.xVerticesCount+1)/this.dimensions.xRes,0,-(this.dimensions.zVerticesCount+1)/this.dimensions.zRes) // use translate when the position property should not be influenced
                 cubegroup.add(bar)
 
                 return bar
             }
 
 
-            // if needed, reconstruct the barchart
+            // if needed, reconstruct the complete barchart
             let valid = this.IsPlotmeshValid("barchart")
             // shape of bars changed? recreate from scratch
             // let paddingValid = (options.barchartPadding == undefined && this.dfCache.options.barchartPadding == undefined) || (barchartPadding == this.dfCache.options.barchartPadding)
@@ -1085,55 +1049,31 @@ export class Plot
                 // into this group fill the bars
                 let cubegroup = new THREE.Group()
                 cubegroup.name = "barchart"
-                
-                // dimensions of the bars
-                /*let barXWidth = 1/this.dimensions.xRes
-                let barZWidth = 1/this.dimensions.zRes
-                if(barchartPadding > barXWidth || barchartPadding > barZWidth)
-                    console.warn("barchartPadding might be too large. Try a maximum value of "+Math.min(barXWidth, barZWidth))*/
 
                 this.plotmesh = cubegroup
                 this.SceneHelper.scene.add(cubegroup)
             }
 
+            // load what is stored
             let barsGrid = this.dfCache.barsGrid
+
+            // if undefined, start creating a new barsGrid
             if(barsGrid == undefined)
             {
-                /*
-                // now create an array that has one element for each bar. Bars are aligned in a grid of this.dimensions.xRes and this.dimensions.zRes elements
-                // make it 4 times as large (*2 and *2) so that it can hold negative numbers
-                barsGrid = new Array((this.dimensions.xVerticesCount+1))
-                for(let x = 0; x < barsGrid.length; x++)
-                {
-                    barsGrid[x] = new Array((this.dimensions.zVerticesCount+1))
-                    for(let z = 0; z < barsGrid[x].length; z++)
-                    {
-                        barsGrid[x][z] = {y: 0}
-                    }
-                }
-                */
                 barsGrid = {}
                 this.dfCache.barsGrid = barsGrid
             }
 
 
-            // overwrite with zeros, reset
+            // dispose, reset if not needed anymore
             if(!keepOldPlot)
             {
-                for(let key in barsGrid)
-                {
-                    this.SceneHelper.disposeMesh(barsGrid[key].bar)
-                }
+                for(let keyx in barsGrid)
+                    for(let keyz in barsGrid)
+                        this.SceneHelper.disposeMesh(barsGrid[keyx][keyz].bar)
+
                 barsGrid = {}
-                
-                /*for(let x = 0; x < barsGrid.length; x++)
-                {
-                    for(let z = 0; z < barsGrid[x].length; z++)
-                    {
-                        barsGrid[x][z].y = 0
-                        this.SceneHelper.disposeMesh(barsGrid[x][z].bar)
-                    }
-                }*/
+                this.dfCache.barsGrid = barsGrid
             }
             
 
@@ -1203,7 +1143,7 @@ export class Plot
                     minX2 = barsGrid[x][z].y
 
                 // if needed create the bar
-                if(barsGrid[x][z].bar == undefined)
+                if(barsGrid[x][z].bar === undefined)
                 {
                     barsGrid[x][z].bar = createBar(x, z, this.plotmesh)
                 }
@@ -1270,7 +1210,7 @@ export class Plot
             // percent of largest bar
             barSizeThreshold = barSizeThreshold*Math.max(Math.abs(maxX2), Math.abs(minX2))
 
-            if(normalizeX2 == true)
+            if(normalizeX2 === true)
             {
                 // let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
                 // let b = Math.abs(maxX2-minX2) // based on distance between min and max
@@ -1536,7 +1476,7 @@ export class Plot
         this.dfCache.normalization.x2frac = x2frac
         this.dfCache.normalization.x3frac = x3frac
 
-        if(updateCache == true) // if updating is allowed. is only important for the dataframe basically
+        if(updateCache === true) // if updating is allowed. is only important for the dataframe basically
         {
 
             if(headerRow != undefined)
@@ -1625,16 +1565,17 @@ export class Plot
         // the following have to be like this:
         this.dfCache.options.header = false // no header in newDataPoint
         this.dfCache.options.updateCache = false // false, because don't delete the original dataframe from cache
+        this.dfCache.options.maxX1
 
-        // performance friendly default values
+        // those default values are important to be like this.
         if(options.normalizeX1 == undefined)
             this.dfCache.options.normalizeX1 = false
         if(options.normalizeX2 == undefined)
             this.dfCache.options.normalizeX2 = false
         if(options.normalizeX3 == undefined)
             this.dfCache.options.normalizeX3 = false
-        // if(this.dfCache.options.normalizeX1 == true || this.dfCache.options.normalizeX2 == true || this.dfCache.options.normalizeX3 == true)
-        //    console.warn("normalization for addDataPoint might be unperformant. You can change normalization using normalizeX1: false, normalizeX2: false, normalizeX3: false")
+        if(this.dfCache.options.normalizeX1 || this.dfCache.options.normalizeX2 || this.dfCache.options.normalizeX3)
+            console.warn("addDataPoint with turned on normalization options will not align the new datapoint with the old plots normalization.")
 
         // create the datapoint data structure (an array) from this
         if(typeof(newDatapoint) == "string")
@@ -1767,7 +1708,7 @@ export class Plot
             
         // it either has children because it's a group it has a geometry. if both are undefined, it's not valid anymore.
 
-        if(this.redraw == true) // this is the only place where this.redraw is taken into account
+        if(this.redraw === true) // this is the only place where this.redraw is taken into account
         {
             this.SceneHelper.disposeMesh(obj)
             this.redraw = false
@@ -1843,6 +1784,16 @@ export class Plot
     {
         this.SceneHelper.createAxes(color, this.dimensions, this.dfCache.normalization)
         this.SceneHelper.makeSureItRenders(this.animationFunc)
+    }
+
+
+
+    /**
+     * resets the camera position
+     */
+    centerCamera()
+    {
+        this.SceneHelper.centerCamera(this.dimensions)
     }
 
 
@@ -2025,7 +1976,7 @@ export class Plot
         if(this.benchmark.recentTime == -1)
             this.benchmark.recentTime = window.performance.now()
 
-        if(this.benchmark.enabled == true)
+        if(this.benchmark.enabled === true)
         {
             console.log(identifier+": "+(window.performance.now()-this.benchmark.recentTime)+"ms")
             this.benchmark.recentTime = window.performance.now()

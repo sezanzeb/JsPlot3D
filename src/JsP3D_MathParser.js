@@ -152,6 +152,7 @@ export default class JsP3D_MathParser
         //regex for numbers of x1 and x3: (x1|x3|\d+(\.\d+){0,1})
         
         formula = formula.toLowerCase()
+        formula = formula.replace(/math\./g,"Math.")
 
         //for recursive calls, make sure that the proper recursive handler is selected
         formula = formula.replace(/f\(/g,"this.frec(")
