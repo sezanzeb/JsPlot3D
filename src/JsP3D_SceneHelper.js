@@ -238,7 +238,6 @@ export default class JsP3D_SceneHelper
         // now try to find the best outline color (in case of black text on white background don't draw one)
         if(axL > 0.4)
         {
-            console.log("a")
             // if axesColor is light, use black outlines
             // always use them, even when the background is black, because white might be hard to make out
             // on top of heatmaps (yellow and turqoise are heatmap colors and very light)
@@ -253,7 +252,6 @@ export default class JsP3D_SceneHelper
             let bgL = this.backgroundColor.getHSL().l
             if(bgL < 0.4)
             {
-                console.log("b")
                 // if axes are dark and background is dark (that means black outlines would fail)
                 // use white outlines
 
@@ -264,7 +262,6 @@ export default class JsP3D_SceneHelper
             }
             else
             {
-                console.log("c")
                 // if axesColor is dark and background is light, draw without outlines
             }
         }

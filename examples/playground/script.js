@@ -43,6 +43,8 @@ function getVal(id)
         if(value.startsWith("0x"))
             value = parseInt(value)
 
+    console.log(value)
+
     return value
 }
 

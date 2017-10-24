@@ -1008,6 +1008,16 @@ export class Plot
             // let xBarOffset = 1/this.dimensions.xRes/2
             // let zBarOffset = 1/this.dimensions.zRes/2
 
+
+
+            // if normalization is on, make sure that the bars at x=0 or z=0 don't intersect the axes
+            let xOffset = 0
+            let zOffset = 0
+            if(normalizeX1)
+                xOffset = 1/this.dimensions.xRes/2 //divide by two because to counter the intersection only half of the bar has to be moved away
+            if(normalizeX3)
+                zOffset = 1/this.dimensions.zRes/2
+
             // helper function
             let createBar = (x, z, cubegroup) =>
             {
@@ -1028,7 +1038,7 @@ export class Plot
                 })
 
                 let bar = new THREE.Mesh(shape, plotmat)
-                bar.position.set(x/this.dimensions.xRes,0, z/this.dimensions.zRes)
+                bar.position.set(x/this.dimensions.xRes+xOffset,0, z/this.dimensions.zRes+zOffset)
                 bar.geometry.translate(0,0.5,0)
                 cubegroup.add(bar)
 
@@ -1098,6 +1108,7 @@ export class Plot
                 minX2 = 0
             }
 
+
             // helper function for interpolation
             let addToHeights = (x, y, z, x_float, z_float) =>
             {
@@ -1157,7 +1168,8 @@ export class Plot
             } // end function declaration of addToHeights
 
             // don't get fooled and write code here and suspect it to run after the
-            // normalization. Write it below the loop that calls addToHeights
+            // normalization. Write it below the loop that calls addToHeights. Code below this comment
+            // is for preparation of the normalization
 
             for(let i = 0; i < df.length; i ++)
             {
@@ -1171,6 +1183,9 @@ export class Plot
                 // let x_float = df[i][x1col]*factorX1 + this.dimensions.xVerticesCount+1
                 // let z_float = df[i][x3col]*factorX3 + this.dimensions.zVerticesCount+1
 
+                // when normalizing, the data gets moved from the negative space to the positive space that the axes define
+                // Data will then touch the x1x3, x1x2 and x3x2 planes instead of being somewhere far off at negative spaces
+                // does this description make sense? i hope so.
                 let x_float = (df[i][x1col]-minX1)*factorX1
                 let z_float = (df[i][x3col]-minX3)*factorX3
                 
