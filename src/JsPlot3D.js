@@ -47,6 +47,29 @@ export class Plot
     }
 
 
+    // some helper functions
+    errorParamType(varname, variable, expectedType)
+    {
+        console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
+    }
+    
+    checkBoolean(varname, variable)
+    {
+        if(variable == undefined)
+            return // not defined in the (optional) options, don't do anything then
+        let a = (variable === true || variable === false)
+        if(!a) this.errorParamType(varname, variable, "boolean")
+        return(a) // returns true (valid) or false
+    }
+
+    checkNumber(varname, variable)
+    {
+        if(variable == undefined || variable === "")
+            return // not defined in the (optional) options, don't do anything then
+        if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
+            return this.errorParamType(varname, variable, "number")
+        else return true // returns true (valid) or false
+    }
 
     /**
      * plots a formula into the container as 3D Plot
@@ -96,7 +119,7 @@ export class Plot
         if(options.normalizeX2 != undefined)
             normalizeX2 = options.normalizeX2
 
-        if(originalFormula == undefined || originalFormula == "")
+        if(originalFormula == undefined || originalFormula === "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
         if(typeof(originalFormula) != "string")
             return console.error("first param of plotFormula (originalFormula) should be string")
@@ -108,11 +131,12 @@ export class Plot
         if(mode == "scatterplot")
         {
             
+            //PlotFormula
             ////////  SCATTERPLOT    ////////
 
             // if scatterplot, create a dataframe and send it to plotDataFrame
             // multiply those two values for the ArraySize because plotFormula will create that many datapoints
-            let df = new Float32Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
+            let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
 
             // the three values that are going to be stored in the dataframe
             let y = 0
@@ -127,7 +151,10 @@ export class Plot
                 for(let z = 0; z < this.dimensions.zVerticesCount; z++)
                 {
                     y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes) // calculate y. y = f(x1, x2)
-                    df[i] = [x, y, z] // store the datapoint
+                    df[i] = new Float32Array(3)
+                    df[i][0] = x // store the datapoint
+                    df[i][1] = y // store the datapoint
+                    df[i][2] = z // store the datapoint
                     i++
                 }
             }
@@ -140,7 +167,7 @@ export class Plot
         else if(mode == "barchart")
         {
 
-
+            //PlotFormula
             ////////  BARCHART ////////
 
 
@@ -160,7 +187,10 @@ export class Plot
                 for(let z = 0; z <= this.dimensions.zVerticesCount; z++)
                 {
                     y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes) // calculate y. y = f(x1, x2)
-                    df[i] = [x, y, z] // store the datapoint
+                    df[i] = new Float32Array(3)
+                    df[i][0] = x // store the datapoint
+                    df[i][1] = y // store the datapoint
+                    df[i][2] = z // store the datapoint
                     i++
                 }
             }
@@ -182,7 +212,7 @@ export class Plot
             // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
             // color heatmap like
 
-            // creating the legend
+            // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
             let title=""
             let x1title="x1"
             let x2title="x2"
@@ -196,6 +226,11 @@ export class Plot
             if(options.x3title != undefined)
                 x3title = options.x3title
             this.populateLegend({x1title, x2title, x3title, title})
+
+            // same goes for colors. plotFormula has to handle them on it's own
+            let hueOffset=0
+            if(this.checkNumber("hueOffset", options.hueOffset))
+                hueOffset = parseFloat(options.hueOffset)
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
@@ -211,17 +246,23 @@ export class Plot
 
                 // color the plane
                 let plotmat = [
-                    new THREE.MeshStandardMaterial({
-                        color: 0xff3b00,
-                        emissive: 0x2f7b8c,
-                        roughness: 0.8,
-                        // wireframe: true,
-                        side: THREE.DoubleSide
+                    new THREE.MeshBasicMaterial({
+                        side: THREE.DoubleSide,
+                        vertexColors: THREE.VertexColors
                         }),
                     new THREE.MeshBasicMaterial({
-                        transparent: true, opacity: 0
+                        transparent: true,
+                        opacity: 0
                         })
                     ];
+
+                for(let i = 0;i < planegeometry.faces.length; i++)
+                {
+                    let face = planegeometry.faces[i]
+                    face.vertexColors[0] = new THREE.Color(0)
+                    face.vertexColors[1] = new THREE.Color(0)
+                    face.vertexColors[2] = new THREE.Color(0)
+                }
 
                 this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
                 this.plotmesh.name = "polygonFormula"
@@ -294,13 +335,32 @@ export class Plot
                         }*/
                         // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
                     }
+
                     vIndex ++
                     x1Actual += x1ActualStep
                 }
                 x1Actual = 0
                 x3Actual -= x3ActualStep
             }
+
             
+            // now colorate higher vertex get a warmer value
+            // multiply min and max to lower the hue contrast and make it appear mor friendly
+            let maxClrX2 = maxX2*1.3
+            let minClrX2 = minX2*1.3
+            let getVertexColor = (v,index) =>
+            {
+                let y = this.plotmesh.geometry.vertices[v].y
+                return COLORLIB.convertToHeat(y,minClrX2,maxClrX2,hueOffset)
+            }
+            for(let i = 0;i < this.plotmesh.geometry.faces.length; i++)
+            {
+                let face = this.plotmesh.geometry.faces[i]
+                face.vertexColors[0].set(getVertexColor(face.a))
+                face.vertexColors[1].set(getVertexColor(face.b))
+                face.vertexColors[2].set(getVertexColor(face.c))
+            }
+
             if(normalizeX2)
             {
                 let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
@@ -318,6 +378,7 @@ export class Plot
             this.plotmesh.geometry.__dirtyNormals = true
             // make sure the updated mesh is actually rendered
             this.plotmesh.geometry.verticesNeedUpdate = true
+            this.plotmesh.geometry.colorsNeedUpdate = true
             
             this.plotmesh.material.needsUpdate = true
 
@@ -385,39 +446,23 @@ export class Plot
         let csvIsInGoodShape=false
         let header=true // assume header=true for now so that the parsing is not making false assumptions because it looks at headers
 
-        // some helper functions
-        let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
-        let checkBoolean = (varname, variable) => {
-            if(variable == undefined)
-                return // not defined in the (optional) options, don't do anything then
-            let a = (variable === true || variable === false)
-            if(!a) errorParamType(varname, variable, "boolean")
-            return(a) // returns true (valid) or false
-        }
-        let checkNumber = (varname, variable) => {
-            if(variable == undefined || variable == "")
-                return // not defined in the (optional) options, don't do anything then
-            if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
-                return errorParamType(varname, variable, "number")
-            else return true // returns true (valid) or false
-        }
         // make sure options is defined
         if(typeof(options) == "object")
         {
             // seems like the user sent some parameters. check them
 
             // treat empty strings as if it was undefined in those cases:
-            if(options.separator == "")
+            if(options.separator === "")
                 options.separator = undefined
 
             // check numbers. Overwrite if it's good. If not, default value will remain
-            if(checkNumber("fraction", options.fraction))
+            if(this.checkNumber("fraction", options.fraction))
                 fraction = parseFloat(options.fraction)
 
             // check booleans
-            if(checkBoolean("csvIsInGoodShape", options.csvIsInGoodShape))
+            if(this.checkBoolean("csvIsInGoodShape", options.csvIsInGoodShape))
                 csvIsInGoodShape = options.csvIsInGoodShape
-            if(checkBoolean("header", options.header))
+            if(this.checkBoolean("header", options.header))
                 header = options.header
 
             // check everything else
@@ -460,10 +505,10 @@ export class Plot
             // transform the sCsv string to a dataframe
             let data = sCsv.split(/[\n\r]+/g)
 
-            if(data[0].trim() == "") // to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
+            if(data[0].trim() === "") // to prevent an error I have encountered when reading a csv from DOM Element innerHTML.
             // This probably happens when the csv data starts one line below the opening bracket of the Element
                 data = data.slice(-(data.length-1))
-            if(data[data.length-1].trim() == "")
+            if(data[data.length-1].trim() === "")
                 data.pop()
 
             // now check if the dataframe is empty
@@ -519,18 +564,21 @@ export class Plot
                     for(let j = 0;j < data[i].length; j++)
                     {
 
-                        // make sure every column has stored a value
+                        // make sure every column has stored a value. if not (maybe because of faulty csv formats), assume 0
                         if(data[i][j] == undefined)
                         {
                             data[i][j] = 0
                         }
                         else
                         {
-                            // remove quotation marks
+                            // remove quotation marks "bla";"1";"2"
                             if(data[i][j][0] == "\"")
                                 if(data[i][j][data[i][j].length-1] == "\"")
                                     data[i][j] = data[i][j].slice(1,-1)
 
+                                // don't assume that all lines have the same format when looking at the same column
+                                // that means every cell has to be parsed
+                                
                                 // parse if possible. if not leave it as it is
                                 let parsed = parseFloat(data[i][j])
                                 if(!isNaN(parsed))
@@ -544,6 +592,7 @@ export class Plot
             else
             {
                 // The user trusts the csv and wants maximum performance
+                // that means: no quotation marks and all rows have the same number of columns
                 let startLine = 0
                 if(header)
                     startLine = 1
@@ -557,7 +606,7 @@ export class Plot
                 {
                     // check if that line can be parsed
                     if(!isNaN(parseFloat(data[startLine][col]))) // if parsable as number 
-                        for(let line = 0;line < data.length; line ++) // continue like so for all following datapoints/rows
+                        for(let line = 0;line < data.length; line ++) // continue like so for all following datapoints/rows without further checking
                             data[line][col] = parseFloat(data[line][col])
                 }
             }
@@ -676,23 +725,6 @@ export class Plot
         // instead of calculating this shape right away
         let dfIsA2DMap=false
 
-        // some helper functions
-        let errorParamType = (varname, variable, expectedType) => console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
-        let checkBoolean = (varname, variable) => {
-            if(variable == undefined)
-                return false// not defined in the (optional) options, don't do anything then
-            let a = (variable === true || variable === false)
-            if(!a)
-            { errorParamType(varname, variable, "boolean"); return false }
-            return(a) // returns true (valid) or false
-        }
-        let checkNumber = (varname, variable) => { // returns true if it is a number, false if it is either not defined or not a number
-            if(variable == undefined || variable === "")
-                return false  // not defined in the (optional) options, don't do anything then
-            if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
-            { errorParamType(varname, variable, "number"); return false }
-            return true // returns true (valid) or false
-        }
 
         // make sure options is defined
         if(typeof(options) == "object")
@@ -700,7 +732,7 @@ export class Plot
             // seems like the user sent some parameters. check them
 
             // treat empty strings as if it was undefined in those cases:
-            if(options.colorCol == "")
+            if(options.colorCol === "")
                 options.colorCol = undefined
 
             // check numbers. Overwrite if it's good. If not, default value will remain
@@ -709,9 +741,9 @@ export class Plot
                 console.error("column with index "+options.colorCol+", used as colorCol, is not existant in the dataframe. Disabling coloration")
                 options.colorCol = -1
             }
-            if(checkNumber("fraction", options.fraction))
+            if(this.checkNumber("fraction", options.fraction))
                 fraction = parseFloat(options.fraction)
-            if(checkNumber("barchartPadding", options.barchartPadding))
+            if(this.checkNumber("barchartPadding", options.barchartPadding))
                 barchartPadding = parseFloat(options.barchartPadding)
             if(barchartPadding >= 1)
             {
@@ -719,43 +751,43 @@ export class Plot
                 console.error("barchartPadding is invalid. maximum of 1 and minimum of 0 accepted. Now continuing with barchartPadding = "+barchartPadding)
             }
 
-            if(checkNumber("hueOffset", options.hueOffset))
+            if(this.checkNumber("hueOffset", options.hueOffset))
                 hueOffset = parseFloat(options.hueOffset)
-            if(checkNumber("x1frac", options.x1frac))
+            if(this.checkNumber("x1frac", options.x1frac))
                 x1frac = parseFloat(options.x1frac)
-            if(checkNumber("x2frac", options.x2frac))
+            if(this.checkNumber("x2frac", options.x2frac))
                 x2frac = parseFloat(options.x2frac)
-            if(checkNumber("x3frac", options.x3frac))
+            if(this.checkNumber("x3frac", options.x3frac))
                 x3frac = parseFloat(options.x3frac)
-            if(checkNumber("colorCol", options.colorCol))
+            if(this.checkNumber("colorCol", options.colorCol))
                 colorCol = parseFloat(options.colorCol)
-            if(checkNumber("dataPointSize", options.dataPointSize))
+            if(this.checkNumber("dataPointSize", options.dataPointSize))
                 dataPointSize = parseFloat(options.dataPointSize)
-            if(checkNumber("barSizeThreshold", options.barSizeThreshold))
+            if(this.checkNumber("barSizeThreshold", options.barSizeThreshold))
                 barSizeThreshold = parseFloat(options.barSizeThreshold)
-            // if(checkNumber("normalizationSmoothing", options.normalizationSmoothing))
+            // if(this.checkNumber("normalizationSmoothing", options.normalizationSmoothing))
             //    normalizationSmoothing = parseFloat(options.normalizationSmoothing)
             if(dataPointSize <= 0)
                 console.error("datapoint size is <= 0. It will be invisible")
 
             // check booleans. Overwrite if it's good. If not, default value will remain
-            if(checkBoolean("labeled", options.labeled))
+            if(this.checkBoolean("labeled", options.labeled))
                 labeled = options.labeled
-            if(checkBoolean("normalizeX1", options.normalizeX1))
+            if(this.checkBoolean("normalizeX1", options.normalizeX1))
                 normalizeX1 = options.normalizeX1
-            if(checkBoolean("normalizeX2", options.normalizeX2))
+            if(this.checkBoolean("normalizeX2", options.normalizeX2))
                 normalizeX2 = options.normalizeX2
-            if(checkBoolean("normalizeX3", options.normalizeX3))
+            if(this.checkBoolean("normalizeX3", options.normalizeX3))
                 normalizeX3 = options.normalizeX3
-            if(checkBoolean("header", options.header))
+            if(this.checkBoolean("header", options.header))
                 header = options.header
-            if(checkBoolean("dfIsA2DMap", options.dfIsA2DMap))
+            if(this.checkBoolean("dfIsA2DMap", options.dfIsA2DMap))
                 dfIsA2DMap = options.dfIsA2DMap
-            if(checkBoolean("filterColor", options.filterColor))
+            if(this.checkBoolean("filterColor", options.filterColor))
                 filterColor = options.filterColor
-            if(checkBoolean("keepOldPlot", options.keepOldPlot))
+            if(this.checkBoolean("keepOldPlot", options.keepOldPlot))
                 keepOldPlot = options.keepOldPlot
-            if(checkBoolean("updateCache", options.updateCache))
+            if(this.checkBoolean("updateCache", options.updateCache))
                 updateCache = options.updateCache
 
 
@@ -775,13 +807,13 @@ export class Plot
 
         }
 
-        if(checkNumber("x1col", x1col))
+        if(this.checkNumber("x1col", x1col))
             x1col = parseFloat(x1col)
         else x1col = Math.min(0, df[0].length-1)
-        if(checkNumber("x2col", x2col))
+        if(this.checkNumber("x2col", x2col))
             x2col = parseFloat(x2col)
         else x2col = Math.min(1, df[0].length-1)
-        if(checkNumber("x3col", x3col))
+        if(this.checkNumber("x3col", x3col))
             x3col = parseFloat(x3col)
         else x3col = Math.min(2, df[0].length-1)
         
@@ -1362,9 +1394,9 @@ export class Plot
                 if(i > 1)
                 {
                     let newFace = new THREE.Face3(i-1, i-1, i)
-                    newFace.vertexColors[0] = new THREE.Color(dfColors[i-1])
-                    newFace.vertexColors[1] = new THREE.Color(dfColors[i-1])
-                    newFace.vertexColors[2] = new THREE.Color(dfColors[i])
+                    newFace.vertexColors[0] = dfColors[i-1]
+                    newFace.vertexColors[1] = dfColors[i-1]
+                    newFace.vertexColors[2] = dfColors[i]
                     geometry.faces.push(newFace)
                 }
             }

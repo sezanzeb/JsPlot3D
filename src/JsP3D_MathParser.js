@@ -87,9 +87,9 @@ export default class JsP3D_MathParser
      */
     resetCalculation()
     {
-        this.calculatedPoints = new Array(this.xVerticesCount)
+        this.calculatedPoints = new Float32Array(this.xVerticesCount)
         for(let i = 0;i < this.calculatedPoints.length; i++)
-            this.calculatedPoints[i] = new Array(this.zVerticesCount)
+            this.calculatedPoints[i] = new Float32Array(this.zVerticesCount)
 
         this.parsedFormula = ""
         this.stopRecursion = false

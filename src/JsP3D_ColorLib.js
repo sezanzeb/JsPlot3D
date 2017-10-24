@@ -2,10 +2,11 @@ const THREE = require("three")
 
 
 /**
- * converts a number to a heat color
- * @param {number} value the value that should be converted to a heat color
- * @param {number} min maximum value present in your dataframe. Default -1
- * @param {number} max minimum value present in your dataframe. Default 1
+ * converts a number to a heat color and returns a THREE.Color object
+ * @param {number} value the number that should be converted to a heat color
+ * @param {number} min maximum number present in your dataframe. Default -1
+ * @param {number} max minimum number present in your dataframe. Default 1
+ * @param {number} hueOffset 0 means no offset. 0.5 means red turns to turqoise. 1 means the offset is so large that red is red again.
  * @return THREE.Color object
  */
 export function convertToHeat(value,min=-1,max=1,hueOffset=0)
@@ -38,7 +39,7 @@ export function convertToHeat(value,min=-1,max=1,hueOffset=0)
  */
 export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true,hueOffset=0)
 {
-    let dfColors = new Array(df.length) // array of numbers that contain the individual color information of the datapoint as a number (which is going to be normalized later)
+    let dfColors = new Array(df.length) // array of THREE.Color objects that contain the individual color information of each datapoint in the same order as df
     
     if(colorCol != -1 && df.length >= 2) // does the user even want colors? Are there even a few datapoints so that they can be colored in different ways?
     {
@@ -100,7 +101,7 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
                     map[label] = numberOfLabels // map it to an unique number
                     numberOfLabels ++ // make sure the next label gets a different number
                 }
-                // copy the labels to dfColors as numbers
+                // copy the labels to dfColors as numbers. They are going to be converted to THREE.Color objects in the next loop.
                 dfColors[i] = parseFloat(map[label])
                 findHighestAndLowest(dfColors[i]) // update clrMin and clrMax
             }
