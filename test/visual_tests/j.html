@@ -1,12 +1,13 @@
 <html>
     <head>
         <title>JsPlot3D - Barchart Interpolation</title>
+        <link rel="stylesheet" type="text/css" href="../style.css">
     </head>
     <body>
         <h1>Barchart Interpolation</h1>
         <p>And testing switching modes during runtime</p>
-        <div id="JsPlot3DContainer1" style="width:450px; height:350px;"></div>
-        <div id="JsPlot3DContainer2" style="width:450px; height:350px;"></div>
+        <div class="inlineBlock" id="JsPlot3DContainer1" style="width:450px; height:350px;"></div>
+        <div class="inlineBlock" id="JsPlot3DContainer2" style="width:450px; height:350px;"></div>
         <p>
             Both plots should show barcharts that have roughly the same shape. There is no line of missing bars or space in that plot. As the density of the<br/>
             datapoints is reduced because of the increased resolution on the right plot, the bars are lower than to the left (as shown by the number at the axis).
@@ -32,8 +33,10 @@
         </div>
     </body>
 </html>
-<script src="http://threejs.org/build/three.min.js"></script>
-<script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
+
+<script src="https://threejs.org/build/three.js"></script>
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+
 <script>
     
     // do some testing on how the tool works when changing modes and similar
@@ -43,6 +46,7 @@
     var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"))
     plot1.setDimensions({xRes:10,zRes:10})
     plot1.plotCsvString(data1,0,1,2)
+    plot1.setBackgroundColor("#eee")
 
     // step 2 animate a point into it
     plot1.animate(function(){
@@ -67,29 +71,6 @@
         mode: "barchart",
         barchartPadding: 0
     })
+    plot2.setBackgroundColor("#eee")
     
 </script>
-<style>
-
-    body
-    {
-        margin: 20px;
-        font-family: sans-serif;
-    }
-
-    div,canvas
-    {
-        background: #2659b2;
-    }
-
-    div
-    {
-        display:inline-block;
-    }
-
-    .hidden
-    {
-        display:none;
-    }
-
-</style>

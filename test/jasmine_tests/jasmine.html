@@ -1,0 +1,167 @@
+<html>
+    <head>
+        <script type="text/javascript" src="../../node_modules/jasmine-core/lib/jasmine-core/jasmine.js"></script>
+        <script type="text/javascript" src="../../node_modules/jasmine-core/lib/jasmine-core/jasmine-html.js"></script>
+        <script type="text/javascript" src="../../node_modules/jasmine-core/lib/jasmine-core/boot.js"></script>
+        <link rel="stylesheet" type="text/css" href="../../node_modules/jasmine-core/lib/jasmine-core/jasmine.css">
+
+        <script src="https://threejs.org/build/three.js"></script>
+        <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+
+    </head>
+    <body>
+
+    </body>
+</html>
+
+<script>
+
+    let container, plot, timeBench
+
+    describe("Creating the Plot Object", function() {
+        // create a dummy invisible plot
+        container = document.createElement("div")
+        container.style = "width: 300px, height: 300px"
+        plot = new JSPLOT3D.Plot(container, {
+            backgroundColor: "#ff0000",
+            axesColor: "#00ff00"
+        })
+
+        it("plot is defined", function() {
+            expect(plot).toBeDefined()
+        })
+    })
+
+    describe("Plot Initializations", function() {
+        it("nothing undefined", function() {
+            expect(plot.legend).toBeDefined()
+            expect(plot.SceneHelper).toBeDefined()
+            expect(plot.MathParser).toBeDefined()
+            expect(plot.container).toBeDefined()
+            expect(plot.dfCache).toBeDefined()
+            expect(plot.getCache()).toBeDefined()
+            expect(plot.dimensions).toBeDefined()
+            expect(plot.benchmark).toBeDefined()
+        })
+    })
+
+    describe("SceneHelper Initializations", function() {
+        it("backgroundColor integrity", function() {
+            expect(plot.SceneHelper.backgroundColor.r).toBe(1)
+            expect(plot.SceneHelper.backgroundColor.g).toBe(0)
+            expect(plot.SceneHelper.backgroundColor.b).toBe(0)
+        })
+
+        it("axesColor integrity", function() {
+            expect(plot.SceneHelper.axesColor.r).toBe(0)
+            expect(plot.SceneHelper.axesColor.g).toBe(1)
+            expect(plot.SceneHelper.axesColor.b).toBe(0)
+        })
+    })
+
+    describe("MathParser", function() {
+
+        it("parent is plot", function() {
+            expect(plot.MathParser.parent).toBe(plot)
+        })
+
+        it("integrity of various variables", function() {
+            expect(plot.MathParser.calculatedPoints.length).toBe(plot.dimensions.xVerticesCount)
+            expect(plot.MathParser.calculatedPoints[0].length).toBe(plot.dimensions.zVerticesCount)
+        })
+
+        it("parsing various formulas", function() {
+            expect(plot.MathParser.parse("sin(x1)+e")).toBe("Math.sin(this.x1)+Math.E")
+            expect(plot.MathParser.parse("Cos(x1)")).toBe("Math.cos(this.x1)")
+            expect(plot.MathParser.parse("ln(x1*pi)")).toBe("Math.log(this.x1*Math.PI)")
+            expect(plot.MathParser.parse("PI^5+x1!*3")).toBe("Math.PI**5+this.factorial(this.x1)*3")
+            expect(plot.MathParser.parse("x1+E^x3")).toBe("this.x1+Math.E**this.x3")
+        })
+
+        it("doing a calculation", function() {
+            expect(plot.MathParser.parse("cos(x1)")).toBe("Math.cos(this.x1)")
+            expect(plot.MathParser.f(0,0)).toBe(1)
+        })
+
+    })
+
+    describe("Manipulating the appearance of a plot", function() {
+
+        it("manipulating the backgroundColor", function() {
+            plot.setBackgroundColor("rgba(255,255,128,1)")
+            expect(plot.SceneHelper.backgroundColor.r).toBe(1)
+            expect(plot.SceneHelper.backgroundColor.g).toBe(1)
+            expect(plot.SceneHelper.backgroundColor.b).toBeCloseTo(0.5,0.1)
+        })
+        
+        it("manipulating the axesColor", function() {
+            plot.setAxesColor(0x0000ff)
+            expect(plot.SceneHelper.axesColor.r).toBe(0)
+            expect(plot.SceneHelper.axesColor.g).toBe(0)
+            expect(plot.SceneHelper.axesColor.b).toBe(1)
+        })
+        
+        it("removing the axes", function() {
+            plot.removeAxes()
+            expect(plot.SceneHelper.axes).toBe(undefined)
+        })
+
+    })
+
+    describe("benchmarking functionality", function() {
+
+        it("default status", function() {
+            expect(plot.benchmark.enabled).toBeFalsy()
+        })
+        
+        it("messages during default configuration", function() {
+            plot.benchmarkStamp("test0")
+            expect(plot.benchmark.recentTime).toBeUndefined() // a time was never recorded
+        })
+
+        it("enabling", function() {
+            plot.enableBenchmarking()
+            expect(plot.benchmark.enabled).toBeTruthy()
+            expect(plot.benchmark.recentTime).toBeDefined()
+            timeBench = plot.benchmark.recentTime
+        })
+        
+        it("messages when benchmarks are enabled", function() {
+            plot.benchmarkStamp("test1")
+            expect(plot.benchmark.recentTime).toBeGreaterThan(timeBench) // time progressed, therefore greater
+            timeBench = plot.benchmark.recentTime
+        })
+
+        it("disabling", function() {
+            plot.disableBenchmarking()
+            expect(plot.benchmark.enabled).toBeFalsy()
+        })
+        
+        it("messages after benchmarks got disabled", function() {
+            plot.benchmarkStamp("test2")
+            expect(plot.benchmark.recentTime).toBe(timeBench) // no change in time
+        })
+
+    })
+
+    describe("ColorLib getColorObjectFromAnyString", function() {
+
+        let tests = {
+            "rgb(255,255,0)": "ffff00",
+            "rgba(255,255,0,0.5)": "ffff00",
+            "hsl(1,1,1)": "ffffff",
+            "#000": "000000",
+            0x000000: "000000",
+            0xff6600: "ff6600",
+            "#99aabb": "99aabb"
+        }
+
+        for(let key in tests)
+        {
+            it(key, function() {
+                expect(JSPLOT3D.COLORLIB.getColorObjectFromAnyString(key).getHexString()).toBe(tests[key])
+            })      
+        }
+    })
+
+</script>

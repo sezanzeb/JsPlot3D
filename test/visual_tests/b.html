@@ -1,16 +1,20 @@
 <html>
     <head>
         <title>JsPlot3D - Calculated Animated Polygon</title>
+        <link rel="stylesheet" type="text/css" href="../style.css">
     </head>
     <body>
         <h1>Calculated Animated Polygon</h1>
-        <div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
+        <div class="inlineBlock" id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
         <p>a shape (a polygon) moves like a flag on a blue background. The higher the vertex the warmer the color. The axes are yellow. The x-axis is longer than the z-axis.</p>
     </body>
 </html>
-<script src="http://threejs.org/build/three.min.js"></script>
-<script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
+
+<script src="https://threejs.org/build/three.js"></script>
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+
 <script>
+
     var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"),
     {
         backgroundColor: "#2266aa",
@@ -26,18 +30,5 @@
         })
         i += 0.01
     }.bind(this))
+
 </script>
-<style>
-
-    body
-    {
-        margin: 20px;
-        font-family: sans-serif;
-    }
-
-    div,canvas
-    {
-        background: #2659b2;
-    }
-
-</style>

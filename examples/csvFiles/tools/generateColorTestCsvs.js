@@ -22,7 +22,7 @@ for(let i = 1;i < lines; i++)
         (Math.cos(i/100)+rand())+";"+
         (Math.tanh(i/100)+rand())+";"+
         (Math.sqrt(i/100)+rand())+";"+
-        "RGB(" + (i / lines) + "," + (i / lines) + "," + (i / lines) + ")"
+        "RGB(" + parseInt(255 * i / lines) + "," + parseInt(255 * i / lines) + "," + parseInt(255 * i / lines) + ")"
 }
 
 //from RGB(0,0,0)

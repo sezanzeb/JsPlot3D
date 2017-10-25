@@ -18,7 +18,6 @@ export default class JsP3D_MathParser
 
     /**
      * runs eval
-     * 
      * @param {Number} x1 first parameter of f(x1,x3) (x)
      * @param {Number} x3 second parameter of f(x1,x3) (z)
      */
@@ -27,6 +26,8 @@ export default class JsP3D_MathParser
         //this.x1 and this.x3 are going to be used during the eval process
         this.x1 = x1
         this.x3 = x3
+        this.xRes = this.parent.dimensions.xRes
+        this.zRes = this.parent.dimensions.zRes
         let y = eval(this.parsedFormula)
         return y
     }
@@ -42,22 +43,30 @@ export default class JsP3D_MathParser
      */
     frec(x1, x3)
     {
-        if(x1 < 0 || x3 < 0 || x1 > this.parent.xLen || x3 > this.parent.zLen)
+        let x1index = (x1*this.xRes)|0
+        let x3index = (x3*this.zRes)|0
+
+        if(x1 < 0 || x3 < 0 || x1 >= this.parent.xLen || x3 >= this.parent.zLen)
             return 0
 
         // checking for a point if it has been calculated already increases the performance and
         // reduces the number of recursions.
 
-        let val = this.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)]
+        let val = this.calculatedPoints[x1index]
+        if(val !== undefined)
+            val = val[x3index]
 
-        if(val == undefined) // has this point has already been calculated before?
+        if(val === undefined)
+            return
+
+        if(val === undefined) // has this point has already been calculated before?
         {
             if(!this.stopRecursion)
                 // bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
                 // another solution would be probably if I would just hand the variables over to MathParser
                 val = this.eval2(this.parsedFormula, x1, x3, this.frec.bind(this))
 
-            this.calculatedPoints[parseInt(x1*this.parent.xRes)][parseInt(x3*this.parent.zRes)] = val
+            this.calculatedPoints[x1index][x3index] = val
         }
 
         // val might return NaN for Math.sqrt(-1)
@@ -87,9 +96,9 @@ export default class JsP3D_MathParser
      */
     resetCalculation()
     {
-        this.calculatedPoints = new Float32Array(this.xVerticesCount)
+        this.calculatedPoints = new Array(this.parent.dimensions.xVerticesCount)
         for(let i = 0;i < this.calculatedPoints.length; i++)
-            this.calculatedPoints[i] = new Float32Array(this.zVerticesCount)
+            this.calculatedPoints[i] = new Float32Array(this.parent.dimensions.zVerticesCount)
 
         this.parsedFormula = ""
         this.stopRecursion = false
@@ -99,7 +108,6 @@ export default class JsP3D_MathParser
 
     /**
      * thanks to https://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
-     * 
      * @param z     number to Calculate the gamma of 
      */
     gamma(z)
@@ -130,7 +138,6 @@ export default class JsP3D_MathParser
 
     /**
      * Calculates a factorial
-     * 
      * @param x     number to Calculate the factorial of "x!"" 
      */
     factorial(x)
@@ -142,9 +149,7 @@ export default class JsP3D_MathParser
 
     /**
      * converts mathematical formulas to javascript syntax
-     * 
      * @param formula       string of a formula that contains !, ^, sin, cos, etc. expressions 
-     * 
      * @return              javascript compatible function in a string that can be executed using eval(string)
      */
     parse(formula)
@@ -152,21 +157,31 @@ export default class JsP3D_MathParser
         //regex for numbers of x1 and x3: (x1|x3|\d+(\.\d+){0,1})
         
         formula = formula.toLowerCase()
+        
+        //remove whitespaces for easier regex replaces
+        formula = formula.replace(/\s+/g,"")
+
+
+        // MATHEMATICAL CONSTANTS
+        // make sure that e.g. the e from exp doesn't get replaced with Math.E
+        // going to need some way to indicate the start and end. add some string literals
+        formula += "\0"
+        formula = "\0" + formula
+        formula = formula.replace(/([\^+-/*\(\0]+)(pi|PI|Pi|π)([\^+-/*\)\0]+)/g,"$1Math.PI$3")
+        formula = formula.replace(/([\^+-/*\(\0]+)(e|E)([\^+-/*\)\0]+)/g,"$1Math.E$3")
+        formula = formula.replace(/\0/g,"")
+
+        
         formula = formula.replace(/math\./g,"Math.")
 
         //for recursive calls, make sure that the proper recursive handler is selected
         formula = formula.replace(/f\(/g,"this.frec(")
+        if(formula.indexOf("frec") !== -1)
+            console.warn("recursive formulas are not yet supported")
 
         //x1 and x3 are attributes of this class once eval2 gets called
         formula = formula.replace(/x1/g,"this.x1")
         formula = formula.replace(/x3/g,"this.x3")
-
-        //remove whitespaces for easier regex replaces
-        formula = formula.replace(/\s+/g,"")
-
-        //support mathematical constants
-        formula = formula.replace(/(pi|PI|Pi|π)/g,"Math.PI")
-        formula = formula.replace(/(e|E)/g,"Math.E")
 
         //support powers (to my susprise, current browsers support this (ES7 feature). Testet with firefox and chromium-browser)
         formula = formula.replace(/\^/g,"**")
@@ -252,6 +267,7 @@ export default class JsP3D_MathParser
         formula = formula.replace(/(this\.)+/g,"this.") //in case there are two this.
 
         this.parsedFormula = formula
+        return formula
     }
 
 }

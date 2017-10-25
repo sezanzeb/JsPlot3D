@@ -1,0 +1,47 @@
+<html>
+    <head>
+        <title>Base64 reader</title>
+    </head>
+    <body>
+        <p>
+            Upload anything and get the Base64 value for it
+        </p>
+        <input id="fileup" type="file"></input>
+        <div id="base64"></div>
+    </body>
+</html>
+<script>
+    // add the filename as string next to the button
+    document.getElementById("fileup").addEventListener("change",function(e)
+    {
+        
+        let reader = new FileReader()
+        let file = document.getElementById("fileup").files[0]
+        reader.readAsDataURL(file)
+        reader.onload = function(e)
+        {
+            document.getElementById("base64").innerHTML = e.target.result
+        }
+    })
+</script>
+<style>
+    body {
+        font-family: sans-serif;
+        margin:2.5vw;
+        text-align:center;
+    }
+
+    #base64 {
+        word-break:break-all;
+        max-width:500px;
+        margin:20px auto;
+        background:#ddd;
+        border-radius:3px;
+        padding:10px 15px;
+        color:#555;
+    }
+
+    #base64:empty {
+        display:none;
+    }
+</style>

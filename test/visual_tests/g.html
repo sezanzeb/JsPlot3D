@@ -1,10 +1,11 @@
 <html>
     <head>
         <title>JsPlot3D - Building up a Barchart Step by Step</title>
+        <link rel="stylesheet" type="text/css" href="../style.css">
     </head>
     <body>
         <h1>Building up a Barchart Step by Step</h1>
-        <div id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
+        <div class="inlineBlock" id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
         <div id="JsPlot3DContainerLegend"></div>
         <p>
             Evenly distributed heatmapcolored bars on a dark blue background and lime axes. Lowest bar is blue, highest is red.<br/>
@@ -15,8 +16,10 @@
         <p><i><small>The difference to f.html is, that this is not a formula that involves some random factor. Here, a new random datapoint is sent to plot each frame.</small></i></p>
     </body>
 </html>
-<script src="http://threejs.org/build/three.min.js"></script>
-<script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
+
+<script src="https://threejs.org/build/three.js"></script>
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
+
 <script>
     
     var plot = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer"), {backgroundColor: "#12365a"})
@@ -41,43 +44,3 @@
     }.bind(this))
     
 </script>
-<style>
-
-    body
-    {
-        margin: 20px;
-        font-family: sans-serif;
-    }
-
-    canvas
-    {
-        background: #2659b2;
-    }
-    
-    .jsP3D_legend
-    {
-        margin: 10px 0px 0px 0px;
-        border: 1px solid black;
-        padding: 5px 10px;
-        border-radius: 2px;
-        display:inline-block;
-    }
-
-    .jsP3D_legend h1
-    {
-        margin: 0px 0px 5px;
-        font-size: 20px;
-        border-bottom: 1px solid white;
-        padding: 5px 0px;
-    }
-
-    .jsP3D_labelColor
-    {
-        width: 10px;
-        height: 10px;
-        display: block;
-        border-radius: 100%;
-        margin-right: 10px;
-    }
-
-</style>

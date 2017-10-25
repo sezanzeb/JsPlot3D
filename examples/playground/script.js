@@ -39,11 +39,10 @@ function getVal(id)
         value = undefined
 
     // 0xhex
-    if(!isNaN(parseFloat(value)))
+    let parsed = parseInt(value)
+    if(!isNaN(parsed))
         if(value.startsWith("0x"))
-            value = parseInt(value)
-
-    console.log(value)
+            value = parsed
 
     return value
 }
@@ -169,8 +168,8 @@ function main()
         else
         {
             console.log("using cached data")
+            plotcsv()
         }
-        plotcsv()
     }
 
 

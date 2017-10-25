@@ -20,6 +20,7 @@ module.exports = {
   },
 
   externals: {
-    //"three": "THREE"
+    // add unminified three code to the bundle
+    // "three": "THREE"
   }
 };

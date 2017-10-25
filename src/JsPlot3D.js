@@ -1,7 +1,8 @@
 const THREE = require("three")
+// thanks to the "default" property they can be imported like this:
 import JsP3D_MathParser from "./JsP3D_MathParser.js"
 import JsP3D_SceneHelper from "./JsP3D_SceneHelper.js"
-const COLORLIB = require("./JsP3D_ColorLib.js")
+export const COLORLIB = require("./JsP3D_ColorLib.js") // make it available as JSPLOT3D.COLORLIB
 
 
 /**
@@ -22,18 +23,22 @@ export class Plot
         // parameter checking
         if(typeof(container) != "object")
             return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
-            
+
+        // The order of the following tasks is important!
+
         // initialize cache object
         this.resetCache()
 
-        // creating the helper objects
-        this.MathParser = new JsP3D_MathParser(this)
-        this.SceneHelper = new JsP3D_SceneHelper(this)
+        // scene helper is needed for setContainer
+        this.SceneHelper = new JsP3D_SceneHelper()
 
         // first set up the container and the dimensions
         this.setContainer(container)
         this.dimensions = {}
         this.setDimensions({xRes:20, zRes:20, xLen:1, yLen:1, zLen:1})
+        
+        // before MathParser, setDimensions has to be called to initialize some stuff (xVerticesCount and zVerticesCount)
+        this.MathParser = new JsP3D_MathParser(this)
 
         // then setup the children of the scene (camera, light, axes)
         this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
@@ -42,7 +47,10 @@ export class Plot
         // legend
         this.initializeLegend()
 
-        // this.enableBenchmarking()
+        // by default disable the benchmark process
+        this.benchmark = {}
+        this.benchmark.enabled = false
+
         this.SceneHelper.render()
     }
 
@@ -55,7 +63,7 @@ export class Plot
     
     checkBoolean(varname, variable)
     {
-        if(variable == undefined)
+        if(variable === undefined)
             return // not defined in the (optional) options, don't do anything then
         let a = (variable === true || variable === false)
         if(!a) this.errorParamType(varname, variable, "boolean")
@@ -64,7 +72,7 @@ export class Plot
 
     checkNumber(varname, variable)
     {
-        if(variable == undefined || variable === "")
+        if(variable === undefined || variable === "")
             return // not defined in the (optional) options, don't do anything then
         if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
             return this.errorParamType(varname, variable, "number")
@@ -119,7 +127,7 @@ export class Plot
         if(options.normalizeX2 != undefined)
             normalizeX2 = options.normalizeX2
 
-        if(originalFormula == undefined || originalFormula === "")
+        if(originalFormula === undefined || originalFormula === "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
         if(typeof(originalFormula) != "string")
             return console.error("first param of plotFormula (originalFormula) should be string")
@@ -128,7 +136,7 @@ export class Plot
         this.MathParser.parse(originalFormula) //tell the MathParser to prepare so that f can be executed
         this.dfCache.checkstring = "" // don't fool plotCsvString into believing the cache contains still old csv data
 
-        if(mode == "scatterplot")
+        if(mode === "scatterplot")
         {
             
             //PlotFormula
@@ -164,7 +172,7 @@ export class Plot
             // continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
         }
-        else if(mode == "barchart")
+        else if(mode === "barchart")
         {
 
             //PlotFormula
@@ -300,7 +308,7 @@ export class Plot
                     // faces are ordered so that the vIndex in .c is in increasing order. If faceIndex.c has an unmatching value, increase
                     // the faceindex and therefore switch to a different face which mathes .c with vIndex.
                     for(;faceIndex1 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex1].c < vIndex; faceIndex1++) {}
-                    // the result of this operation is: faces[faceIndex].c == vIndex
+                    // the result of this operation is: faces[faceIndex].c === vIndex
 
                     // do similar for faceIndex2.
                     for(;faceIndex2 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex2].a < vIndex; faceIndex2++) {}
@@ -436,9 +444,10 @@ export class Plot
 
         // a more complete checking will be done in plotDataFrame once the dataframe is generated.
         // only check what is needed in plotCsvString
-
+        
         if(sCsv === "" || sCsv === undefined)
-            return console.error("dataframe is empty")
+            return console.error("dataframe arrived empty")
+
         // default config
         let separator=","
         let title=""
@@ -447,7 +456,7 @@ export class Plot
         let header=true // assume header=true for now so that the parsing is not making false assumptions because it looks at headers
 
         // make sure options is defined
-        if(typeof(options) == "object")
+        if(typeof(options) === "object")
         {
             // seems like the user sent some parameters. check them
 
@@ -484,7 +493,7 @@ export class Plot
 
         // still the same data?
         // create a very quick checksum sort of string
-        let stepsize = parseInt(sCsv.length/20)
+        let stepsize = (sCsv.length/20)|0
         let samples = ""
         for(let i = 0;i < sCsv.length; i+=stepsize)
             samples = samples + sCsv[i]
@@ -493,7 +502,7 @@ export class Plot
         let checkstring = title+sCsv.length+samples+fraction+separator
 
         // now check if the checksum changed. If yes, remake the dataframe from the input
-        if(this.dfCache == undefined || this.dfCache.checkstring != checkstring)
+        if(this.dfCache === undefined || this.dfCache.checkstring != checkstring)
         {
             //-------------------------//
             //       creating df       //
@@ -512,7 +521,7 @@ export class Plot
                 data.pop()
 
             // now check if the dataframe is empty
-            if(data.length == 0)
+            if(data.length === 0)
                 return console.error("dataframe is empty")
                 
             if(fraction < 1)
@@ -525,18 +534,18 @@ export class Plot
             }
 
             // find out the separator automatically if the user didn't define it
-            if(options.separator == undefined || data[0].indexOf(separator) == -1)
+            if(options.separator === undefined || data[0].indexOf(separator) === -1)
             {
                 // in case of undefined or -1, assume ;
                 separator = ";"
 
-                if(data[0].indexOf(separator) == -1)
+                if(data[0].indexOf(separator) === -1)
                     separator = ","
 
-                if(data[0].indexOf(separator) == -1)
+                if(data[0].indexOf(separator) === -1)
                     separator = /[\s\t]{2,}/g // tabbed data
 
-                if(data[0].search(separator) == -1)
+                if(data[0].search(separator) === -1)
                     return console.error("no csv separator/delimiter was detected. Please set separator:\"...\" according to your file format: \""+data[0]+"\"")
 
 
@@ -565,15 +574,15 @@ export class Plot
                     {
 
                         // make sure every column has stored a value. if not (maybe because of faulty csv formats), assume 0
-                        if(data[i][j] == undefined)
+                        if(data[i][j] === undefined)
                         {
                             data[i][j] = 0
                         }
                         else
                         {
                             // remove quotation marks "bla";"1";"2"
-                            if(data[i][j][0] == "\"")
-                                if(data[i][j][data[i][j].length-1] == "\"")
+                            if(data[i][j][0] === "\"")
+                                if(data[i][j][data[i][j].length-1] === "\"")
                                     data[i][j] = data[i][j].slice(1,-1)
 
                                 // don't assume that all lines have the same format when looking at the same column
@@ -716,7 +725,7 @@ export class Plot
         let x3frac=1
         // let normalizationSmoothing=0
 
-        if(this.dfCache == undefined)
+        if(this.dfCache === undefined)
             this.resetCache()
 
         // when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
@@ -727,7 +736,7 @@ export class Plot
 
 
         // make sure options is defined
-        if(typeof(options) == "object")
+        if(typeof(options) === "object")
         {
             // seems like the user sent some parameters. check them
 
@@ -846,7 +855,7 @@ export class Plot
 
 
         // automatic header detection
-        if(options.header == undefined && df.length >= 2)
+        if(options.header === undefined && df.length >= 2)
         {
             // find out automatically if they are headers or not
             // take x1col, check first line type (string/NaN?) then second line type (number/!NaN?)
@@ -861,22 +870,22 @@ export class Plot
         let headerRow
         if(header)
         {
-            if(df.length == 1)
+            if(df.length === 1)
                 return console.error("dataframe is empty besides headers")
 
             headerRow = df[0]
             // still set to default values?
-            if(x1title == "x1")
+            if(x1title === "x1")
                 x1title = headerRow[x1col]
-            if(x2title == "x2")
+            if(x2title === "x2")
                 x2title = headerRow[x2col]
-            if(x3title == "x3")
+            if(x3title === "x3")
                 x3title = headerRow[x3col]
             // remove the header from the dataframe. Usually you would just change the starting pointer for
             // the array. don't know if something like that exists in javascript
             df = df.slice(1, df.length)
         }
-        if(df.length == 0)
+        if(df.length === 0)
             return console.error("dataframe is empty")
 
         this.benchmarkStamp("checked Parameters")
@@ -895,7 +904,7 @@ export class Plot
         if(mode != "barchart")
         {
             colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset)
-            if(colorMap == -1)
+            if(colorMap === -1)
             {
                 // COLORLIB requests to restart "getColorMap" using labeled = true
                 labeled = true
@@ -934,7 +943,7 @@ export class Plot
         let maxX3 = 1
         
         //keep old plot and normalization has not been calculated yet?
-        //if(keepOldPlot && this.dfCache.normalization == {})
+        //if(keepOldPlot && this.dfCache.normalization === {})
         if(normalizeX1)
         {
             maxX1 = df[startValueIndex][x1col]
@@ -961,6 +970,8 @@ export class Plot
             //x1frac = Math.max(Math.abs(maxX1), Math.abs(minX1)) // based on largest |value|
             x1frac = Math.abs(maxX1-minX1) // based on distance between min and max
             
+            if(x1frac === 0)
+                x1frac = 1 // all numbers are the same, therefore maxX1 equals minX1, therefore x1frac is 0. prevent divison by zero
         }
 
         if(mode != "barchart") // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
@@ -992,6 +1003,9 @@ export class Plot
                 //x2frac = Math.max(a, b) // hybrid
 
                 x2frac = Math.abs(maxX2-minX2) // based on distance between min and max
+
+                if(x2frac === 0)
+                    x2frac = 1 // all numbers are the same, therefore maxX2 equals minX2, therefore x2frac is 0. prevent divison by zero
             }
         }
 
@@ -1021,12 +1035,15 @@ export class Plot
                 
             //x3frac = Math.max(Math.abs(maxX3), Math.abs(minX3)) // based on largest |value|
             x3frac = Math.abs(maxX3-minX3) // based on distance between min and max
+            
+            if(x3frac === 0)
+                x3frac = 1 // all numbers are the same, therefore maxX3 equals minX3, therefore x3frac is 0. prevent divison by zero
         }
 
         this.benchmarkStamp("normalized the data")
 
         
-        if(mode == "barchart")
+        if(mode === "barchart")
         {
 
             // plotDataFrame
@@ -1081,7 +1098,7 @@ export class Plot
             // if needed, reconstruct the complete barchart
             let valid = this.IsPlotmeshValid("barchart")
             // shape of bars changed? recreate from scratch
-            // let paddingValid = (options.barchartPadding == undefined && this.dfCache.options.barchartPadding == undefined) || (barchartPadding == this.dfCache.options.barchartPadding)
+            // let paddingValid = (options.barchartPadding === undefined && this.dfCache.options.barchartPadding === undefined) || (barchartPadding === this.dfCache.options.barchartPadding)
 
             if(!valid || !keepOldPlot)
             {
@@ -1100,7 +1117,7 @@ export class Plot
             let barsGrid = this.dfCache.barsGrid
 
             // if undefined, start creating a new barsGrid
-            if(barsGrid == undefined)
+            if(barsGrid === undefined)
             {
                 barsGrid = {}
                 this.dfCache.barsGrid = barsGrid
@@ -1133,7 +1150,7 @@ export class Plot
             // use the maximums from the recent run if keepOldPlot
             maxX2 = this.dfCache.normalization.maxX2
             minX2 = this.dfCache.normalization.minX2
-            if(minX2 == undefined || maxX2 == undefined || !keepOldPlot)
+            if(minX2 === undefined || maxX2 === undefined || !keepOldPlot)
             {
                 // bars all start at y = 0 and grow towards -inf and +inf, so 0 is safe to assume
                 maxX2 = 0
@@ -1160,7 +1177,7 @@ export class Plot
                 
                 let oppositeSquareArea = Math.abs(1-Math.abs(x-x_float))*(1-Math.abs(z-z_float))
 
-                if(oppositeSquareArea == 0)
+                if(oppositeSquareArea === 0)
                     return
 
                 // create x and z indices if needed
@@ -1315,7 +1332,7 @@ export class Plot
 
             this.benchmarkStamp("made a bar chart")
         }
-        /*else if(mode == "polygon")
+        /*else if(mode === "polygon")
         {
 
             // plotDataFrame
@@ -1343,7 +1360,7 @@ export class Plot
 
 
         }*/
-        else if(mode == "lineplot")
+        else if(mode === "lineplot")
         {
 
             // plotDataFrame
@@ -1360,7 +1377,7 @@ export class Plot
             let wireframeLinewidth = dataPointSize*100
 
             let isItValid = this.IsPlotmeshValid("lineplot")
-            let isOldMaterialSimilar = (this.dfCache != undefined && this.dfCache.material != undefined && wireframeLinewidth == this.dfCache.material.wireframeLinewidth)
+            let isOldMaterialSimilar = (this.dfCache != undefined && this.dfCache.material != undefined && wireframeLinewidth === this.dfCache.material.wireframeLinewidth)
 
             if(!keepOldPlot || !isItValid || !isOldMaterialSimilar)
             {
@@ -1425,7 +1442,7 @@ export class Plot
             let material = this.dfCache.material
 
             // the material is created here
-            if(material == undefined || !isItValid || material != undefined && material != dataPointSize)
+            if(material === undefined || !isItValid || material != undefined && material != dataPointSize)
             {
                 // only dispose the old mesh if it is not used anymore
                 if(!keepOldPlot)
@@ -1436,28 +1453,34 @@ export class Plot
                     this.SceneHelper.scene.add(this.plotmesh)
                 }
 
-                // create a new material
+                /*// create a new material, draw a circle on it
                 let canvas = document.createElement("canvas")
                 let context = canvas.getContext("2d")
                 canvas.width = 64
                 canvas.height = 64
-
                 // https://github.com/mrdoob/three.js/issues/1625
-                /*context.fillStyle = "white"
-                context.fillRect(0,0,64,64)
-                context.globalCompositeOperation = "destination-in";*/
-                
+                // context.fillStyle = "white"
+                // context.fillRect(0,0,64,64)
+                // context.globalCompositeOperation = "destination-in";
                 context.beginPath()
                 context.arc(32, 32, 30, 0, 2*Math.PI)
                 context.fillStyle = "white"
                 context.fill()
+                let datapointSprite = new THREE.Texture(canvas)*/
         
-                let datapointSprite = new THREE.Texture(canvas)
+                // base64 created using tools/getBase64.html and tools/sprite.png
+                let circle = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABAAQMAAACQp+OdAAAABlBMVEUAAAD///+l2Z/"+
+                "dAAAAAXRSTlMAQObYZgAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfhChkUDA4mTwuUAAAAHWlUWHR"+
+                "Db21tZW50AAAAAABDcmVhdGVkIHdpdGggR0lNUGQuZQcAAACJSURBVCjPvZK7DcAgDESJUlAyAqMwGhktozACJUWEE+fQORJSlCp"+
+                "ueJI/wnd27hHpwLuK7DcEkYqMCHJyxShBkVcoqEV1VGhoQltW6KNb+xfAhjE6iOABxSAAqkEENIMEON4gA/of8OU/8xbzprMas2I"+
+                "Uk/Ka4LSAptAmGkcraa7ZzQPgSfBIECf/CnPyltYpaAAAAABJRU5ErkJggg=="
+
+                let datapointSprite = new THREE.ImageUtils.loadTexture(circle)
                 datapointSprite.needsUpdate = true
                 // plot it using circle sprites
 
-                datapointSprite.magFilter = THREE.LinearFilter
-                datapointSprite.minFilter = THREE.LinearFilter
+                datapointSprite.magFilter = THREE.NearestFilter
+                datapointSprite.minFilter = THREE.NearestFilter
 
 
                 // https:// github.com/mrdoob/three.js/issues/1625
@@ -1469,8 +1492,8 @@ export class Plot
                 material = new THREE.PointsMaterial({
                     size: dataPointSize,
                     map: datapointSprite,
-                    alphaTest: 0.3,
                     transparent: true,
+                    alphaTest: 0.5,
                     vertexColors: true,
                 })
 
@@ -1541,7 +1564,7 @@ export class Plot
         this.SceneHelper.makeSureItRenders(this.animationFunc)
 
         //updating the axes
-        if(mode == "barchart")
+        if(mode === "barchart")
         {
             // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
             // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
@@ -1597,7 +1620,7 @@ export class Plot
      */
     addDataPoint(newDatapoint, options={})
     {
-        if(this.dfCache == undefined)
+        if(this.dfCache === undefined)
             this.resetCache()
             
         // overwrite old options
@@ -1615,17 +1638,17 @@ export class Plot
         this.dfCache.options.maxX1
 
         // those default values are important to be like this.
-        if(options.normalizeX1 == undefined)
+        if(options.normalizeX1 === undefined)
             this.dfCache.options.normalizeX1 = false
-        if(options.normalizeX2 == undefined)
+        if(options.normalizeX2 === undefined)
             this.dfCache.options.normalizeX2 = false
-        if(options.normalizeX3 == undefined)
+        if(options.normalizeX3 === undefined)
             this.dfCache.options.normalizeX3 = false
         if(this.dfCache.options.normalizeX1 || this.dfCache.options.normalizeX2 || this.dfCache.options.normalizeX3)
             console.warn("addDataPoint with turned on normalization options will not align the new datapoint with the old plots normalization.")
 
         // create the datapoint data structure (an array) from this
-        if(typeof(newDatapoint) == "string")
+        if(typeof(newDatapoint) === "string")
         {
             newDatapoint = newDatapoint.split(this.dfCache.separator)
             for(let i = 0;i < newDatapoint.length; i++)
@@ -1668,7 +1691,7 @@ export class Plot
         if(options.colorMap != undefined && options.colorMap.labelColorMap != {})
         {
             // label colors:
-            legendHTML += "<table class=\"jsP3D_labelColorLegend\">" // can't append to innerHTML directly for some funny reason
+            legendHTML += "<table class=\"jsP3D_labelColorLegend\"><tbody>" // can't append to innerHTML directly for some funny reason
             for(let key in options.colorMap.labelColorMap)
             {
                 legendHTML += "<tr>"
@@ -1676,20 +1699,22 @@ export class Plot
                 legendHTML += "<td>" + key + "</td>"
                 legendHTML += "</tr>"
             }
-            legendHTML += "</table>"
+            legendHTML += "</tbody></table>"
         }
 
         // axes titles:
-        legendHTML += "<table class=\"jsP3D_axesTitleLegend\">"
+        legendHTML += "<table class=\"jsP3D_axesTitleLegend\"><tbody>"
         if(options.x1title != undefined)
             legendHTML += "<tr><td>x:</td><td>"+options.x1title+"</td></tr>"
         if(options.x2title != undefined)
             legendHTML += "<tr><td>y:</td><td>"+options.x2title+"</td></tr>"
         if(options.x3title != undefined)
             legendHTML += "<tr><td>z:</td><td>"+options.x3title+"</td></tr>"
-        legendHTML += "</table>"
+        legendHTML += "</tbody></table>"
 
-        this.legend.element.innerHTML = legendHTML
+        // is the content similar? Then don't overwrite because it will trigger rerenders every time (observed in the chromium Elements view)
+        if(this.legend.element.innerHTML.trim() != legendHTML) // for some reason I have to trim the current innerHTML
+            this.legend.element.innerHTML = legendHTML
     }
 
 
@@ -1729,7 +1754,7 @@ export class Plot
      */
     createLegend(container)
     {
-        if(container == null || container == undefined)
+        if(container === null || container === undefined)
             return console.error("container for createLegend not found")
         container.appendChild(this.legend.element)
         return(this.legend.element)
@@ -1747,7 +1772,7 @@ export class Plot
     {
         let obj = this.plotmesh
 
-        if(obj == undefined)
+        if(obj === undefined)
         {
             this.redraw = false
             return false
@@ -1763,10 +1788,10 @@ export class Plot
         }
 
 
-        if(obj.name == check)
+        if(obj.name === check)
             return true
 
-        if(obj.type == check)
+        if(obj.type === check)
             return true
 
             
@@ -1806,7 +1831,7 @@ export class Plot
      */
     getCache()
     {
-        if(this.dfCache == undefined)
+        if(this.dfCache === undefined)
             resetCache()
         return this.dfCache
     }
@@ -1890,9 +1915,9 @@ export class Plot
             return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen")
 
         if(dimensions.xRes != undefined)
-            this.dimensions.xRes = Math.max(1, Math.abs(parseInt(dimensions.xRes)))
+            this.dimensions.xRes = Math.max(1, Math.abs(dimensions.xRes|0))
         if(dimensions.zRes != undefined)
-            this.dimensions.zRes = Math.max(1, Math.abs(parseInt(dimensions.zRes)))
+            this.dimensions.zRes = Math.max(1, Math.abs(dimensions.zRes|0))
         if(dimensions.xLen != undefined)
             this.dimensions.xLen = Math.abs(dimensions.xLen)
         if(dimensions.yLen != undefined)
@@ -1995,7 +2020,7 @@ export class Plot
     {
         this.benchmark = {}
         this.benchmark.enabled = true
-        this.benchmark.recentTime = -1 // tell  this.benchmarkStamp() to write the current time into recentResult
+        this.benchmark.recentTime = window.performance.now()
     }
 
 
@@ -2005,7 +2030,6 @@ export class Plot
      */
     disableBenchmarking()
     {
-        this.benchmark = {}
         this.benchmark.enabled = false
     }
 
@@ -2017,17 +2041,11 @@ export class Plot
      */
     benchmarkStamp(identifier)
     {
-        if(this.benchmark == undefined)
+        if(this.benchmark.enabled === false)
             return
 
-        if(this.benchmark.recentTime == -1)
-            this.benchmark.recentTime = window.performance.now()
-
-        if(this.benchmark.enabled === true)
-        {
-            console.log(identifier+": "+(window.performance.now()-this.benchmark.recentTime)+"ms")
-            this.benchmark.recentTime = window.performance.now()
-        }
+        console.log(identifier+": "+(window.performance.now()-this.benchmark.recentTime)+"ms")
+        this.benchmark.recentTime = window.performance.now()
     }
 
 

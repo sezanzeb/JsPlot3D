@@ -1,14 +1,18 @@
 <html>
     <head>
         <title>JsPlot3D - Building up a Scatterplot Step by Step</title>
+        <link rel="stylesheet" type="text/css" href="../style.css">
     </head>
     <body>
         <h1>Building up a Scatterplot Step by Step</h1>
-        <div id="JsPlot3DContainer1" style="width:400px; height:350px;"></div>
+        <div class="inlineBlock" id="JsPlot3DContainer1" style="width:400px; height:350px;"></div>
         <p>Evenly distributed small yellow-orange-red datapoints on a dark blue background and lime axes. At the top there are a few large turqoise datapoints visible</p>
-        <div id="JsPlot3DContainer2" style="width:400px; height:350px;"></div>
-        <div id="JsPlot3DContainer3" style="width:400px; height:350px;"></div>
+
+        <hr/>
+        <div class="inlineBlock" id="JsPlot3DContainer2" style="width:400px; height:350px;"></div>
+        <div class="inlineBlock" id="JsPlot3DContainer3" style="width:400px; height:350px;"></div>
         <p>Blinking white points at random positions.</p>
+
         <div class="hidden" id="csv">
             x;cos;tanh
             1;0.9999500004166653;0.00999966667999949
@@ -23,8 +27,8 @@
         </div>
     </body>
 </html>
-<script src="http://threejs.org/build/three.min.js"></script>
-<script type="text/javascript" src="../compiled/JsPlot3D.js"></script>
+<script src="https://threejs.org/build/three.js"></script>
+<script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
     var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"),
     {
@@ -40,8 +44,9 @@
     })
 
     plot1.animate(function() {
-        let randr = 1
-        let randg = Math.abs(Math.random())
+        let randr = 255
+        let randg = 255*Math.abs(Math.random()) | 0
+        console.log(randg)
         let randb = 0
         plot1.addDataPoint([Math.abs(Math.random()),Math.abs(Math.random()),Math.abs(Math.random())],{
             defaultColor: "rgb(" + randr + "," + randg + "," + randb + ")",
@@ -93,23 +98,3 @@
     plot3.removeAxes()
     
 </script>
-<style>
-
-    body
-    {
-        margin: 20px;
-        font-family: sans-serif;
-    }
-
-    div,canvas
-    {
-        background: #2659b2;
-        display:inline-block;
-    }
-
-    .hidden
-    {
-        display:none;
-    }
-
-</style>

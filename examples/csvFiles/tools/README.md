@@ -11,3 +11,5 @@ The first script will create one csv file that is generated using a few formulas
 The second one generates csvs that can be used to test the color decoding capabilities of the tool
 
 The third one creates a spring shape
+
+**also see /pngToCsv/README.md**

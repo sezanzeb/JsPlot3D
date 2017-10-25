@@ -15,7 +15,7 @@ for(let i = 1;i < lines; i++)
         (Math.cos(i/100)+rand())+";"+
         (Math.tanh(i/100)+rand())+";"+
         (Math.sqrt(i/100)+rand())+";"+
-        "RGB("+(1-i/lines)+","+1+","+i/lines+")"
+        "RGB("+parseInt(255*(1-i/lines))+","+255+","+parseInt(255*i/lines)+")"
 }
 
 /*  let hexTest = parseInt((i/lines)*255).toString(16)
@@ -36,4 +36,4 @@ function rand()
     return a + b + c
 }
 
-fs.writeFileSync("../example.csv",csv.join("\n"))
+fs.writeFileSync("../math.csv",csv.join("\n"))

@@ -1,10 +1,11 @@
 {
-  "name": "3D-Plot-Js",
+  "name": "jsplot3d",
   "version": "1.0.0",
   "description": "Plots functions aswell as .csv data",
   "main": "webpack.config.js",
   "scripts": {
-    "start": "webpack"
+    "test": "webpack",
+    "start": "webpack -p"
   },
   "repository": {
     "type": "git",
@@ -21,7 +22,7 @@
     "babel-core": "^6.26.0",
     "babel-loader": "^7.1.2",
     "babel-preset-env": "^1.6.0",
-    "babylonjs": "^3.1.0-alpha3.5",
+    "jasmine-core": "^2.8.0",
     "three": "^0.87.1",
     "three-orbit-controls": "^82.1.0",
     "webpack": "^3.6.0"

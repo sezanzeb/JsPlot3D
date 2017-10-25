@@ -110,10 +110,7 @@ export default class JsP3D_SceneHelper
 
         // the point of this is, that i can disable this by overwriting it
         // when doing animations no need to use the event listener anymore
-        this.onChangeCamera = function()
-        {
-            this.render()
-        }
+        this.onChangeCamera = this.render
         controls.addEventListener("change", ()=>this.render())
 
         controls.enableDamping = true
@@ -218,7 +215,7 @@ export default class JsP3D_SceneHelper
         // textCanvas.width = letter.length * 64
         // the texture size has to be a power of two for each dimension
         // letter.length -> width. 2 -> 2, 3 -> 4, 4 -> 4, 5 -> 8, 6 -> 8, 7 -> 8, etc.
-        textCanvas.width = Math.pow(2, parseInt(Math.log2(letter.length))+1)*64
+        textCanvas.width = Math.pow(2, (Math.log2(letter.length)|0)+1)*64
         textCanvas.height = textCanvas.width
 
         // prepare the textwriting
