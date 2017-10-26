@@ -47,6 +47,7 @@ export default class JsP3D_SceneHelper
         this.setBackgroundColor(backgroundColor)
 
         this.createLight()
+
         this.createAxes(axesColor, dimensions)
     }
 
@@ -82,6 +83,9 @@ export default class JsP3D_SceneHelper
 
         // 80 is the default camera.fov value. A less perspectivic view can be achieved using a smaller value, but it has to be moved farther away
         let zoom = 80/this.camera.fov
+
+        if(this.camera.type === "OrthographicCamera")
+            zoom = 1
 
         this.camera.position.set(zoom*(xLen/2), zoom*(Math.max(zLen, yLen)), zoom*(zLen+xLen))
         this.cameraControls.target.set(xLen/2, yLen/2, zLen/2)
@@ -158,7 +162,9 @@ export default class JsP3D_SceneHelper
     removeAxes()
     {
         this.disposeMesh(this.axes)
+        this.disposeMesh(this.gridHelper)
         this.axes = undefined
+        this.gridHelper = undefined
     }
 
 
@@ -391,8 +397,10 @@ export default class JsP3D_SceneHelper
      */
     updateAxesSize(dimensions, normalization)
     {
-        if(this.axes != undefined)
-            this.createAxes(this.axesColor,dimensions,normalization)
+        if(this.axes == undefined)
+            return
+        
+        this.createAxes(this.axesColor,dimensions,normalization)
     }
 
     
@@ -523,6 +531,37 @@ export default class JsP3D_SceneHelper
             zLetter = this.placeLetter("z", new THREE.Vector3(0,0, zLen*percentage+offset), 80, 0.05)
             axes.add(zLetter)
         }
+
+
+
+        // create a new gridHelper that divides the 3Dspace into 4 pieces
+        let gridHelper1 = new THREE.GridHelper(1, 2)
+        gridHelper1.geometry.translate(0.5,0,0.5)
+        gridHelper1.geometry.scale(dimensions.xLen,1,dimensions.zLen)
+        // appearance
+        gridHelper1.material.transparent = true
+        gridHelper1.material.opacity = 0.3
+        axes.add(gridHelper1)
+
+        // gridhelper on the x-y and z-y planes. But they don't actually look that good I think
+        /*let gridHelper2 = new THREE.GridHelper(1, 1)
+        gridHelper2.geometry.translate(0.5,0,0.5)
+        gridHelper2.geometry.scale(dimensions.xLen,1,dimensions.yLen)
+        gridHelper2.geometry.rotateX(-Math.PI/2)
+        // appearance
+        gridHelper2.material.transparent = true
+        gridHelper2.material.opacity = 0.1
+        axes.add(gridHelper2)
+
+        let gridHelper3 = new THREE.GridHelper(1, 1)
+        gridHelper3.geometry.translate(0.5,0,0.5)
+        gridHelper3.geometry.scale(dimensions.yLen,1,dimensions.zLen)
+        gridHelper3.geometry.rotateZ(Math.PI/2)
+        // appearance
+        gridHelper3.material.transparent = true
+        gridHelper3.material.opacity = 0.1
+        axes.add(gridHelper3)*/
+
 
         // updateAxesNumbers relies on this.axes, so make sure this is assigned before it
         this.axes = axes

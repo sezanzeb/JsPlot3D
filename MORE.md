@@ -43,7 +43,6 @@ The live example can also help you to understand the parameters: http://hip70890
 **appearance:**
 
 - in barchart mode add **numbers to the axes** that match the barchart-grid
-- display box around the plot that has inverse culling, so that the viewer can look inside it. Display a grid texture on it's faces. (not sure how to do this in a way that would look good. Maybe it would not be only a box but rather **a 3D grid divides the complete 3D-space into small cubes**.
 - calculate the **average color per bar** (which are sums of y values that are near that grid position) depending on colorCol. At the moment it only dyes according to the y-height
 - make a flat design for the legend in the live example, like the one on the responsive version
 - in responsive mode, replace the word "GitHub" by the github logo

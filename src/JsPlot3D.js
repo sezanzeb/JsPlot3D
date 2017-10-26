@@ -1062,17 +1062,27 @@ export class Plot
             // if normalization is on, make sure that the bars at x=0 or z=0 don't intersect the axes
             let xOffset = 0
             let zOffset = 0
+            // because of the offset, render the bars closer to each other so that they
+            // don't exceed the space defined by the gridHelper
+            let xfracIncrease = 0
+            let zfracIncrease = 0
             if(normalizeX1)
+            {
                 xOffset = 1/this.dimensions.xRes/2 //divide by two because to counter the intersection only half of the bar has to be moved away
+                xfracIncrease = 1
+            }
             if(normalizeX3)
+            {
                 zOffset = 1/this.dimensions.zRes/2
+                zfracIncrease = 1
+            }
 
             // helper function
             let createBar = (x, z, cubegroup) =>
             {
                 // create the bar
                 // I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
-                let shape = new THREE.CubeGeometry((1-barchartPadding)/this.dimensions.xRes,1,(1-barchartPadding)/this.dimensions.zRes)
+                let shape = new THREE.CubeGeometry((1-barchartPadding)/(this.dimensions.xRes+xfracIncrease),1,(1-barchartPadding)/(this.dimensions.zRes+zfracIncrease))
 
                 // use translate when the position property should not be influenced
                 // shape.translate(xBarOffset,0, zBarOffset)
@@ -1087,7 +1097,7 @@ export class Plot
                 })
 
                 let bar = new THREE.Mesh(shape, plotmat)
-                bar.position.set(x/this.dimensions.xRes+xOffset,0, z/this.dimensions.zRes+zOffset)
+                bar.position.set(x/(this.dimensions.xRes+xfracIncrease)+xOffset,0, z/(this.dimensions.zRes+zfracIncrease)+zOffset)
                 bar.geometry.translate(0,0.5,0)
                 cubegroup.add(bar)
 
