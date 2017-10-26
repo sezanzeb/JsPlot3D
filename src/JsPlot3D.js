@@ -112,6 +112,7 @@ export class Plot
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
      * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0  
+     * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
     plotFormula(originalFormula, options={})
     {
@@ -239,6 +240,10 @@ export class Plot
             let hueOffset=0
             if(this.checkNumber("hueOffset", options.hueOffset))
                 hueOffset = parseFloat(options.hueOffset)
+                
+            let numberDensity=2
+            if(this.checkNumber("numberDensity", options.numberDensity))
+                numberDensity = parseFloat(options.numberDensity)
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
@@ -266,10 +271,10 @@ export class Plot
 
                 for(let i = 0;i < planegeometry.faces.length; i++)
                 {
-                    let face = planegeometry.faces[i]
-                    face.vertexColors[0] = new THREE.Color(0)
-                    face.vertexColors[1] = new THREE.Color(0)
-                    face.vertexColors[2] = new THREE.Color(0)
+                    let faceColors = planegeometry.faces[i].vertexColors
+                    faceColors[0] = new THREE.Color(0)
+                    faceColors[1] = new THREE.Color(0)
+                    faceColors[2] = new THREE.Color(0)
                 }
 
                 this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
@@ -304,14 +309,20 @@ export class Plot
                 {
                     y = this.MathParser.f(x1Actual, x3Actual)
 
-                    // in each face there are 3 attributes, which stand for the vertex Indices (Which are vIndex basically)
+                    /*// in each face there are 3 attributes, which stand for the vertex Indices (Which are vIndex basically)
                     // faces are ordered so that the vIndex in .c is in increasing order. If faceIndex.c has an unmatching value, increase
                     // the faceindex and therefore switch to a different face which mathes .c with vIndex.
-                    for(;faceIndex1 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex1].c < vIndex; faceIndex1++) {}
+                    while(faceIndex1 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex1].c < vIndex)
+                    {
+                        faceIndex1++
+                    }
                     // the result of this operation is: faces[faceIndex].c === vIndex
 
                     // do similar for faceIndex2.
-                    for(;faceIndex2 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex2].a < vIndex; faceIndex2++) {}
+                    while(faceIndex2 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex2].a < vIndex)
+                    {
+                        faceIndex2++
+                    }*/
                     
                     this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
 
@@ -377,6 +388,10 @@ export class Plot
                 this.plotmesh.geometry.scale(1,1/x2frac,1)
             }
 
+        
+            if(this.SceneHelper.axes != undefined)
+                this.SceneHelper.updateAxesNumbers(this.dimensions, {minX1: 0, maxX1: 1, minX2: 0, maxX2: 1, minX3: 0, maxX3: 1}, numberDensity)
+
             this.plotmesh.name = "polygonFormula"
             this.SceneHelper.scene.add(this.plotmesh)
 
@@ -435,6 +450,7 @@ export class Plot
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
      * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
+     * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
     plotCsvString(sCsv, x1col, x2col, x3col, options = {})
     {
@@ -681,6 +697,7 @@ export class Plot
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
      * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
+     * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
                 
     plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={}, normalization={})
@@ -723,6 +740,7 @@ export class Plot
         let x1frac=1
         let x2frac=1
         let x3frac=1
+        let numberDensity=2
         // let normalizationSmoothing=0
 
         if(this.dfCache === undefined)
@@ -762,6 +780,8 @@ export class Plot
 
             if(this.checkNumber("hueOffset", options.hueOffset))
                 hueOffset = parseFloat(options.hueOffset)
+            if(this.checkNumber("numberDensity", options.numberDensity))
+                numberDensity = parseFloat(options.numberDensity)
             if(this.checkNumber("x1frac", options.x1frac))
                 x1frac = parseFloat(options.x1frac)
             if(this.checkNumber("x2frac", options.x2frac))
@@ -1393,10 +1413,11 @@ export class Plot
             {
                 this.SceneHelper.disposeMesh(this.plotmesh)
 
-                let material = new THREE.MeshBasicMaterial({
-                    wireframe: true,
+                let material = new THREE.LineBasicMaterial({
                     vertexColors: THREE.VertexColors,
-                    wireframeLinewidth: wireframeLinewidth
+                    linewidth: wireframeLinewidth,
+                    linecap: "round",
+                    linejoin: "round"
                     })
 
                 this.dfCache.material = material
@@ -1418,17 +1439,19 @@ export class Plot
 
                 // three.js handles invalid vertex already by skipping them
                 geometry.vertices.push(vertex)
-                if(i > 1)
+                /*if(i > 1)
                 {
                     let newFace = new THREE.Face3(i-1, i-1, i)
                     newFace.vertexColors[0] = dfColors[i-1]
                     newFace.vertexColors[1] = dfColors[i-1]
                     newFace.vertexColors[2] = dfColors[i]
                     geometry.faces.push(newFace)
-                }
+                }*/
+
+                geometry.colors.push(dfColors[i])
             }
 
-            let newDataPointSprites = new THREE.Mesh(geometry, material)
+            let newDataPointSprites = new THREE.Line(geometry, material)
 
             group.add(newDataPointSprites)
 
@@ -1485,7 +1508,8 @@ export class Plot
                 "ueJI/wnd27hHpwLuK7DcEkYqMCHJyxShBkVcoqEV1VGhoQltW6KNb+xfAhjE6iOABxSAAqkEENIMEON4gA/of8OU/8xbzprMas2I"+
                 "Uk/Ka4LSAptAmGkcraa7ZzQPgSfBIECf/CnPyltYpaAAAAABJRU5ErkJggg=="
 
-                let datapointSprite = new THREE.ImageUtils.loadTexture(circle)
+                let datapointSprite = new THREE.TextureLoader().load(circle)
+                //let datapointSprite = new THREE.ImageUtils.loadTexture(circle)
                 datapointSprite.needsUpdate = true
                 // plot it using circle sprites
 
@@ -1545,13 +1569,6 @@ export class Plot
         // update cache
 
         // those are always handy to remember and they are needed in some cases
-        this.dfCache.normalization = {}
-        this.dfCache.normalization.minX1 = minX1
-        this.dfCache.normalization.maxX1 = maxX1
-        this.dfCache.normalization.minX2 = minX2
-        this.dfCache.normalization.maxX2 = maxX2
-        this.dfCache.normalization.minX3 = minX3
-        this.dfCache.normalization.maxX3 = maxX3
         this.dfCache.normalization.x1frac = x1frac
         this.dfCache.normalization.x2frac = x2frac
         this.dfCache.normalization.x3frac = x3frac
@@ -1573,24 +1590,41 @@ export class Plot
 
         this.SceneHelper.makeSureItRenders(this.animationFunc)
 
-        //updating the axes
-        if(mode === "barchart")
+        //updating the axes. Only update them when the numbers actually change
+        if(this.dfCache.normalization.minX1 !== minX1 ||
+            this.dfCache.normalization.maxX1 !== maxX1 ||
+            this.dfCache.normalization.minX2 !== minX2 ||
+            this.dfCache.normalization.maxX2 !== maxX2 ||
+            this.dfCache.normalization.minX3 !== minX3 ||
+            this.dfCache.normalization.maxX3 !== maxX3)
         {
-            // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
-            // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
-            // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
-            // to the top by minX1. updateAxesNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
-            // barcharts: let ypos = normalization.maxX2 / normalization.x2frac * yLen
-            // default: let ypos = (normalization.maxX2 - normalization.minX2) / normalization.x2frac * yLen
-            let normalization = this.dfCache.normalization
-            normalization.minX2 = 0
-            if(this.SceneHelper.axes != undefined)
-                this.SceneHelper.updateAxesNumbers(this.dimensions, normalization)
-        }
-        else
-        {
-            if(this.SceneHelper.axes != undefined)
-                this.SceneHelper.updateAxesNumbers(this.dimensions, this.dfCache.normalization)
+            
+            this.dfCache.normalization = {}
+            this.dfCache.normalization.minX1 = minX1
+            this.dfCache.normalization.maxX1 = maxX1
+            this.dfCache.normalization.minX2 = minX2
+            this.dfCache.normalization.maxX2 = maxX2
+            this.dfCache.normalization.minX3 = minX3
+            this.dfCache.normalization.maxX3 = maxX3
+
+            if(mode === "barchart")
+            {
+                // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
+                // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
+                // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
+                // to the top by minX1. updateAxesNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
+                // barcharts: let ypos = normalization.maxX2 / normalization.x2frac * yLen
+                // default: let ypos = (normalization.maxX2 - normalization.minX2) / normalization.x2frac * yLen
+                let normalization = this.dfCache.normalization
+                normalization.minX2 = 0
+                if(this.SceneHelper.axes != undefined)
+                    this.SceneHelper.updateAxesNumbers(this.dimensions, normalization, numberDensity)
+            }
+            else
+            {
+                if(this.SceneHelper.axes != undefined)
+                    this.SceneHelper.updateAxesNumbers(this.dimensions, this.dfCache.normalization, numberDensity)
+            }
         }
     }
 
@@ -1627,6 +1661,7 @@ export class Plot
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
+     * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
     addDataPoint(newDatapoint, options={})
     {

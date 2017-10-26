@@ -17,7 +17,7 @@ export default class JsP3D_SceneHelper
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
         this.recentlyUsedNormalization = undefined
         this.recentlyUsedDimensions = undefined
-        this.textScale = 1/6
+        this.textScale = 1/7
     }
 
 
@@ -94,8 +94,8 @@ export default class JsP3D_SceneHelper
     }
 
 
-    /** Creates the camera
-     * @private
+    /** 
+     * Creates the camera
      */
     createArcCamera(width, height)
     {
@@ -135,7 +135,6 @@ export default class JsP3D_SceneHelper
 
     /**
      * takes care of creating the light
-     * @private
      */
     createLight()
     {
@@ -184,7 +183,7 @@ export default class JsP3D_SceneHelper
         geometry.vertices.push(new THREE.Vector3(0, 0, 0)) // 0, 0, 0 so that I can move it around using the position.set()
         let textureToSprite = new THREE.Points(geometry, new THREE.PointsMaterial({
             map: canvasToTexture,
-            depthTest: false,
+            depthTest: true,
             // depthWrite: false,
             sizeAttenuation: false,
             size: canvasToTexture.image.width * this.textScale,
@@ -301,11 +300,69 @@ export default class JsP3D_SceneHelper
 
 
     /**
+     * creates numbers according to the parameters. They are going to be displayed along the axis.
+     * 
+     * This function can create the numbers for all three axes and basically even more than that,
+     * it's just a matter of how you define the position lamda function in the parameters
+     * 
+     * @param {number} numberCount how many numbers to display along the axis
+     * @param {number} axisLen length of the axis
+     * @param {object} numbersGroup THREE.Group that contains all the numbers
+     * @param {number} min the vlaue of the lowest datapoint
+     * @param {number} max the value of the highest datapoint
+     * @param {function} position example: (value)=>{return new THREE.Vector3(value, offset2, offset2)}
+     * @return {object} with numbers populated group
+     */
+    createNumbersAlongAxis(numberCount, axisLen, numbersGroup, min, max, position)
+    {
+        let step = axisLen/numberCount
+        if(numbersGroup == undefined || numbersGroup.children.length != numberCount)
+        {
+            numbersGroup = new THREE.Group()
+            numbersGroup.name = "numbers"
+        }
+
+        let children = numbersGroup.children
+
+        let index = 0
+        for(let x = step; x <= axisLen; x += step)
+        {
+            let number = max/numberCount*(index+1) + min
+            console.log(number)
+            if(typeof(number) !== "number")
+                return console.error("at least on of the parameters is not a number. Please check:",{numberCount, axisLen, min, max})
+
+            // if the number didn't change, don't do anything
+            if(children[index] != undefined && children[index].originalNumber === number)
+                continue
+
+            let text = number.toPrecision(3)
+            let pos = position(x)
+            if(children[index] == undefined)
+            {
+                let textObject = this.placeLetter(text, pos)
+                textObject.originalNumber = number
+                numbersGroup.add(textObject)
+            }
+            else
+            {
+                this.updateLetterTextureOnSprite(children[index], text)
+                children[index].position.set(pos.x, pos.y, pos.z)
+            }
+            index ++
+        }
+        
+        return numbersGroup
+    }
+
+
+
+    /**
      * updates the axes with a new length and new numbers to display
      * @param {object} dimensions {xLen, yLen, zLen} 
      * @param {object} normalization {maxX1, maxX2, maxX3} 
      */
-    updateAxesNumbers(dimensions, normalization)
+    updateAxesNumbers(dimensions, normalization, numberDensity)
     {
         // is there even all the information needed for normalization available?
         if(isNaN(normalization.maxX1 + normalization.maxX2 + normalization.maxX3))
@@ -328,63 +385,22 @@ export default class JsP3D_SceneHelper
         let showx2 = dimensions.yLen != 0 && dimensions.yRes != 0
         let showx3 = dimensions.zLen != 0 && dimensions.zRes != 0
 
-        // text indication number ranges
-        let xNumber
-        let yNumber
-        let zNumber
-        if(normalization != undefined && normalization != {})
+        let offset2 = -0.075
+
+        if(showx1)
         {
-            let offset2 = -0.075
-            // round to significant number (toPrecision) and then remove the zeros at the end (parseFloat) if there are any
-            let x1 = parseFloat(normalization.maxX1.toPrecision(3))
-            let x2 = parseFloat(normalization.maxX2.toPrecision(3))
-            let x3 = parseFloat(normalization.maxX3.toPrecision(3))
-
-            if(showx1) // x
-            {
-                if(this.xNumber == undefined)
-                {
-                    xNumber = this.placeLetter(x1, new THREE.Vector3(xLen, offset2, offset2))
-                    this.axes.add(xNumber)
-                    this.xNumber = xNumber
-                }
-                else
-                {
-                    this.updateLetterTextureOnSprite(this.xNumber, x1)
-                    this.xNumber.position.set(xLen, offset2, offset2)
-                }
-            }
-
-            if(showx2) // y
-            {
-                let ypos = ((normalization.maxX2 - normalization.minX2) / normalization.x2frac) * yLen
-                if(this.yNumber == undefined)
-                {
-                    yNumber = this.placeLetter(x2, new THREE.Vector3(offset2, ypos, offset2))
-                    this.axes.add(yNumber)
-                    this.yNumber = yNumber
-                }
-                else
-                {
-                    this.updateLetterTextureOnSprite(this.yNumber, x2)
-                    this.yNumber.position.set(offset2, ypos, offset2)
-                }
-            }
-
-            if(showx3) // z
-            {
-                if(this.zNumber == undefined)
-                {
-                    zNumber = this.placeLetter(x3, new THREE.Vector3(offset2, offset2, zLen))
-                    this.axes.add(zNumber)
-                    this.zNumber = zNumber
-                }
-                else
-                {
-                    this.updateLetterTextureOnSprite(this.zNumber, x3)
-                    this.zNumber.position.set(offset2, offset2, zLen)
-                }
-            }
+            this.xNumbers = this.createNumbersAlongAxis(numberDensity*xLen|0, xLen, this.xNumbers, normalization.minX1, normalization.maxX1, (value)=>{return new THREE.Vector3(value, offset2, offset2)})
+            this.axes.add(this.xNumbers)
+        }
+        if(showx2)
+        {
+            this.yNumbers = this.createNumbersAlongAxis(numberDensity*yLen|0, yLen, this.yNumbers, normalization.minX2, normalization.maxX2, (value)=>{return new THREE.Vector3(offset2, value, offset2)})
+            this.axes.add(this.yNumbers)
+        }
+        if(showx3)
+        {
+            this.zNumbers = this.createNumbersAlongAxis(numberDensity*zLen|0, zLen, this.zNumbers, normalization.minX3, normalization.maxX3, (value)=>{return new THREE.Vector3(offset2, offset2, value)})
+            this.axes.add(this.zNumbers)
         }
     }
 
@@ -535,7 +551,7 @@ export default class JsP3D_SceneHelper
 
 
         // create a new gridHelper that divides the 3Dspace into 4 pieces
-        let gridHelper1 = new THREE.GridHelper(1, 2)
+        let gridHelper1 = new THREE.GridHelper(1, 2, colorObject, colorObject)
         gridHelper1.geometry.translate(0.5,0,0.5)
         gridHelper1.geometry.scale(dimensions.xLen,1,dimensions.zLen)
         // appearance
@@ -544,7 +560,7 @@ export default class JsP3D_SceneHelper
         axes.add(gridHelper1)
 
         // gridhelper on the x-y and z-y planes. But they don't actually look that good I think
-        /*let gridHelper2 = new THREE.GridHelper(1, 1)
+        /*let gridHelper2 = new THREE.GridHelper(1, 1, colorObject, colorObject)
         gridHelper2.geometry.translate(0.5,0,0.5)
         gridHelper2.geometry.scale(dimensions.xLen,1,dimensions.yLen)
         gridHelper2.geometry.rotateX(-Math.PI/2)
@@ -553,7 +569,7 @@ export default class JsP3D_SceneHelper
         gridHelper2.material.opacity = 0.1
         axes.add(gridHelper2)
 
-        let gridHelper3 = new THREE.GridHelper(1, 1)
+        let gridHelper3 = new THREE.GridHelper(1, 1, colorObject, colorObject)
         gridHelper3.geometry.translate(0.5,0,0.5)
         gridHelper3.geometry.scale(dimensions.yLen,1,dimensions.zLen)
         gridHelper3.geometry.rotateZ(Math.PI/2)
@@ -567,8 +583,8 @@ export default class JsP3D_SceneHelper
         this.axes = axes
 
         // normalization might be undefined when there is no plot yet to show
-        if(normalization != undefined)
-            this.updateAxesNumbers(dimensions,normalization)
+        // if(normalization != undefined)
+        //    this.updateAxesNumbers(dimensions, normalization, numberDensity)
 
         axes.name = "axesGroup"
 
