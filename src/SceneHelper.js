@@ -35,9 +35,9 @@ export default class SceneHelper
 
     /**
      * scene setup. Szene, Camera, Lighting, Axes
-     * @param {*} dimensions 
-     * @param {*} sceneOptions 
-     * @param {*} cameraOptions 
+     * @param {object} dimensions the dimensions attribute of the Plot class. Contains xLen, yLen, zLen, xRes, zRes, xVerticesCount, zVerticesCount
+     * @param {object} sceneOptions contains the attributes .backgroundColor and .axesColor. Example: {backgroundColor: "#0066ff", axesColor: "#ffffff"}
+     * @param {object} cameraOptions object containing "width" and "height" of the canvas on which the plot will be drawn
      */
     createScene(dimensions, sceneOptions, cameraOptions)
     {

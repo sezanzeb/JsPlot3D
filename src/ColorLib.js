@@ -34,13 +34,15 @@ export function convertToHeat(value,min=-1,max=1,hueOffset=0)
  * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
  * The parameters have the same names as in JsPlot3D.js. Just forward them to this function
  * @param {any[][]} df the dataframe without the headers
- * @param {*} colorCol 
- * @param {*} defaultColor 
- * @param {*} labeled
- * @param {*} header 
+ * @param {number} colorCol the column index of each datapoint, that is used to calculate/parse the color.
+ * Example: colorCol is 3. [1324,0.7653,7,"rgb(128,255,0)"]. When labeled is set to false, the datapoint will be colored in lime
+ * @param {any} defaultColor if no varying color can be applied to the data, draw all datapoints in this color. Example: "#ff6600"
+ * @param {boolean} labeled if true, treat the column indicated in colorCol as labels.
+ * Example: when df[line][colorCol] is "tree" it will be red, flower will be a different color and so on
+ * @param {boolean} header true if there are headers in the dataframe ("street","number",...)
  * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
- * @param {*} hueOffset 
- * @param {*} oldLabelsMap 
+ * @param {number} hueOffset color offset. 0.5 inverts the hue (red goes turqoise)
+ * @param {object} oldLabelsMap .labelColorMap attribute of the return value of this function from the past
  * @private
  */
 export function getColorMap(df, colorCol, defaultColor, labeled, header, filterColor=true, hueOffset=0, labelColorMap={}, numberOfLabels=0)

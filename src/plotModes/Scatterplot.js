@@ -2,13 +2,13 @@ import * as THREE from "three"
 
 /**
  * called from within JsPlot3D.js class plot
- * @param {*} parent this
- * @param {*} df df
- * @param {*} colors {dfColors, hueOffset}
- * @param {*} columns {x1col, x2col, x3col}
- * @param {*} normalization {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
- * @param {*} appearance {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
- * @param {*} dimensions {xLen, yLen, zLen}
+ * @param {object} parent this
+ * @param {object} df df
+ * @param {object} colors {dfColors, hueOffset}
+ * @param {object} columns {x1col, x2col, x3col}
+ * @param {object} normalization {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
+ * @param {object} appearance {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
+ * @param {object} dimensions {xLen, yLen, zLen}
  * @private
  */
 export default function scatterplot(parent, df, colors, columns, normalization, appearance, dimensions)

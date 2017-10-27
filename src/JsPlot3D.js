@@ -51,7 +51,6 @@ export class Plot
         // to be something to call during runtime and will therefore cause problems
         this.dimensions = {xRes:20, zRes:20, xLen:1, yLen:1, zLen:1}
         this.dimensions.xVerticesCount = this.dimensions.xRes * this.dimensions.xLen
-        this.dimensions.yVerticesCount = this.dimensions.yRes * this.dimensions.yLen
         this.dimensions.zVerticesCount = this.dimensions.zRes * this.dimensions.zLen
         
         // before MathParser, Dimensions have to be called to initialize some stuff (xVerticesCount and zVerticesCount)
