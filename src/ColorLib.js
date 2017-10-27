@@ -36,7 +36,7 @@ export function convertToHeat(value,min=-1,max=1,hueOffset=0)
  * @param {any[][]} df the dataframe without the headers
  * @param {*} colorCol 
  * @param {*} defaultColor 
- * @param {*} labeled 
+ * @param {*} labeled
  * @param {*} header 
  * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
  * @param {*} hueOffset 
@@ -76,16 +76,14 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
         }
     }
 
+    // now create the dfColors array
     if(colorCol != -1) // does the user even want colors?
     {
 
-        // also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
-        // no need to check if it's numbers or not, because dfColors carries only numbers
-        // Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
+        // find out min and max values, so that I can do hsl(clr/clrMax,100%,100%)
         let clrMax = df[firstDataPointLine][colorCol]
         let clrMin = df[firstDataPointLine][colorCol]
-        
-        // the following function just updates clrMax and clrMin, only available within the function that wraps this (getColorMap(...))
+        // the following function just updates clrMax and clrMin
         let findHighestAndLowest = (value) =>
         {
             if(filterColor && colorCol != -1)
@@ -101,7 +99,7 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
         // store it inside dfColors[i] if it (can be converted to a number)||(is already a number)
 
         // parameter. Does the dataset hold classes/labels?
-        if(labeled) // get 0.6315 from 2.6351 or 0 from 2. this way check if there are comma values
+        if(labeled)
         {
 
             //------------------------//
@@ -111,21 +109,22 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
 
             // check the second line, because there might be headers accidentally in the first row
             if((df[firstDataPointLine][colorCol]+"").startsWith("rgb") ||
-            (df[firstDataPointLine][colorCol]+"").startsWith("hsl") ||
-            ((df[firstDataPointLine][colorCol]+"").startsWith("#") && df[0][colorCol].length === 7))
+                (df[firstDataPointLine][colorCol]+"").startsWith("hsl") ||
+                ((df[firstDataPointLine][colorCol]+"").startsWith("#") && df[0][colorCol].length === 7))
             {
                 console.warn(df[0][colorCol]+" might be a color. \"labeled\" is set true. For the stored colors to show up, try \"labeled=false\"")
             }
             
             // count the ammount of labels here
-            let label = ""
+            let label
             for(let i = 0; i < df.length; i++)
             {
                 label = df[i][colorCol] // read the label/classification
-                if(labelColorMap[label] === undefined) // is this label still unknown?
+                if(!labelColorMap[label]) // is this label still unknown?
                 {
                     labelColorMap[label] = {}
                     labelColorMap[label].number = numberOfLabels // map it to an unique number
+                    labelColorMap[label].color = null
                     numberOfLabels ++ // make sure the next label gets a different number
                 }
             }
@@ -136,19 +135,20 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
             {
                 let label = df[i][colorCol]
                 let color
-                if(labelColorMap[label].color === undefined)
+
+                // color not yet added
+                if(labelColorMap[label].color === null)
                 {
                     color = new THREE.Color(0).setHSL(labelColorMap[label].number*hueDistance+hueOffset,0.95,0.55)
                     labelColorMap[label].color = color // store the label name together with the color
                 }
                 else
                 {
+                    // in this case it's an old color that got passed to this function in the parameters (labelColorMap is a parameter)
                     color = labelColorMap[label].color
                 }
                 dfColors[i] = color
             }
-
-            console.log(labelColorMap)
 
             // CASE 1 dfColors now contains labels
             return {labelColorMap,dfColors,numberOfLabels}
@@ -174,7 +174,7 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
                     for(let i = 0; i < df.length; i++)
                     {
                         let clr = getColorObjectFromAnyString(df[i][colorCol])
-                        if(clr === undefined)
+                        if(!clr)
                             clr = new THREE.Color(0)
                         
                         dfColors[i] = clr
@@ -234,7 +234,8 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
         }
     }
     
-    // colorCol is -1
+    // this is the default case
+
     for(let i = 0; i < df.length; i++)
         dfColors[i] = getColorObjectFromAnyString(defaultColor)
 
@@ -251,13 +252,16 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
 export function getColorObjectFromAnyString(color)
 {
     if(typeof(color) === "number")
-        return new THREE.Color(color) // number work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
+        // values with typeof "number" work like this: 0xffffff = 16777215 = white. 0x000000 = 0 = black
         // numbers are supported by three.js by default
+        return new THREE.Color(color)
+
 
     if(typeof(color) != "number" && typeof(color) != "string")
         return console.error("getColorObjectFromAnyString expected String or Number as parameter but got "+typeof(color))
 
     // if the code reaches this point, color is a string probably
+    // lowercase it to make checking for rgb and hsl simpler
     color = color.toLocaleLowerCase()
 
     // if it can be parsed, parse it
@@ -266,29 +270,12 @@ export function getColorObjectFromAnyString(color)
 
     if(color.startsWith("rgb"))
     {
-        
-        return new THREE.Color(color)
-        
         // native support by three.js (but make sure it's lowercase, which happens at the beginning of this function)
-        // let clr = new THREE.Color(color)
-
-        // failed? maybe it was e.g. 0.5 instead of 128
-        /*if(clr.r == undefined) // There seems to be no way to know if the above failed
-        {
-            console.log("dude?")
-            // remove "rgb", brackets and split it into an array of [r,g,b]
-            let rgb = color.substring(4,color.length-1).split(",")
-
-            // if it was rgba( instead of rgb(, remove the lost opening bracket:
-            if(rgb[0].startsWith("("))
-                rgb[0] = rgb[0].substring(1)
-
-            clr = new THREE.Color(0).setRGB(parseFloat(rgb[0]),parseFloat(rgb[1]),parseFloat(rgb[2])) 
-        }*/
+        return new THREE.Color(color)
     }
     else if(color.startsWith("#"))
     {
-        // hex strings are supported by three.js right away
+        // hex strings are supported by three.js right away aswell
         return new THREE.Color(color)
     }
     else if(color.startsWith("hsl"))

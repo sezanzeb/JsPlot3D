@@ -5,8 +5,8 @@
 
 import * as THREE from "three"
 import * as COLORLIB from "./ColorLib.js"
-import threeorbitcontrols from 'three-orbit-controls'
-const OrbitControls = threeorbitcontrols(THREE)
+import OrbitControls from "three-orbit-controls"
+
 
 export default class SceneHelper
 {
@@ -20,6 +20,15 @@ export default class SceneHelper
         this.recentlyUsedNormalization = null
         this.recentlyUsedDimensions = null
         this.textScale = 1/7
+        
+        this.xNumbers = new THREE.Group()
+        this.xNumbers.name = "xNumbers"
+
+        this.yNumbers = new THREE.Group()
+        this.yNumbers.name = "yNumbers"
+
+        this.zNumbers = new THREE.Group()
+        this.zNumbers.name = "zNumbers"
     }
 
 
@@ -32,9 +41,6 @@ export default class SceneHelper
      */
     createScene(dimensions, sceneOptions, cameraOptions)
     {
-        if(this.renderer == undefined)
-            return console.error("createScene has to be called after setupRendering. this.renderer is undefined")
-
         let backgroundColor =0xffffff
         let axesColor = 0x000000
 
@@ -75,10 +81,6 @@ export default class SceneHelper
      */
     centerCamera(dimensions)
     {
-        // camera already created? It might be called by setDimensions in the constructor before the camera creation
-        if(this.camera == undefined)
-            return
-
         let xLen = dimensions.xLen
         let yLen = dimensions.yLen
         let zLen = dimensions.zLen
@@ -110,7 +112,7 @@ export default class SceneHelper
         // let a = Math.min(width, height)
         // let camera = new THREE.OrthographicCamera(-width/a, width/a, height/a,-height/a, near, far)
 
-        let controls = new OrbitControls(camera, this.renderer.domElement)
+        let controls = new (OrbitControls(THREE))(camera, this.renderer.domElement)
         controls.enableKeys = false
         controls.target.set(0.5,0.5,0.5)
 
@@ -145,12 +147,12 @@ export default class SceneHelper
         let color2 = 0x0033ff
 
         let directionalLight1 = new THREE.DirectionalLight(color1, 0.4)
-        directionalLight1.position.y = 1;
+        directionalLight1.position.y = 1
         directionalLight1.name = "lightFromTop"
         this.scene.add(directionalLight1)
 
         let directionalLight2 = new THREE.DirectionalLight(color2, 0.4)
-        directionalLight2.position.y = -1;
+        directionalLight2.position.y = -1
         directionalLight2.name = "lightFromBottom"
         this.scene.add(directionalLight2)
     }
@@ -216,7 +218,7 @@ export default class SceneHelper
     {
         letter = ""+letter
         // write text to a canvas
-        let textCanvas = document.createElement('canvas')
+        let textCanvas = document.createElement("canvas")
         // textCanvas.height = 128
 
         // textCanvas.width = letter.length * 64
@@ -226,7 +228,7 @@ export default class SceneHelper
         textCanvas.height = textCanvas.width
 
         // prepare the textwriting
-        let context2d = textCanvas.getContext('2d')
+        let context2d = textCanvas.getContext("2d")
         let fontSize = 80
         //let bgColorRGBa = "rgba(" + this.backgroundColor.r*255 + "," + this.backgroundColor.g*255 + "," + this.backgroundColor.b*255 + "," + "1" + ")"
         context2d.font = "Bold "+fontSize+"px sans-serif"
@@ -332,14 +334,7 @@ export default class SceneHelper
             3:(value)=>{return new THREE.Vector3(value, offset2, offset2)}
         })[axisNumber]
 
-        let numberCount = (numberDensity*axisLen)|0 // +0.5 to be a little bit more liberal
-        if(numbersGroup == undefined || numbersGroup.children.length != numberCount)
-        {
-            numbersGroup = new THREE.Group()
-            numbersGroup.name = numbersGroupName
-            this[numbersGroupName] = numbersGroup
-        }
-
+        let numberCount = (numberDensity*axisLen)|0
 
 
 
@@ -371,7 +366,7 @@ export default class SceneHelper
 
             let text = number.toPrecision(3)
             let pos = position(x)
-            if(children[index] == undefined)
+            if(children.length - 1 < index) // if children are not yet created
             {
                 // not yet defined: create from scratch
                 let textObject = this.placeLetter(text, pos)
@@ -384,6 +379,9 @@ export default class SceneHelper
                 this.updateLetterTextureOnSprite(children[index], text)
                 children[index].position.set(pos.x, pos.y, pos.z)
             }
+
+            // no need to check if there are numbers left over as children, because the amount of numbers (numberCount) only changes
+            // when updating the dimensions, and when that happens the whole axes gets disposed
             index ++
         }
         
@@ -402,7 +400,7 @@ export default class SceneHelper
      */
     updateAxesSize(dimensions, normalization)
     {
-        if(this.axes == undefined)
+        if(this.axes === null)
             return
         
         this.disposeAllAxesNumbers()
@@ -417,11 +415,20 @@ export default class SceneHelper
     disposeAllAxesNumbers()
     {
         // not that xNumbers, yNumbers and zNumbers are set in JsPlot3D.js when updateNumbersAlongAxis is called
-        if(this.axes != undefined)
+        if(this.axes !== null)
         {
             this.disposeMesh(this.xNumbers)
             this.disposeMesh(this.yNumbers)
             this.disposeMesh(this.zNumbers)
+
+            this.xNumbers = new THREE.Group()
+            this.xNumbers.name = "xNumbers"
+
+            this.yNumbers = new THREE.Group()
+            this.yNumbers.name = "yNumbers"
+
+            this.zNumbers = new THREE.Group()
+            this.zNumbers.name = "zNumbers"
         }
     }
 
@@ -498,7 +505,7 @@ export default class SceneHelper
             color: color,
             wireframe: true,
             side: THREE.DoubleSide
-          });
+        })
         let axesWire = new THREE.Mesh(axesWireGeom, axesWireMat)
         axesWire.name = "axesWire"
         axes.add(axesWire)
@@ -507,7 +514,7 @@ export default class SceneHelper
         // arrows that sit at the end of the lines
         let arrowMat = new THREE.MeshBasicMaterial({
             color: color
-        });
+        })
         let arrowGeom = new THREE.ConeGeometry(0.02,0.066,12)
 
         if(showx1) {
@@ -609,15 +616,15 @@ export default class SceneHelper
     disposeMesh(mesh)
     {   
         
-        if(mesh != undefined)
+        if(mesh)
         {
-            if(mesh.geometry != undefined)
+            if(mesh.geometry)
                 mesh.geometry.dispose()
 
             // disppose material
-            if(mesh.material != undefined)
+            if(mesh.material)
             {
-                if(mesh.material.length == undefined && mesh.material != undefined)
+                if(!mesh.material.length && mesh.material)
                     mesh.material.dispose()
                     
                 if(!isNaN(mesh.material.length))
@@ -630,14 +637,14 @@ export default class SceneHelper
                 // for sprites material.map.dispose() seems to be important
             }
 
-            if(mesh.texture != undefined)
+            if(mesh.texture)
                 mesh.texture.dispose()
 
             // recursively clear the children
             for(let i = 0;i < mesh.children.length; i++)
                 this.disposeMesh(mesh.children[i])
                 
-            if(mesh.parent != null)
+            if(mesh.parent !== null)
                 mesh.parent.remove(mesh)
                 
             mesh.remove()
@@ -653,7 +660,7 @@ export default class SceneHelper
     makeSureItRenders(animationFunc)
     {
         // if animated, don't render it here. In callAnimation it's going to render
-        if(animationFunc == undefined)
+        if(animationFunc === null)
         {
             for(let i = 0;i < 5; i++)
                 window.setTimeout(()=>this.render(),100+i*33)

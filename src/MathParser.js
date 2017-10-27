@@ -53,11 +53,10 @@ export default class MathParser
         // reduces the number of recursions.
         // calculatedPoints[x1][x3]
         let val = this.calculatedPoints[x1index]
-        if(val !== undefined)
-            val = val[x3index]
+        if(val) val = val[x3index]
 
         // unknown
-        if(val === undefined) // has this point has already been calculated before?
+        if(!val) // has this point has already been calculated before?
         {
             if(!this.stopRecursion)
                 // bind f it to this, so that it can access this.calculatedPoints, this.xLen and this.zLen, this.stopRecursion
@@ -165,8 +164,8 @@ export default class MathParser
         // going to need some way to indicate the start and end. add some string literals
         formula += "\0"
         formula = "\0" + formula
-        formula = formula.replace(/([\^+-/*\(\0]+)(pi|PI|Pi|π)([\^+-/*\)\0]+)/g,"$1Math.PI$3")
-        formula = formula.replace(/([\^+-/*\(\0]+)(e|E)([\^+-/*\)\0]+)/g,"$1Math.E$3")
+        formula = formula.replace(/([\^+-/*(\0]+)(pi|PI|Pi|π)([\^+-/*)\0]+)/g,"$1Math.PI$3")
+        formula = formula.replace(/([\^+-/*(\0]+)(e|E)([\^+-/*)\0]+)/g,"$1Math.E$3")
         formula = formula.replace(/\0/g,"")
 
         
@@ -192,7 +191,8 @@ export default class MathParser
 
 
         //factorial
-        while(true)
+        let complete = false
+        while(!complete)
         {
             //split the formula into the part left of the factorial and the part to the right
             let formulafac = formula.split(/!(.*)/g)
@@ -230,12 +230,12 @@ export default class MathParser
                 //check if there is an expression to the left
                 //f(foo)! or Math.sin(bar)!
                 //the regex may also check for dots (Math.bla()), when there is a dot before the brackets it's invalid syntax anyway
-                if(/[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
+                if(/[A-Za-z0-9_.]/g.test(formulafac[0][j-1]))
                 {
                     //console.log("found expression")
                     //take that expression into account
                     //check if there is going to be another character for that expression one step to the left
-                    while(j > 0 && /[A-Za-z0-9_\.]/g.test(formulafac[0][j-1]))
+                    while(j > 0 && /[A-Za-z0-9_.]/g.test(formulafac[0][j-1]))
                         j-- //if yes, decrease the index j and check again
                 }
 
@@ -255,7 +255,7 @@ export default class MathParser
             {
                 //console.log("no factorial detected")
                 //console.log("")
-                break
+                complete = true
             }
         }
 

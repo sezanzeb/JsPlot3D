@@ -19,12 +19,14 @@
   },
   "homepage": "https://github.com/sezanzeb/3D-Plot-Js#readme",
   "dependencies": {
+    "three": "^0.87.1",
+    "three-orbit-controls": "^82.1.0"
+  },
+  "devDependencies": {
+    "webpack": "^3.6.0",
     "babel-core": "^6.26.0",
     "babel-loader": "^7.1.2",
     "babel-preset-env": "^1.6.0",
-    "jasmine-core": "^2.8.0",
-    "three": "^0.87.1",
-    "three-orbit-controls": "^82.1.0",
-    "webpack": "^3.6.0"
+    "jasmine-core": "^2.8.0"
   }
 }

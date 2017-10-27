@@ -50,7 +50,7 @@
     plot1.setBackgroundColor("#2659b2")
     plot1.setAxesColor("hsl(0.1667,1,0.5)")
     plot1.plotFormula(formula1,{
-        mode:"polygon"
+        mode: JSPLOT3D.POLYGON_MODE
     })
 
     console.log()
@@ -62,7 +62,7 @@
     })
     plot2.setDimensions({xLen:0.9,zLen:0.9,yLen:0.9})
     plot2.plotFormula(formula2,{
-        mode:"polygon"
+        mode: "polygon"
     })
 
     console.log()
@@ -75,7 +75,7 @@
     plot3.setAxesColor("hsl(0.1667,1,0.5)")
     plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
     plot3.plotFormula(formula3,{
-        mode:"scatterplot",
+        mode: JSPLOT3D.SCATTERPLOT_MODE,
         dataPointSize: 0.06
     })
 
@@ -87,7 +87,7 @@
     plot4.setAxesColor("hsl(0.1667,1,0.5)")
     plot4.setDimensions({xLen:0.9,zLen:0.9,yLen:0.9})
     plot4.plotFormula(formula4,{
-        mode:"scatterplot",
+        mode: "scatterplot",
         dataPointSize: 0.06
     })
 
@@ -101,7 +101,7 @@
     plot5.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
     plot5.setDimensions({xLen:0.9,zLen:0.9,yLen:0.9})
     plot5.plotFormula(formula3,{
-        mode:"barchart"
+        mode: JSPLOT3D.BARCHART_MODE
     })
 
     console.log()

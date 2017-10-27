@@ -11,9 +11,8 @@ import * as COLORLIB from "../ColorLib.js"
  * @param {*} appearance {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
  * @private
  */
-export default function barchart(parent, df, colors, columns, normalization, appearance, dimensions)
+export default function barchart(parent, df, colors, columns, normalization, appearance)
 {    
-    let dfColors = colors.dfColors
     let hueOffset = colors.hueOffset
     
     let x1col = columns.x1col
@@ -29,18 +28,11 @@ export default function barchart(parent, df, colors, columns, normalization, app
     let minX1 = normalization.minX1
     let minX2 = normalization.minX2
     let minX3 = normalization.minX3
-    let maxX1 = normalization.maxX1
     let maxX2 = normalization.maxX2
-    let maxX3 = normalization.maxX3
     
     let keepOldPlot = appearance.keepOldPlot
     let barchartPadding = appearance.barchartPadding
     let barSizeThreshold = appearance.barSizeThreshold
-    let dataPointSize = appearance.dataPointSize
-
-    let xLen = dimensions.xLen
-    let yLen = dimensions.yLen
-    let zLen = dimensions.zLen
     
     // parent.oldData.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
     // let xBarOffset = 1/parent.dimensions.xRes/2
@@ -102,7 +94,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     if(!valid || !keepOldPlot)
     {
         parent.SceneHelper.disposeMesh(parent.plotmesh)
-        parent.resetCache()
+        parent.clearOldData()
         
         parent.oldData.barsGrid = {}
         
@@ -163,11 +155,11 @@ export default function barchart(parent, df, colors, columns, normalization, app
             return
 
         // create x and z indices if needed
-        if(barsGrid[x] === undefined)
+        if(!barsGrid[x])
         {
             barsGrid[x] = {}
         }
-        if(barsGrid[x][z] === undefined)
+        if(!barsGrid[x][z])
         {
             barsGrid[x][z] = {} // holds the bar object and y for this x, z position
             barsGrid[x][z].y = 0
@@ -186,7 +178,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
         // if needed create the bar. Don't set the height yet
         // the height gets set once maxX2 and minX2 are ready
-        if(barsGrid[x][z].bar === undefined)
+        if(!barsGrid[x][z].bar)
         {
             barsGrid[x][z].bar = createBar(x, z, parent.plotmesh)
         }
@@ -265,6 +257,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
         x2frac = Math.abs(maxX2-minX2) // based on distance between min and max
 
+        // If I should ever want to reimplement the normalizationSmoothing (decided against it because I didn't want the code to get more complex):
         // a lower value of normalizationSmoothing will result in faster jumping around plots. 0 Means no smoothing this happens, because 
         // sometimes the plot might be close to 0 everywhere. This is not visible because of the normalization though one the sign
         // changes, it will immediatelly jump to be normalized with a different sign. To prevent this one can smoothen the variable x2frac

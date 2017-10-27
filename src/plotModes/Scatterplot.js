@@ -14,28 +14,19 @@ import * as THREE from "three"
 export default function scatterplot(parent, df, colors, columns, normalization, appearance, dimensions)
 {    
     let dfColors = colors.dfColors
-    let hueOffset = colors.hueOffset
     
     let x1col = columns.x1col
     let x2col = columns.x2col
     let x3col = columns.x3col
     
-    let normalizeX1 = normalization.normalizeX1
-    let normalizeX2 = normalization.normalizeX2
-    let normalizeX3 = normalization.normalizeX3
     let x1frac = normalization.x1frac
     let x2frac = normalization.x2frac
     let x3frac = normalization.x3frac
     let minX1 = normalization.minX1
     let minX2 = normalization.minX2
     let minX3 = normalization.minX3
-    let maxX1 = normalization.maxX1
-    let maxX2 = normalization.maxX2
-    let maxX3 = normalization.maxX3
     
     let keepOldPlot = appearance.keepOldPlot
-    let barchartPadding = appearance.barchartPadding
-    let barSizeThreshold = appearance.barSizeThreshold
     let dataPointSize = appearance.dataPointSize
 
     let xLen = dimensions.xLen
@@ -49,10 +40,10 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     let material = parent.oldData.material
 
     // the material is created here
-    if(material === null || !isItValid || material != null && material != dataPointSize)
+    if(material === null || !isItValid || (material !== null && material != dataPointSize))
     {
         // only dispose the old mesh if it is not used anymore
-        if(!keepOldPlot || parent.plotmesh == undefined)
+        if(!keepOldPlot || parent.plotmesh === null)
         {
             parent.SceneHelper.disposeMesh(parent.plotmesh)
             parent.plotmesh = new THREE.Group()

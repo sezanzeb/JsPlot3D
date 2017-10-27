@@ -16,18 +16,23 @@ export const colorLib = COLORLIB
 export const XAXIS = 1
 export const YAXIS = 2
 export const ZAXIS = 3
+export const SCATTERPLOT_MODE = "scatterplot"
+export const BARCHART_MODE = "barchart"
+export const LINEPLOT_MODE = "lineplot"
+export const POLYGON_MODE = "polygon"
+
 
 export class Plot
 {
-
     /**
      * Creates a Plot instance, so that a single canvas can be rendered. After calling this constructor, rendering can
      * be done using plotFormula(s), plotCsvString(s) or plotDataFrame(df)
-     * @param {object} container     html div DOM element which can then be selected using document.getElementById("foobar") with foobar being the html id of the container
-     * @param {json}   sceneOptions  optional. at least one of backgroundColor or axesColor in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc, rgb and hsl (e.g. "rgb(0.3,0.7,0.1)")
+     * @param {object} container html div DOM element which can then be selected using document.getElementById("foobar") with foobar being the html id of the container
+     * @param {json} sceneOptions optional. at least one of backgroundColor or axesColor in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc, rgb and hsl (e.g. "rgb(0.3,0.7,0.1)")
      */
-    constructor(container, sceneOptions={})
+    constructor(container, sceneOptions ={})
     {
+        
         // parameter checking
         if(typeof(container) != "object")
             return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
@@ -35,26 +40,33 @@ export class Plot
         // The order of the following tasks is important!
 
         // initialize cache object
-        this.resetCache()
+        this.clearOldData()
 
         // scene helper is needed for setContainer
         this.SceneHelper = new SceneHelper()
 
         // first set up the container and the dimensions
         this.setContainer(container)
-        this.dimensions = {}
-        this.setDimensions({xRes:20, zRes:20, xLen:1, yLen:1, zLen:1})
+        // don't use setDimensions for the following, as setDimensions is meant
+        // to be something to call during runtime and will therefore cause problems
+        this.dimensions = {xRes:20, zRes:20, xLen:1, yLen:1, zLen:1}
+        this.dimensions.xVerticesCount = this.dimensions.xRes * this.dimensions.xLen
+        this.dimensions.yVerticesCount = this.dimensions.yRes * this.dimensions.yLen
+        this.dimensions.zVerticesCount = this.dimensions.zRes * this.dimensions.zLen
         
-        // before MathParser, setDimensions has to be called to initialize some stuff (xVerticesCount and zVerticesCount)
+        // before MathParser, Dimensions have to be called to initialize some stuff (xVerticesCount and zVerticesCount)
         this.MathParser = new MathParser(this)
 
         // then setup the children of the scene (camera, light, axes)
         this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
         this.SceneHelper.centerCamera(this.dimensions)
 
+        // they need to be updated once setDimensions is called or the mode of the plot changes
+        // why on modechange? because barcharts need a different way of displaying them due to the different
+        // normalization approach
         this.axesNumbersNeedUpdate = false
 
-        // legend
+        // initialize the legend variables
         this.initializeLegend()
 
         // by default disable the benchmark process
@@ -62,38 +74,23 @@ export class Plot
         this.benchmark.enabled = false
         this.benchmark.recentTime = 0
 
+        // start empty
+        this.plotmesh = null
+
+        // no animation by default
+        this.animationFunc = null
+
+        // now render the empty space (axes will be visible)
         this.SceneHelper.render()
     }
 
 
-    // some helper functions
-    errorParamType(varname, variable, expectedType)
-    {
-        console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
-    }
-    
-    checkBoolean(varname, variable)
-    {
-        if(variable == undefined)
-            return // not defined in the (optional) options, don't do anything then
-        let a = (variable === true || variable === false)
-        if(!a) this.errorParamType(varname, variable, "boolean")
-        return(a) // returns true (valid) or false
-    }
 
-    checkNumber(varname, variable)
-    {
-        if(variable == undefined || variable === "")
-            return // not defined in the (optional) options, don't do anything then
-        if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
-            return this.errorParamType(varname, variable, "number")
-        else return true // returns true (valid) or false
-    }
 
     /**
      * plots a formula into the container as 3D Plot
-     * @param {string}  originalFormula string of formula
-     * @param {object} options
+     * @param {string} originalFormula string of formula
+     * @param {object} options json object with one or more of the following parameters:
      * - mode {string}: "barchart", "scatterplot", "polygon" or "lineplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
@@ -121,11 +118,11 @@ export class Plot
      * - x3title {string}: title of the x3 axis
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
-     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the oldData-object
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0  
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
-    plotFormula(originalFormula, options={})
+    plotFormula(originalFormula, options ={})
     {
 
         let mode
@@ -143,25 +140,25 @@ export class Plot
 
         this.MathParser.resetCalculation()
         this.MathParser.parse(originalFormula) //tell the MathParser to prepare so that f can be executed
-        this.oldData.checkstring = "" // don't fool plotCsvString into believing the cache contains still old csv data
+        this.oldData.checkstring = "" // don't fool plotCsvString into believing the oldData-object contains still old csv data
 
         if(mode === "scatterplot")
         {
             
-            //PlotFormula
-            ////////  SCATTERPLOT    ////////
+            //plotFormula
+            //-------------------------//
+            //       scatterplot       //
+            //-------------------------//
 
             // if scatterplot, create a dataframe and send it to plotDataFrame
             // multiply those two values for the ArraySize because plotFormula will create that many datapoints
             let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
 
-            // the three values that are going to be stored in the dataframe
-            let y = 0
-            let x = 0
-            let z = 0
+            // three values (x, y and z) that are going to be stored in the dataframe
 
             // line number in the new dataframe
             let i = 0
+            let y = 0
 
             for(let x = 0; x < this.dimensions.xVerticesCount; x++)
             {
@@ -184,20 +181,20 @@ export class Plot
         else if(mode === "barchart")
         {
 
-            //PlotFormula
-            ////////  BARCHART ////////
+            //plotFormula
+            //-------------------------//
+            //        Bar Chart        //
+            //-------------------------//
 
 
             // if barchart, create a dataframe and send it to plotDataFrame
             let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
 
-            // the three values that are going to be stored in the dataframe
-            let y = 0
-            let x = 0
-            let z = 0
+            // three values (x, y and z) that are going to be stored in the dataframe
 
             // line number in the new dataframe
             let i = 0
+            let y = 0
 
             for(let x = 0; x <= this.dimensions.xVerticesCount; x++)
             {
@@ -223,17 +220,20 @@ export class Plot
             if(mode != "polygon" && mode != undefined)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"polygon\"")
 
-            ////////  POLYGON ////////
+            //plotFormula
+            //-------------------------//
+            //         Polygon         //
+            //-------------------------//
 
             // TODO:
             // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
-            // color heatmap like
+            // This requires some more work. -inf and +inf values should be indicated by hidden faces around those vertices
 
             // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
-            let title=""
-            let x1title="x1"
-            let x2title="x2"
-            let x3title="x3"
+            let title = ""
+            let x1title = "x1"
+            let x2title = "x2"
+            let x3title = "x3"
             if(options.title != undefined)  title = options.title
             if(options.x1title != undefined) x1title = options.x1title
             if(options.x2title != undefined) x2title = options.x2title
@@ -241,13 +241,13 @@ export class Plot
             this.populateLegend({x1title, x2title, x3title, title})
 
             // same goes for colors. plotFormula has to handle them on it's own
-            let hueOffset=0
+            let hueOffset = 0
             if(this.checkNumber("hueOffset", options.hueOffset))
                 hueOffset = parseFloat(options.hueOffset)
                 
-            let numberDensity=2
+            /*let numberDensity = 2
             if(this.checkNumber("numberDensity", options.numberDensity))
-                numberDensity = parseFloat(options.numberDensity)
+                numberDensity = parseFloat(options.numberDensity)*/
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
@@ -266,12 +266,12 @@ export class Plot
                     new THREE.MeshBasicMaterial({
                         side: THREE.DoubleSide,
                         vertexColors: THREE.VertexColors
-                        }),
+                    }),
                     new THREE.MeshBasicMaterial({
                         transparent: true,
                         opacity: 0
-                        })
-                    ];
+                    })
+                ]
 
                 for(let i = 0;i < planegeometry.faces.length; i++)
                 {
@@ -303,8 +303,8 @@ export class Plot
             let minX2 = 0
             let maxX2 = 0
 
-            let faceIndex1 = 0
-            let faceIndex2 = 0
+            /*let faceIndex1 = 0
+            let faceIndex2 = 0*/
 
 
             for(let z = this.dimensions.zVerticesCount; z >= 0; z--)
@@ -341,7 +341,7 @@ export class Plot
                     }
                     else
                     {
-                        // console.warn("this does not fully work yet. Some vertex are at y=0 but that face should be invisible")
+                        // console.warn("this does not fully work yet. Some vertex are at y = 0 but that face should be invisible")
 
                         // there are two faces per vertex that have VIndex as face.c
                         /*if(this.plotmesh.geometry.faces[faceIndex1+1] != undefined)
@@ -371,7 +371,7 @@ export class Plot
             // multiply min and max to lower the hue contrast and make it appear mor friendly
             let maxClrX2 = maxX2*1.3
             let minClrX2 = minX2*1.3
-            let getVertexColor = (v,index) =>
+            let getVertexColor = (v) =>
             {
                 let y = this.plotmesh.geometry.vertices[v].y
                 return COLORLIB.convertToHeat(y,minClrX2,maxClrX2,hueOffset)
@@ -417,11 +417,11 @@ export class Plot
 
     /**
      * plots a .csv string into the container as 3D Plot according to the configuration.
-     * @param {string}  sCsv        string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
-     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
-     * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
-     * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
-     * @param {object}  options     json object with one or more of the following parameters:
+     * @param {string} sCsv string of the .csv file, e.g."a;b;c\n1;2;3\n2;3;4"
+     * @param {number} x1col column index used for transforming the x1 axis (x). default: 0
+     * @param {number} x2col column index used for transforming the x2 axis (y). default: 1
+     * @param {number} x3col column index used for plotting the x3 axis (z). default: 2
+     * @param {object} options json object with one or more of the following parameters:
      * - csvIsInGoodShape {boolean}: true if the .csv file is in a good shape. No quotation marks around numbers, no leading and ending whitespaces, no broken numbers (0.123b8),
      * all lines have the same number of columns. true results in more performance. Default: false. If false, the function will try to fix it as good as it can.
      * - separator {string}: separator used in the .csv file. e.g.: "," or ";" as in 1,2,3 or 1;2;3
@@ -452,7 +452,7 @@ export class Plot
      * - x3title {string}: title of the x3 axis
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
-     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the oldData-object
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
@@ -465,24 +465,20 @@ export class Plot
         // a more complete checking will be done in plotDataFrame once the dataframe is generated.
         // only check what is needed in plotCsvString
         
-        if(sCsv === "" || sCsv == undefined)
+        if(sCsv === "" || !sCsv)
             return console.error("dataframe arrived empty")
 
         // default config
-        let separator=","
-        let title=""
-        let fraction=1
-        let csvIsInGoodShape=false
-        let header=true // assume header=true for now so that the parsing is not making false assumptions because it looks at headers
+        let separator = ","
+        let title = ""
+        let fraction = 1
+        let csvIsInGoodShape = false
+        let header = true // assume header = true for now so that the parsing is not making false assumptions because it looks at headers
 
         // make sure options is defined
-        if(typeof(options) === "object")
+        if(typeof(options) !== {})
         {
             // seems like the user sent some parameters. check them
-
-            // treat empty strings as if it was undefined in those cases:
-            if(options.separator === "")
-                options.separator = undefined
 
             // check variables. Overwrite if it's good. If not, default value will remain
             if(this.checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction)
@@ -502,6 +498,7 @@ export class Plot
 
         this.benchmarkStamp("start")
 
+        //plotCsvString
         //-------------------------//
         //         caching         //
         //-------------------------//
@@ -510,7 +507,7 @@ export class Plot
         // create a very quick checksum sort of string
         let stepsize = (sCsv.length/20)|0
         let samples = ""
-        for(let i = 0;i < sCsv.length; i+=stepsize)
+        for(let i = 0;i < sCsv.length; i+= stepsize)
             samples = samples + sCsv[i]
 
         // take everything into account that changes how the dataframe looks after the processing
@@ -519,6 +516,8 @@ export class Plot
         // now check if the checksum changed. If yes, remake the dataframe from the input
         if(this.oldData === null || this.oldData.checkstring != checkstring)
         {
+            
+            //plotCsvString
             //-------------------------//
             //       creating df       //
             //-------------------------//
@@ -540,11 +539,7 @@ export class Plot
                 return console.error("dataframe is empty")
                 
             if(fraction < 1)
-            {
-                let minimumLineCount = 2 // 2 because 2 datapoints need to be there to form a plot. Otherwise a single datapoint would just jump to 1, 1, 1 because of normalization
-                if(header)
-                    minimumLineCount ++
-                    
+            {                    
                 data = data.slice(0, Math.max(Math.min(3,data.length),data.length*fraction))
             }
 
@@ -564,7 +559,7 @@ export class Plot
                     return console.error("no csv separator/delimiter was detected. Please set separator:\"...\" according to your file format: \""+data[0]+"\"")
 
 
-                console.warn("the specified separator/delimiter was not found. Tried to detect it and came up with \""+separator+"\". Please set separator=\"...\" according to your file format: \""+data[0]+"\"")
+                console.warn("the specified separator/delimiter was not found. Tried to detect it and came up with \""+separator+"\". Please set separator =\"...\" according to your file format: \""+data[0]+"\"")
             }
 
             if(!csvIsInGoodShape)
@@ -600,15 +595,15 @@ export class Plot
                                 if(data[i][j][data[i][j].length-1] === "\"")
                                     data[i][j] = data[i][j].slice(1,-1)
 
-                                // don't assume that all lines have the same format when looking at the same column
-                                // that means every cell has to be parsed
+                            // don't assume that all lines have the same format when looking at the same column
+                            // that means every cell has to be parsed
                                 
-                                // parse if possible. if not leave it as it is
-                                let parsed = parseFloat(data[i][j])
-                                if(!isNaN(parsed))
-                                    data[i][j] = parsed // number
-                                else
-                                    data[i][j].trim() // string
+                            // parse if possible. if not leave it as it is
+                            let parsed = parseFloat(data[i][j])
+                            if(!isNaN(parsed))
+                                data[i][j] = parsed // number
+                            else
+                                data[i][j].trim() // string
                         }
                     }
                 }
@@ -637,7 +632,7 @@ export class Plot
 
             // cache the dataframe. If the same dataframe is used next time, don't parse it again
             if(options.keepOldPlot != true)
-                this.resetCache()
+                this.clearOldData()
             this.oldData.dataframe = data
             this.oldData.checkstring = checkstring
 
@@ -662,11 +657,11 @@ export class Plot
 
     /**
      * plots a dataframe on the canvas element which was defined in the constructor of Plot()
-     * @param {number[][]}  df      int[][] of datapoints. [row][column]
-     * @param {number}  x1col       column index used for transforming the x1 axis (x). default: 0
-     * @param {number}  x2col       column index used for transforming the x2 axis (y). default: 1
-     * @param {number}  x3col       column index used for plotting the x3 axis (z). default: 2
-     * @param {object}  options     json object with one or more of the following parameters:
+     * @param {number[][]} df int[][] of datapoints. [row][column]
+     * @param {number} x1col column index used for transforming the x1 axis (x). default: 0
+     * @param {number} x2col column index used for transforming the x2 axis (y). default: 1
+     * @param {number} x3col column index used for plotting the x3 axis (z). default: 2
+     * @param {object} options json object with one or more of the following parameters:
      * - mode {string}: "barchart", "scatterplot" or "lineplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
@@ -694,12 +689,11 @@ export class Plot
      * - x3title {string}: title of the x3 axis
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
-     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the oldData-object
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
-     */
-                
-    plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={})
+     */      
+    plotDataFrame(df, x1col = 0, x2col = 1, x3col = 2, options ={})
     {
         // to optimize for performance, use:
         // {
@@ -708,7 +702,7 @@ export class Plot
         //   normalizeX1: false
         //   normalizeX2: false
         //   normalizeX3: false
-        //   updateOldData: true // in addDataPoint this is automatically false, otherwise the cache would be overwritten with a single point
+        //   updateOldData: true // in addDataPoint this is automatically false, otherwise the oldData-object would be overwritten with a single point
         //   fraction: 0.5 // don't plot everything
         // }
         this.benchmarkStamp("plotDataFrame starts")
@@ -716,37 +710,37 @@ export class Plot
         //  parameter type checking  //
         //---------------------------//
         // default config
-        let header=false
-        let colorCol=-1
-        let mode="scatterplot"
-        let normalizeX1=true
-        let normalizeX2=true
-        let normalizeX3=true
-        let title=""
-        let fraction=1 // TODO
-        let labeled=false
-        let defaultColor=0 // black
-        let barchartPadding=0.5
-        let dataPointSize=0.04
-        let filterColor=true
-        let x1title="x1"
-        let x2title="x2"
-        let x3title="x3"
-        let hueOffset=0
-        let keepOldPlot=false
-        let updateOldData=true
-        let barSizeThreshold=0
-        let x1frac=1
-        let x2frac=1
-        let x3frac=1
-        let numberDensity=3
-        // let normalizationSmoothing=0
+        let header = false
+        let colorCol =-1
+        let mode = "scatterplot"
+        let normalizeX1 = true
+        let normalizeX2 = true
+        let normalizeX3 = true
+        let title = ""
+        let fraction = 1 // TODO
+        let labeled = false
+        let defaultColor = 0 // black
+        let barchartPadding = 0.5
+        let dataPointSize = 0.04
+        let filterColor = true
+        let x1title = "x1"
+        let x2title = "x2"
+        let x3title = "x3"
+        let hueOffset = 0
+        let keepOldPlot = false
+        let updateOldData = true
+        let barSizeThreshold = 0
+        let x1frac = 1
+        let x2frac = 1
+        let x3frac = 1
+        let numberDensity = 3
 
+        // TODO probably deprecated won't implement
         // when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
         // it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
         // because sometimes I am calculating a dataframe from a formula and then convert it to that [x][z] shape
         // instead of calculating this shape right away
-        let dfIsA2DMap=false
+        // let dfIsA2DMap = false
 
 
         // make sure options is defined
@@ -774,12 +768,11 @@ export class Plot
             if(this.checkNumber("colorCol", options.colorCol)) colorCol = parseFloat(options.colorCol)
             if(this.checkNumber("dataPointSize", options.dataPointSize)) dataPointSize = parseFloat(options.dataPointSize)
             if(this.checkNumber("barSizeThreshold", options.barSizeThreshold)) barSizeThreshold = parseFloat(options.barSizeThreshold)
-            // if(this.checkNumber("normalizationSmoothing", options.normalizationSmoothing))
-            //    normalizationSmoothing = parseFloat(options.normalizationSmoothing)
+            
             if(dataPointSize <= 0)
-                console.error("datapoint size is <= 0. It will be invisible")
+                console.error("datapoint size is <= 0. Datapoints will be invisible in scatterplot and lineplot modes")
 
-            if(barchartPadding >= 1)
+            if(barchartPadding >= 1 || barchartPadding < 0)
             {
                 barchartPadding = 0
                 console.error("barchartPadding is invalid. maximum of 1 and minimum of 0 accepted. Now continuing with barchartPadding = "+barchartPadding)
@@ -791,11 +784,9 @@ export class Plot
             if(this.checkBoolean("normalizeX2", options.normalizeX2)) normalizeX2 = options.normalizeX2
             if(this.checkBoolean("normalizeX3", options.normalizeX3)) normalizeX3 = options.normalizeX3
             if(this.checkBoolean("header", options.header)) header = options.header
-            if(this.checkBoolean("dfIsA2DMap", options.dfIsA2DMap)) dfIsA2DMap = options.dfIsA2DMap
             if(this.checkBoolean("filterColor", options.filterColor)) filterColor = options.filterColor
             if(this.checkBoolean("keepOldPlot", options.keepOldPlot)) keepOldPlot = options.keepOldPlot
             if(this.checkBoolean("updateOldData", options.updateOldData)) updateOldData = options.updateOldData
-
 
             // check everything else
             if(options.title != undefined) title = options.title
@@ -837,12 +828,12 @@ export class Plot
 
         if(fraction < 1)
         {
-            // at least 2 rows
-            df = df.slice(0, Math.max(Math.min(2,df.length),df.length*fraction))
+            // at least 3 rows if possible to support headers and two distinct datapoints
+            df = df.slice(0, Math.max(Math.min(3,df.length),df.length*fraction))
         }
 
 
-        // automatic header detection
+        // automatic header detection, if no option was provided and the dataframe has enough rows to support headers and data
         if(options.header === undefined && df.length >= 2)
         {
             // find out automatically if they are headers or not
@@ -850,7 +841,7 @@ export class Plot
             // if both are yes, it's probably header = true
             if(isNaN(df[0][x1col]) && !isNaN(df[1][x1col]))
             {
-                console.log("detected headers, first csv line is not going to be plotted therefore. To prevent this, set header=false")
+                console.log("detected headers, first csv line is not going to be plotted therefore. To prevent this, set header = false")
                 header = true
             }
         }
@@ -873,6 +864,8 @@ export class Plot
             // the array. don't know if something like that exists in javascript
             df = df.slice(1, df.length)
         }
+
+        // after all the modifying, is the dataframe still present?
         if(df.length === 0)
             return console.error("dataframe is empty")
 
@@ -916,11 +909,11 @@ export class Plot
         // finds out by how much the values (as well as colors) to divide and for the colors also a displacement
 
         // what is happening here?
-        // minX1, maxX2, etc. are being loaded from the cache. The cache is initialized with 0 values
+        // minX1, maxX2, etc. are being loaded from the oldData object. They initially have 0 values
         // so they are zero now
         // then the dataframe gets analyzed (if enabled) and the min and max values are updated
 
-        // if it is disabled, the old values from the cache are not updated. this is the default case for addDataPoint.
+        // if it is disabled, the old values from the oldData object are not updated. this is the default case for addDataPoint.
         // that means new datapoint might be so far away from the initial plot that they cannot be seen anymore, because it gets scaled according to the old normalization information
         // if the values of that datapoint are so ridiculously large compared to the initial plot
         // what is the initial plot? that's the dataframe one plotted initially (for example using plotCsvString(...) before using addDataPoint
@@ -928,10 +921,10 @@ export class Plot
         // normalize, so that the farthest away point is still within the xLen yLen zLen frame
         // TODO logarithmic normalizing (what about the displayed numbers, how are they going to get logarithmic scaling? What about the helper lines)
  
-        let startValueIndex = 0
+        let lineToAssumeFirstMinMaxValues = 0
         if(df.length >= 2)
             // assume second line if possible, because headers might be accidentally still there (because of wrong configuration)
-            startValueIndex = 1
+            lineToAssumeFirstMinMaxValues = 1
 
        
         // the default values are 0. after the normalization loops the case of
@@ -963,8 +956,8 @@ export class Plot
             // if default values are still in the variables, use the first entry in the dataframe
             if(maxX1 === 0 && minX1 === 0)
             {
-                maxX1 = df[startValueIndex][x1col]
-                minX1 = df[startValueIndex][x1col]
+                maxX1 = df[lineToAssumeFirstMinMaxValues][x1col]
+                minX1 = df[lineToAssumeFirstMinMaxValues][x1col]
             }
 
             // determine min and max for normalisation
@@ -976,7 +969,7 @@ export class Plot
                     minX1 = df[i][x1col]
             }
 
-            // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+            // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
             if(keepOldPlot)
                 for(let i = 0; i < this.oldData.dataframe.length; i++)
                 {
@@ -995,8 +988,8 @@ export class Plot
                 // if default values are still in the variables, use the first entry in the dataframe
                 if(maxX2 === 0 && minX2 === 0)
                 {
-                    maxX2 = df[startValueIndex][x2col]
-                    minX2 = df[startValueIndex][x2col]
+                    maxX2 = df[lineToAssumeFirstMinMaxValues][x2col]
+                    minX2 = df[lineToAssumeFirstMinMaxValues][x2col]
                 }
 
                 // determine min and max for normalisation
@@ -1008,7 +1001,7 @@ export class Plot
                         minX2 = df[i][x2col]
                 }
 
-                // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+                // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
                 if(keepOldPlot)
                     for(let i = 0; i < this.oldData.dataframe.length; i++)
                     {
@@ -1026,8 +1019,8 @@ export class Plot
             // if default values are still in the variables, use the first entry in the dataframe
             if(maxX3 === 0 && minX3 === 0)
             {
-                maxX3 = df[startValueIndex][x3col]
-                minX3 = df[startValueIndex][x3col]
+                maxX3 = df[lineToAssumeFirstMinMaxValues][x3col]
+                minX3 = df[lineToAssumeFirstMinMaxValues][x3col]
             }
 
             // determine min and max for normalisation
@@ -1039,7 +1032,7 @@ export class Plot
                     minX3 = df[i][x3col]
             }
             
-            // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
+            // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
             if(keepOldPlot)
                 for(let i = 0; i < this.oldData.dataframe.length; i++)
                 {
@@ -1059,8 +1052,6 @@ export class Plot
         x2frac = Math.abs(maxX2-minX2)
         if(x2frac === 0)
             x2frac = 1
-
-        console.log(maxX2,minX2,x2frac)
 
         x3frac = Math.abs(maxX3-minX3)
         if(x3frac === 0)
@@ -1202,7 +1193,6 @@ export class Plot
                 {
                     minX2_2 = 0
                     yLen_2 = yLen * (maxX2-minX2_2)/x2frac
-                    console.log(yLen_2,maxX2,x2frac)
                 }
                 this.SceneHelper.updateNumbersAlongAxis(numberDensity, yLen_2, YAXIS, minX2_2, maxX2)
             }
@@ -1266,7 +1256,7 @@ export class Plot
     /**
      * repeats the drawing using the dataframe memorized in oldData, but adds a new datapoint to it
      * @param {any} newDatapoint Array that contains the attributes of the datapoints in terms of x1, x2, x3, x4, x5 etc.
-     * @param {object} options
+     * @param {object} options json object with one or more of the following parameters:
      * - mode {string}: "barchart", "scatterplot" or "lineplot"
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
      * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
@@ -1296,7 +1286,7 @@ export class Plot
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
-    addDataPoint(newDatapoint, options={})
+    addDataPoint(newDatapoint, options ={})
     {            
         // overwrite old options
         for(let key in options)
@@ -1334,7 +1324,7 @@ export class Plot
         this.oldData.dataframe[this.oldData.dataframe.length] = newDatapoint
         
         if(newDatapoint.length != this.oldData.dataframe[0].length)
-            return console.error("the new datapoint does not match the number of column in the cached dataframe ("+newDatapoint.length+" != "+this.oldData.dataframe[0].length+")")
+            return console.error("the new datapoint does not match the number of column in the in oldData stored dataframe ("+newDatapoint.length+" != "+this.oldData.dataframe[0].length+")")
 
         // because of keepOldPlot, only hand the newDatapoint over to plotDataFrame
         this.plotDataFrame([newDatapoint],
@@ -1342,11 +1332,11 @@ export class Plot
             this.oldData.x2col,
             this.oldData.x3col,
             this.oldData.options // oldData.options got overwritten in this function
-            )
+        )
 
-        // destroy the cached string csv checkstring, indicate that the dataframe has been modified by addDataPoint
-        // do this, because otherwise when plotting the same (initial) dataframe again it might not realize that the cached dataframe has
-        // been extended by addDataPoint, so plotCsvString might use the cached (longer) dataframe than the one passed as parameter
+        // destroy the in oldData stored string csv checkstring, indicate that the dataframe has been modified by addDataPoint
+        // do this, because otherwise when plotting the same (initial) dataframe again it might not realize that the in oldData stored dataframe has
+        // been extended by addDataPoint, so plotCsvString might use the in oldData stored (longer) dataframe than the one passed as parameter
         this.oldData.checkstring += "_addDP"
 
         return 0
@@ -1371,11 +1361,11 @@ export class Plot
         if(options.colorMap != undefined && options.colorMap.labelColorMap != {})
         {
             // label colors:
-            legendHTML += "<table class=\"jsP3D_labelColorLegend\"><tbody>" // can't append to innerHTML directly for some funny reason
+            legendHTML += "<table class =\"jsP3D_labelColorLegend\"><tbody>" // can't append to innerHTML directly for some funny reason
             for(let key in options.colorMap.labelColorMap)
             {
                 legendHTML += "<tr>"
-                legendHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + options.colorMap.labelColorMap[key].color.getHexString() + ";\"></span></td>"
+                legendHTML += "<td><span class =\"jsP3D_labelColor\" style =\"background-color:#" + options.colorMap.labelColorMap[key].color.getHexString() + ";\"></span></td>"
                 legendHTML += "<td>" + key + "</td>"
                 legendHTML += "</tr>"
             }
@@ -1383,7 +1373,7 @@ export class Plot
         }
 
         // axes titles:
-        legendHTML += "<table class=\"jsP3D_axesTitleLegend\"><tbody>"
+        legendHTML += "<table class =\"jsP3D_axesTitleLegend\"><tbody>"
         if(options.x1title != undefined)
             legendHTML += "<tr><td>x:</td><td>"+options.x1title+"</td></tr>"
         if(options.x2title != undefined)
@@ -1396,7 +1386,6 @@ export class Plot
         if(this.legend.element.innerHTML.trim() != legendHTML) // for some reason I have to trim the current innerHTML
             this.legend.element.innerHTML = legendHTML
     }
-
 
     /**
      * private method to to initialize the legend variables and creates a dom object for it. Happens in the constructor.
@@ -1412,19 +1401,6 @@ export class Plot
         this.legend.x2title = ""
         this.legend.x3title = ""
     }
-
-
-
-    /**
-     * resets the legend content and removes it from the DOM.
-     */
-    resetLegend()
-    {
-        this.legend.element.parentElement.removeChild(this.legend.element)
-        this.initializeLegend()
-    }
-
-
 
     /**
      * appends the legend to a specific container. It is already generated at this point.
@@ -1486,12 +1462,11 @@ export class Plot
 
 
     /**
-     * clears the cache and initializes it
+     * clears the oldData-object and initializes it
      * @private
      */
-    resetCache()
+    clearOldData()
     {
-        console.error("reset")
         this.oldData = {}
 
         this.oldData.normalization = {
@@ -1520,39 +1495,6 @@ export class Plot
 
 
     /**
-     * changes the background color and triggers a rerender
-     * @param {string} color
-     */
-    setBackgroundColor(color)
-    {
-        this.SceneHelper.setBackgroundColor(color)
-    }
-
-
-
-    /**
-     * Creates new axes with the defined color and triggers a rerender
-     * @param {String} color    axes color. Examples: 0xffffff, "#ff6600", "rgb(1,0.5,0)", "hsl(0.7,0.6,0.3)"
-     */
-    setAxesColor(color)
-    {
-        this.SceneHelper.createAxes(color, this.dimensions, this.oldData.normalization)
-        this.SceneHelper.makeSureItRenders(this.animationFunc)
-    }
-
-
-
-    /**
-     * resets the camera position
-     */
-    centerCamera()
-    {
-        this.SceneHelper.centerCamera(this.dimensions)
-    }
-
-
-
-   /**
      * sets the container of this plot
      * TODO what happens when this function is used during runtime? Can the container be changed? What if the containers have different width and height?
      * @param {object} container DOM-Element of the new container
@@ -1568,16 +1510,6 @@ export class Plot
         this.container.appendChild(this.SceneHelper.renderer.domElement)
     }
 
-
-
-    /**
-     * gets the DOM container of this plot
-     * @return {object} the DOM-Element that contains the plot
-     */
-    getContainer()
-    {
-        return this.container
-    }
 
 
 
@@ -1608,7 +1540,7 @@ export class Plot
 
         if(dimensions.xVerticesCount != undefined || dimensions.zVerticesCount != undefined)
             console.warn("xVerticesCount and zVerticesCount cannot be manually overwritten. They are the product of Length and Resolution.",
-            "Example: setDimensions({xRes:10, xLen:2}) xVerticesCount now has a value of 20")
+                "Example: setDimensions({xRes:10, xLen:2}) xVerticesCount now has a value of 20")
 
         this.dimensions.xVerticesCount = Math.max(1, Math.round(this.dimensions.xLen*this.dimensions.xRes))
         this.dimensions.zVerticesCount = Math.max(1, Math.round(this.dimensions.zLen*this.dimensions.zRes))
@@ -1629,22 +1561,10 @@ export class Plot
 
 
 
-    /**
-     * returns a JSON object that contains the dimensions
-     * @return {object} {xRes, zRes, xLen, yLen, zLen, xVerticesCount, zVerticesCount, minX1, maxX1, minX2, maxX2, minX3, maxX3}
-     */
-    getDimensionsAndNormalization()
-    {
-        let dimensions = this.dimensions
-
-        //merge the normalization info into dimensions
-        for(let key in this.oldData.normalization)
-            dimensions[key] = this.oldData.normalization[key]
-
-        return this.dimensions
-    }
 
 
+
+    /*-- Animations --*/
 
     /**
      * tells this object to animate this. You can stop the animation using stopAnimation()
@@ -1664,17 +1584,13 @@ export class Plot
         this.callAnimation()
     }
 
-
-
     /**
      * stops the ongoing animation. To start an animation, see animate(...)
      */
     stopAnimation()
     {
-        this.animationFunc = ()=>{}
+        this.animationFunc = null
     }
-
-
 
     /**
      * executes the animation. Use animate(...) if you want to set up an animation
@@ -1682,7 +1598,7 @@ export class Plot
      */
     callAnimation()
     {
-        if(this.animationFunc != undefined)
+        if(this.animationFunc !== null)
         {
             this.animationFunc()
             this.SceneHelper.render()
@@ -1691,6 +1607,10 @@ export class Plot
     }
 
 
+
+
+
+    /*-- Benchmarking --*/
 
     /**
      * enables benchmarking. Results will be printed into the console.
@@ -1703,8 +1623,6 @@ export class Plot
         this.benchmark.recentTime = window.performance.now()
     }
 
-
-
     /**
      * disables benchmarking. To enable it, use: enableBenchmarking(). To print a timestamp to the console, use benchmarkStamp("foobar")
      */
@@ -1712,8 +1630,6 @@ export class Plot
     {
         this.benchmark.enabled = false
     }
-
-
 
     /**
      * prints time and an identifier to the console, if benchmarking is enabled. You can enable it using enableBenchmarking() and stop it using disableBenchmarking()
@@ -1730,11 +1646,90 @@ export class Plot
 
 
 
+
+
+
+    /*-- some public API functions that forward to Scenehelper --*/
+
+    /**
+     * changes the background color and triggers a rerender
+     * @param {string} color Examples: 0xffffff, "#ff6600", "rgb(1,0.5,0)", "hsl(0.7,0.6,0.3)"
+     */
+    setBackgroundColor(color)
+    {
+        this.SceneHelper.setBackgroundColor(color)
+    }
+
+    /**
+     * Creates new axes with the defined color and triggers a rerender
+     * @param {String} color axes color. Examples: 0xffffff, "#ff6600", "rgb(1,0.5,0)", "hsl(0.7,0.6,0.3)"
+     */
+    setAxesColor(color)
+    {
+        this.SceneHelper.createAxes(color, this.dimensions, this.oldData.normalization)
+        this.SceneHelper.makeSureItRenders(this.animationFunc)
+    }
+
+    /**
+     * resets the camera position
+     */
+    centerCamera()
+    {
+        this.SceneHelper.centerCamera(this.dimensions)
+    }
+
     /**
      * removes the axes. They can be recreated using createAxes(color)
      */
     removeAxes()
     {
         this.SceneHelper.removeAxes()
+    }
+
+
+
+
+
+    /*-- typechecking --*/
+    
+    /**
+     * prints an error, telling you what went wrong with a variable (expected type is wrong)
+     * @param {string} varname 
+     * @param {any} variable 
+     * @param {string} expectedType 
+     */
+    errorParamType(varname, variable, expectedType)
+    {
+        console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
+    }
+    
+    /**
+     * checks if the variable is boolean or not
+     * @param {string} varname 
+     * @param {any} variable 
+     * @return {boolean} true if valid, false if not
+     */
+    checkBoolean(varname, variable)
+    {
+        if(variable == undefined)
+            return // not defined in the (optional) options, don't do anything then
+        let a = (variable === true || variable === false)
+        if(!a) this.errorParamType(varname, variable, "boolean")
+        return(a) // returns true (valid) or false
+    }
+
+    /**
+     * checks if the variable is a number or not
+     * @param {string} varname 
+     * @param {any} variable 
+     * @return {boolean} true if valid, false if not
+     */
+    checkNumber(varname, variable)
+    {
+        if(variable == undefined || variable === "")
+            return // not defined in the (optional) options, don't do anything then
+        if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
+            return this.errorParamType(varname, variable, "number")
+        else return true // returns true (valid) or false
     }
 }
