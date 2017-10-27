@@ -63,7 +63,7 @@
     })
 
     // step 4 extract the dataframe from the formulaplot and display it on the canvas next to it using a different resolution
-    var data2 = plot1.getCache().dataframe
+    var data2 = plot1.oldData.dataframe
     var plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"))
     plot2.setDimensions({xRes:12,zRes:12})
     plot2.plotDataFrame(data2,0,1,2, {

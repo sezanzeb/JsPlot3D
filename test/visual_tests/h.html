@@ -6,12 +6,16 @@
     <body>
         <h1>Building up a Scatterplot Step by Step</h1>
         <div class="inlineBlock" id="JsPlot3DContainer1" style="width:400px; height:350px;"></div>
-        <p>Evenly distributed small yellow-orange-red datapoints on a dark blue background and lime axes. At the top there are a few large turqoise datapoints visible</p>
+        <p>Evenly distributed small yellow-orange-red datapoints on a dark blue background and lime axes. A few large turqoise datapoints are visible in the front at the edge of the helperGrid</p>
 
         <hr/>
         <div class="inlineBlock" id="JsPlot3DContainer2" style="width:400px; height:350px;"></div>
         <div class="inlineBlock" id="JsPlot3DContainer3" style="width:400px; height:350px;"></div>
         <p>Blinking white points at random positions.</p>
+
+        <hr/>
+        <div class="inlineBlock" id="JsPlot3DContainer4" style="width:400px; height:350px;"></div>
+        <p>Many white points, starting from scratch and building up over time.</p>
 
         <div class="hidden" id="csv">
             x;cos;tanh
@@ -30,8 +34,7 @@
 <script src="https://threejs.org/build/three.js"></script>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
-    var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"),
-    {
+    var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
         backgroundColor: "#12365a",
         axesColor: 0x66ff00
     })
@@ -47,8 +50,12 @@
         let randr = 255
         let randg = 255*Math.abs(Math.random()) | 0
         let randb = 0
-        plot1.addDataPoint([Math.abs(Math.random()),Math.abs(Math.random()),Math.abs(Math.random())],{
+        // make sure that the new datapoint matches the dimensions of the initial plotCsvString plot
+        plot1.addDataPoint([-Math.abs(Math.random())*15,1-Math.abs(Math.random())/100,-Math.abs(Math.random())],{
             defaultColor: "rgb(" + randr + "," + randg + "," + randb + ")",
+            normalizeX1: true,
+            normalizeX2: false,
+            normalizeX3: true,
             dataPointSize: 0.1
         })
     })
@@ -66,10 +73,9 @@
         plot2.addDataPoint(datap,{
             defaultColor: "#ffffff",
             dataPointSize: 0.1,
-            header: false,
-            normalizeX1: false,
-            normalizeX2: false,
-            normalizeX3: false,
+            normalizeX1: true,
+            normalizeX2: true,
+            normalizeX3: true,
             keepOldPlot: false
         })
     })
@@ -96,4 +102,25 @@
     })
     plot3.removeAxes()
     
+
+
+
+    var plot4 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer4"),
+    {
+        backgroundColor: "#12365a",
+        axesColor: 0x66ff00
+    })
+    plot4.animate(function() {
+        let datap = [Math.abs(Math.random()),Math.abs(Math.random()),Math.abs(Math.random())]
+        plot4.addDataPoint(datap,{
+            defaultColor: "#ffffff",
+            dataPointSize: 0.1,
+            normalizeX1: true,
+            normalizeX2: true,
+            normalizeX3: true,
+            keepOldPlot: true
+        })
+    })
+    plot4.removeAxes()
+
 </script>

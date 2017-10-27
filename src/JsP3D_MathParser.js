@@ -51,14 +51,12 @@ export default class JsP3D_MathParser
 
         // checking for a point if it has been calculated already increases the performance and
         // reduces the number of recursions.
-
+        // calculatedPoints[x1][x3]
         let val = this.calculatedPoints[x1index]
         if(val !== undefined)
             val = val[x3index]
 
-        if(val === undefined)
-            return
-
+        // unknown
         if(val === undefined) // has this point has already been calculated before?
         {
             if(!this.stopRecursion)

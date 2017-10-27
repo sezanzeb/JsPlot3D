@@ -34,9 +34,9 @@ function getVal(id)
     if(value == "false")
         value = false
     
-    // undefined by default
+    // null by default
     if(value === "")
-        value = undefined
+        value = null
 
     // 0xhex
     let parsed = parseInt(value)
@@ -106,9 +106,9 @@ function plotcsv()
     plot.plotCsvString(data,x1,x2,x3,getOptions())
 
     // display the dataframes head
-    if(plot.getCache().dataframe != undefined)
+    if(plot.oldData.dataframe != undefined)
     {
-        let tableData = plot.getCache().dataframe.slice(0,27)
+        let tableData = plot.oldData.dataframe.slice(0,27)
         let table = "<table>"
 
         table += "<tr>"

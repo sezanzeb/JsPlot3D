@@ -14,6 +14,21 @@
     </body>
 </html>
 
+<div style="display:none" id="csv1">
+
+      x;cos;tanh;sqrt;color
+    1;0.9999500004166653;0.0;0.1;tree
+    2;0.9998000066665778;0.019997333759930885;0.1414213562373095;tree
+     3;2;0.029991003238820143;0.17320508075688773;tree
+    4;-1;0.03997868031116358;0.2;flower
+        5;0.9987502603949663;0.04995837495788006;0.22360679774997896;flower
+       6;0.9982005399352042;0.0599281035291435;0.2449489742783178;flower
+        7;0.9975510002532796;0.06988589031642899;0.2645751311064591;painting
+    8;0.9968017063026194;0.07982976911113135;0.282842712474619;painting
+     9;0.9959527330119943;1;0.3;painting
+
+</div>
+
 <script>
 
     let container, plot, timeBench
@@ -38,8 +53,7 @@
             expect(plot.SceneHelper).toBeDefined()
             expect(plot.MathParser).toBeDefined()
             expect(plot.container).toBeDefined()
-            expect(plot.dfCache).toBeDefined()
-            expect(plot.getCache()).toBeDefined()
+            expect(plot.oldData).toBeDefined()
             expect(plot.dimensions).toBeDefined()
             expect(plot.benchmark).toBeDefined()
         })
@@ -103,7 +117,15 @@
         
         it("removing the axes", function() {
             plot.removeAxes()
-            expect(plot.SceneHelper.axes).toBe(undefined)
+            expect(plot.SceneHelper.axes).toBeNull()
+        })
+        
+        it("adding new axes", function() {
+            plot.setAxesColor("#0f0")
+            expect(plot.SceneHelper.axes).toBeDefined()
+            expect(plot.SceneHelper.axesColor.r).toBe(0)
+            expect(plot.SceneHelper.axesColor.g).toBe(1)
+            expect(plot.SceneHelper.axesColor.b).toBe(0)
         })
 
     })
@@ -116,7 +138,7 @@
         
         it("messages during default configuration", function() {
             plot.benchmarkStamp("test0")
-            expect(plot.benchmark.recentTime).toBeUndefined() // a time was never recorded
+            expect(plot.benchmark.recentTime).toBe(0) // a time was never recorded
         })
 
         it("enabling", function() {
@@ -144,12 +166,12 @@
 
     })
 
-    describe("ColorLib getColorObjectFromAnyString", function() {
+    describe("ColorLib getColorObjectFromAnyString conversion", function() {
 
         let tests = {
             "rgb(255,255,0)": "ffff00",
             "rgba(255,255,0,0.5)": "ffff00",
-            "hsl(1,1,1)": "ffffff",
+            "hsl(0.7232,1,1)": "ffffff",
             "#000": "000000",
             0x000000: "000000",
             0xff6600: "ff6600",
@@ -158,9 +180,109 @@
 
         for(let key in tests)
         {
-            it(key, function() {
+            it(key+" to "+tests[key], function() {
                 expect(JSPLOT3D.COLORLIB.getColorObjectFromAnyString(key).getHexString()).toBe(tests[key])
             })      
+        }
+    })
+
+    describe("labeled data and min/max detection", function()
+    {
+        // iterate over the modes and make a few tests for each mode
+        let modes = [undefined,"scatterplot","lineplot"]
+        for(let i = 0;i < modes.length; i++)
+        {
+            let mode = modes[i]
+
+            describe("mode: "+mode, function() {
+                describe("plot csv", function() {
+
+                    it("detecting min and max", function() {
+
+                        console.log("\n\nmode:",mode)
+                        plot.plotCsvString(document.getElementById("csv1").innerHTML,0,1,2,{
+                            colorCol: 4,
+                            mode: mode
+                        })
+
+                        expect(plot.oldData.normalization.minX1).toBe(1)
+                        expect(plot.oldData.normalization.maxX1).toBe(9)
+
+                        expect(plot.oldData.normalization.minX2).toBe(-1)
+                        expect(plot.oldData.normalization.maxX2).toBe(2)
+
+                        expect(plot.oldData.normalization.minX3).toBe(0)
+                        expect(plot.oldData.normalization.maxX3).toBe(1)
+                    })
+
+                    it("detecting labels and legend integrity", function() {
+
+                        expect(plot.legend.element.innerHTML).toContain("tree")
+                        expect(plot.legend.element.innerHTML).toContain("flower")
+                        expect(plot.legend.element.innerHTML).toContain("painting")
+                    })     
+                })
+
+                describe("add datapoint", function() {
+
+                    it("detecting min and max, they should not change by default", function() {
+
+                        plot.addDataPoint([100,100,100,100,"rock"])
+                        plot.addDataPoint([-100,-100,-100,-100,"water"])
+
+                        expect(plot.oldData.normalization.minX1).toBe(1)
+                        expect(plot.oldData.normalization.maxX1).toBe(9)
+
+                        expect(plot.oldData.normalization.minX2).toBe(-1)
+                        expect(plot.oldData.normalization.maxX2).toBe(2)
+
+                        expect(plot.oldData.normalization.minX3).toBe(0)
+                        expect(plot.oldData.normalization.maxX3).toBe(1)
+                    })
+
+                    it("checking if new label is added to the legend", function() {
+
+                        expect(plot.legend.element.innerHTML).toContain("rock")
+                        expect(plot.legend.element.innerHTML).toContain("water")
+                    })     
+                })  
+            })
+        }
+    })
+
+    describe("normalizing after addDataPoint", function()
+    {
+        // iterate over the modes and make a few tests for each mode
+        let modes = [undefined,"scatterplot","lineplot"]
+        for(let i = 0;i < modes.length; i++)
+        {
+            let mode = modes[i]
+
+            describe("mode:"+mode+" add datapoint", function() {
+
+                it("min and max should increase", function() {
+
+                    console.log("\n\nmode:",mode)
+                    plot.plotCsvString(document.getElementById("csv1").innerHTML,0,1,2,{
+                        colorCol: 1, // UNLABELED
+                        mode: mode
+                    })
+
+                    let options = {normalizeX1: true, normalizeX2: true, normalizeX3: true}
+
+                    plot.addDataPoint([100,101,102,100,"rock"], options)
+                    plot.addDataPoint([-100,-101,-102,-100,"water"], options)
+
+                    expect(plot.oldData.normalization.minX1).toBe(-100)
+                    expect(plot.oldData.normalization.maxX1).toBe(100)
+
+                    expect(plot.oldData.normalization.minX2).toBe(-101)
+                    expect(plot.oldData.normalization.maxX2).toBe(101)
+
+                    expect(plot.oldData.normalization.minX3).toBe(-102)
+                    expect(plot.oldData.normalization.maxX3).toBe(102)
+                })
+            })  
         }
     })
 

@@ -1,24 +1,24 @@
 <html>
     <head>
-        <title>JsPlot3D - Labeled and Colored Data</title>
+        <title>JsPlot3D - Adding New Label</title>
         <link rel="stylesheet" type="text/css" href="../style.css">
     </head>
     <body>
-        <h1>wip</h1>
+        <h1>Adding New Labels</h1>
         <div class="container" id="JsPlot3DContainer1"></div>
-        <div id="JsPlot3DContainer1Legend"></div>
+        <span id="JsPlot3DContainer1Legend1"></span>
+        <div class="container" id="JsPlot3DContainer2"></div>
+        <span id="JsPlot3DContainer1Legend2"></span>
+        <p>
+            Both legends should display: tree, flower and lemon. Both plots should show 10 different datapoints.<br/>
+            The second plot was normalized during addDataPoint operations whereas the first plot shows data that exceeds the height of the plot.
+        </p>
 
         <div class="hidden" id="csv1">
-                x;cos;tanh;sqrt;color
-                1;0.9999500004166653;0.00999966667999949;0.1;tree
-                2;0.9998000066665778;0.019997333759930885;0.1414213562373095;tree
-                3;0.9995500337489875;0.029991003238820143;0.17320508075688773;tree
-                4;0.9992001066609779;0.03997868031116358;0.2;flower
-                5;0.9987502603949663;0.04995837495788006;0.22360679774997896;flower
-                6;0.9982005399352042;0.0599281035291435;0.2449489742783178;flower
-                7;0.9975510002532796;0.06988589031642899;0.2645751311064591;painting
-                8;0.9968017063026194;0.07982976911113135;0.282842712474619;painting
-                9;0.9959527330119943;0.08975778474716013;0.3;painting
+                a,b,c,label
+                0,0,1,tree
+                0,0,2,flower
+                0,0,3,tree
         </div>
     </body>
 <head>
@@ -30,14 +30,62 @@
 
     let data1 = document.getElementById("csv1").innerHTML
 
-    var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"))
-    plot1.createLegend(document.getElementById("JsPlot3DContainer1Legend"))
-    plot1.plotCsvString(data1,0,1,2,{
-        header: true,
-        dataPointSize: 0.1,
-        labeled: true,
-        colorCol: 4
+    let plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
+        backgroundColor: "#eee",
     })
-    plot1.addDataPoint([2,1,1,1,"lemon"])
+    plot1.createLegend(document.getElementById("JsPlot3DContainer1Legend1"))
+    plot1.plotCsvString(data1,0,2,1,{
+        header: true,
+        dataPointSize: 0.3,
+        labeled: true,
+        colorCol: 3
+    })
+    plot1.addDataPoint([0,0,4,"tree"])
+    plot1.addDataPoint([0,0,5,"flower"])
+    plot1.addDataPoint([0,0,6,"lemon"])
+    plot1.addDataPoint([0,0,7,"lemon"])
+    plot1.addDataPoint([0,0,8,"lemon"])
+    plot1.addDataPoint([0,0,9,"tree"])
+    plot1.addDataPoint([0,0,10,"flower"])
+
+
+
+
+    let plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"), {
+        backgroundColor: "#eee",
+    })
+    plot2.createLegend(document.getElementById("JsPlot3DContainer1Legend2"))
+    plot2.plotCsvString(data1,0,2,1,{
+        header: true,
+        dataPointSize: 0.3,
+        labeled: true,
+        colorCol: 3
+    })
+
+    let newDatapoints = [
+        [0,0,4,"tree"],
+        [0,0,5,"flower"],
+        [0,0,6,"lemon"],
+        [0,0,7,"lemon"],
+        [0,0,8,"lemon"],
+        [0,0,9,"tree"],
+        [0,0,10,"flower"]]
+
+    let i = 0
+
+    let timeout = window.setInterval(function() {
+
+        plot2.addDataPoint(newDatapoints[i], {
+            normalizeX1: true,
+            normalizeX2: true,
+            normalizeX3: true
+        })
+        i++
+
+        if(i >= newDatapoints.length)
+            clearTimeout(timeout)
+
+    },400)
+
 
 </script>

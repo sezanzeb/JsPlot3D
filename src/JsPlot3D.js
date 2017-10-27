@@ -44,12 +44,15 @@ export class Plot
         this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
         this.SceneHelper.centerCamera(this.dimensions)
 
+        this.axesNumbersNeedUpdate = false
+
         // legend
         this.initializeLegend()
 
         // by default disable the benchmark process
         this.benchmark = {}
         this.benchmark.enabled = false
+        this.benchmark.recentTime = 0
 
         this.SceneHelper.render()
     }
@@ -63,7 +66,7 @@ export class Plot
     
     checkBoolean(varname, variable)
     {
-        if(variable === undefined)
+        if(variable == undefined)
             return // not defined in the (optional) options, don't do anything then
         let a = (variable === true || variable === false)
         if(!a) this.errorParamType(varname, variable, "boolean")
@@ -72,7 +75,7 @@ export class Plot
 
     checkNumber(varname, variable)
     {
-        if(variable === undefined || variable === "")
+        if(variable == undefined || variable === "")
             return // not defined in the (optional) options, don't do anything then
         if(typeof(variable) != "number" && isNaN(parseFloat(variable)))
             return this.errorParamType(varname, variable, "number")
@@ -110,7 +113,7 @@ export class Plot
      * - x3title {string}: title of the x3 axis
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
-     * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the cache
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0  
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
@@ -121,21 +124,18 @@ export class Plot
         let x2frac = 1
         let normalizeX2 = true
         
-        if(options.mode != undefined)
-            mode = options.mode
-        if(options.x2frac != undefined)
-            x2frac = options.x2frac
-        if(options.normalizeX2 != undefined)
-            normalizeX2 = options.normalizeX2
+        if(options.mode != undefined) mode = options.mode
+        if(options.x2frac != undefined) x2frac = options.x2frac
+        if(options.normalizeX2 != undefined) normalizeX2 = options.normalizeX2
 
-        if(originalFormula === undefined || originalFormula === "")
+        if(originalFormula == undefined || originalFormula === "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
         if(typeof(originalFormula) != "string")
             return console.error("first param of plotFormula (originalFormula) should be string")
 
         this.MathParser.resetCalculation()
         this.MathParser.parse(originalFormula) //tell the MathParser to prepare so that f can be executed
-        this.dfCache.checkstring = "" // don't fool plotCsvString into believing the cache contains still old csv data
+        this.oldData.checkstring = "" // don't fool plotCsvString into believing the cache contains still old csv data
 
         if(mode === "scatterplot")
         {
@@ -226,14 +226,10 @@ export class Plot
             let x1title="x1"
             let x2title="x2"
             let x3title="x3"
-            if(options.title != undefined)
-                title = options.title
-            if(options.x1title != undefined)
-                x1title = options.x1title
-            if(options.x2title != undefined)
-                x2title = options.x2title
-            if(options.x3title != undefined)
-                x3title = options.x3title
+            if(options.title != undefined)  title = options.title
+            if(options.x1title != undefined) x1title = options.x1title
+            if(options.x2title != undefined) x2title = options.x2title
+            if(options.x3title != undefined) x3title = options.x3title
             this.populateLegend({x1title, x2title, x3title, title})
 
             // same goes for colors. plotFormula has to handle them on it's own
@@ -389,8 +385,8 @@ export class Plot
             }
 
         
-            if(this.SceneHelper.axes != undefined)
-                this.SceneHelper.updateAxesNumbers(this.dimensions, {minX1: 0, maxX1: 1, minX2: 0, maxX2: 1, minX3: 0, maxX3: 1}, numberDensity)
+            // if(this.SceneHelper.axes != undefined)
+            //     this.SceneHelper.updateAxesNumbers(this.dimensions, {minX1: 0, maxX1: 1, minX2: 0, maxX2: 1, minX3: 0, maxX3: 1}, numberDensity)
 
             this.plotmesh.name = "polygonFormula"
             this.SceneHelper.scene.add(this.plotmesh)
@@ -448,7 +444,7 @@ export class Plot
      * - x3title {string}: title of the x3 axis
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
-     * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the cache
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
@@ -461,7 +457,7 @@ export class Plot
         // a more complete checking will be done in plotDataFrame once the dataframe is generated.
         // only check what is needed in plotCsvString
         
-        if(sCsv === "" || sCsv === undefined)
+        if(sCsv === "" || sCsv == undefined)
             return console.error("dataframe arrived empty")
 
         // default config
@@ -480,15 +476,10 @@ export class Plot
             if(options.separator === "")
                 options.separator = undefined
 
-            // check numbers. Overwrite if it's good. If not, default value will remain
-            if(this.checkNumber("fraction", options.fraction))
-                fraction = parseFloat(options.fraction)
-
-            // check booleans
-            if(this.checkBoolean("csvIsInGoodShape", options.csvIsInGoodShape))
-                csvIsInGoodShape = options.csvIsInGoodShape
-            if(this.checkBoolean("header", options.header))
-                header = options.header
+            // check variables. Overwrite if it's good. If not, default value will remain
+            if(this.checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction)
+            if(this.checkBoolean("csvIsInGoodShape", options.csvIsInGoodShape)) csvIsInGoodShape = options.csvIsInGoodShape
+            if(this.checkBoolean("header", options.header)) header = options.header
 
             // check everything else
             if(options.separator != undefined)
@@ -515,10 +506,10 @@ export class Plot
             samples = samples + sCsv[i]
 
         // take everything into account that changes how the dataframe looks after the processing
-        let checkstring = title+sCsv.length+samples+fraction+separator
+        let checkstring = (title+sCsv.length+samples+fraction+separator).replace(/[\s\t\n\r]/g,"_")
 
         // now check if the checksum changed. If yes, remake the dataframe from the input
-        if(this.dfCache === undefined || this.dfCache.checkstring != checkstring)
+        if(this.oldData === null || this.oldData.checkstring != checkstring)
         {
             //-------------------------//
             //       creating df       //
@@ -570,7 +561,7 @@ export class Plot
 
             if(!csvIsInGoodShape)
             {
-                // check 5% of the columns to get the highest number of columns available
+                // check 5% of the columns to get the highest number of columns available (if not unlucky)
                 let columnCount = 0
                 for(let i = 0;i < Math.min(data.length, data.length*0.05+10);i++)
                 {
@@ -579,18 +570,18 @@ export class Plot
 
                 for(let i = 0;i < data.length; i ++)
                 {
+                    // remove leading and ending whitespaces in data
                     data[i] = data[i].trim().split(separator)
                     
                     // make sure every row has the same number of columns
                     data[i] = data[i].slice(0, columnCount)
                     data[i] = data[i].concat(new Array(columnCount-data[i].length))
 
-                    // remove leading and ending whitespaces in data
                     for(let j = 0;j < data[i].length; j++)
                     {
 
                         // make sure every column has stored a value. if not (maybe because of faulty csv formats), assume 0
-                        if(data[i][j] === undefined)
+                        if(data[i][j] == undefined) // check for undefined, because slice might create some empty fields if csv is very broken
                         {
                             data[i][j] = 0
                         }
@@ -639,8 +630,8 @@ export class Plot
             // cache the dataframe. If the same dataframe is used next time, don't parse it again
             if(options.keepOldPlot != true)
                 this.resetCache()
-            this.dfCache.dataframe = data
-            this.dfCache.checkstring = checkstring
+            this.oldData.dataframe = data
+            this.oldData.checkstring = checkstring
 
             this.benchmarkStamp("created the dataframe and cached it")
 
@@ -653,9 +644,9 @@ export class Plot
         {
             console.log("using cached dataframe")
             // cached
-            // this.dfCache != undefined and checkstring is the same
+            // this.oldData != undefined and checkstring is the same
             // same data. Fraction is now 1, because the fraction has already been taken into account
-            this.plotDataFrame(this.dfCache.dataframe, x1col, x2col, x3col, options)
+            this.plotDataFrame(this.oldData.dataframe, x1col, x2col, x3col, options)
         }
     }
 
@@ -695,12 +686,12 @@ export class Plot
      * - x3title {string}: title of the x3 axis
      * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
      * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
-     * - updateCache {boolean}: if false, don't overwrite the dataframe that is stored in the cache
+     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the cache
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
                 
-    plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={}, normalization={})
+    plotDataFrame(df, x1col=0, x2col=1, x3col=2, options={})
     {
         // to optimize for performance, use:
         // {
@@ -709,7 +700,7 @@ export class Plot
         //   normalizeX1: false
         //   normalizeX2: false
         //   normalizeX3: false
-        //   updateCache: true // in addDataPoint this is automatically false, otherwise the cache would be overwritten with a single point
+        //   updateOldData: true // in addDataPoint this is automatically false, otherwise the cache would be overwritten with a single point
         //   fraction: 0.5 // don't plot everything
         // }
         this.benchmarkStamp("plotDataFrame starts")
@@ -735,16 +726,13 @@ export class Plot
         let x3title="x3"
         let hueOffset=0
         let keepOldPlot=false
-        let updateCache=true
+        let updateOldData=true
         let barSizeThreshold=0
         let x1frac=1
         let x2frac=1
         let x3frac=1
         let numberDensity=2
         // let normalizationSmoothing=0
-
-        if(this.dfCache === undefined)
-            this.resetCache()
 
         // when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
         // it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
@@ -759,8 +747,7 @@ export class Plot
             // seems like the user sent some parameters. check them
 
             // treat empty strings as if it was undefined in those cases:
-            if(options.colorCol === "")
-                options.colorCol = undefined
+            if(options.colorCol === "") options.colorCol = undefined
 
             // check numbers. Overwrite if it's good. If not, default value will remain
             if(options.colorCol != undefined && options.colorCol >= df[0].length)
@@ -768,82 +755,55 @@ export class Plot
                 console.error("column with index "+options.colorCol+", used as colorCol, is not existant in the dataframe. Disabling coloration")
                 options.colorCol = -1
             }
-            if(this.checkNumber("fraction", options.fraction))
-                fraction = parseFloat(options.fraction)
-            if(this.checkNumber("barchartPadding", options.barchartPadding))
-                barchartPadding = parseFloat(options.barchartPadding)
+
+            if(this.checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction)
+            if(this.checkNumber("barchartPadding", options.barchartPadding)) barchartPadding = parseFloat(options.barchartPadding)
+            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = parseFloat(options.hueOffset)
+            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = parseFloat(options.numberDensity)
+            if(this.checkNumber("x1frac", options.x1frac)) x1frac = parseFloat(options.x1frac)
+            if(this.checkNumber("x2frac", options.x2frac)) x2frac = parseFloat(options.x2frac)
+            if(this.checkNumber("x3frac", options.x3frac)) x3frac = parseFloat(options.x3frac)
+            if(this.checkNumber("colorCol", options.colorCol)) colorCol = parseFloat(options.colorCol)
+            if(this.checkNumber("dataPointSize", options.dataPointSize)) dataPointSize = parseFloat(options.dataPointSize)
+            if(this.checkNumber("barSizeThreshold", options.barSizeThreshold)) barSizeThreshold = parseFloat(options.barSizeThreshold)
+            // if(this.checkNumber("normalizationSmoothing", options.normalizationSmoothing))
+            //    normalizationSmoothing = parseFloat(options.normalizationSmoothing)
+            if(dataPointSize <= 0)
+                console.error("datapoint size is <= 0. It will be invisible")
+
             if(barchartPadding >= 1)
             {
                 barchartPadding = 0
                 console.error("barchartPadding is invalid. maximum of 1 and minimum of 0 accepted. Now continuing with barchartPadding = "+barchartPadding)
             }
 
-            if(this.checkNumber("hueOffset", options.hueOffset))
-                hueOffset = parseFloat(options.hueOffset)
-            if(this.checkNumber("numberDensity", options.numberDensity))
-                numberDensity = parseFloat(options.numberDensity)
-            if(this.checkNumber("x1frac", options.x1frac))
-                x1frac = parseFloat(options.x1frac)
-            if(this.checkNumber("x2frac", options.x2frac))
-                x2frac = parseFloat(options.x2frac)
-            if(this.checkNumber("x3frac", options.x3frac))
-                x3frac = parseFloat(options.x3frac)
-            if(this.checkNumber("colorCol", options.colorCol))
-                colorCol = parseFloat(options.colorCol)
-            if(this.checkNumber("dataPointSize", options.dataPointSize))
-                dataPointSize = parseFloat(options.dataPointSize)
-            if(this.checkNumber("barSizeThreshold", options.barSizeThreshold))
-                barSizeThreshold = parseFloat(options.barSizeThreshold)
-            // if(this.checkNumber("normalizationSmoothing", options.normalizationSmoothing))
-            //    normalizationSmoothing = parseFloat(options.normalizationSmoothing)
-            if(dataPointSize <= 0)
-                console.error("datapoint size is <= 0. It will be invisible")
-
             // check booleans. Overwrite if it's good. If not, default value will remain
-            if(this.checkBoolean("labeled", options.labeled))
-                labeled = options.labeled
-            if(this.checkBoolean("normalizeX1", options.normalizeX1))
-                normalizeX1 = options.normalizeX1
-            if(this.checkBoolean("normalizeX2", options.normalizeX2))
-                normalizeX2 = options.normalizeX2
-            if(this.checkBoolean("normalizeX3", options.normalizeX3))
-                normalizeX3 = options.normalizeX3
-            if(this.checkBoolean("header", options.header))
-                header = options.header
-            if(this.checkBoolean("dfIsA2DMap", options.dfIsA2DMap))
-                dfIsA2DMap = options.dfIsA2DMap
-            if(this.checkBoolean("filterColor", options.filterColor))
-                filterColor = options.filterColor
-            if(this.checkBoolean("keepOldPlot", options.keepOldPlot))
-                keepOldPlot = options.keepOldPlot
-            if(this.checkBoolean("updateCache", options.updateCache))
-                updateCache = options.updateCache
+            if(this.checkBoolean("labeled", options.labeled)) labeled = options.labeled
+            if(this.checkBoolean("normalizeX1", options.normalizeX1)) normalizeX1 = options.normalizeX1
+            if(this.checkBoolean("normalizeX2", options.normalizeX2)) normalizeX2 = options.normalizeX2
+            if(this.checkBoolean("normalizeX3", options.normalizeX3)) normalizeX3 = options.normalizeX3
+            if(this.checkBoolean("header", options.header)) header = options.header
+            if(this.checkBoolean("dfIsA2DMap", options.dfIsA2DMap)) dfIsA2DMap = options.dfIsA2DMap
+            if(this.checkBoolean("filterColor", options.filterColor)) filterColor = options.filterColor
+            if(this.checkBoolean("keepOldPlot", options.keepOldPlot)) keepOldPlot = options.keepOldPlot
+            if(this.checkBoolean("updateOldData", options.updateOldData)) updateOldData = options.updateOldData
 
 
             // check everything else
-            if(options.title != undefined)
-                title = options.title
-            if(options.defaultColor != undefined)
-                defaultColor = options.defaultColor
-            if(options.mode != undefined)
-                mode = options.mode
-            if(options.x1title != undefined)
-                x1title = options.x1title
-            if(options.x2title != undefined)
-                x2title = options.x2title
-            if(options.x3title != undefined)
-                x3title = options.x3title
+            if(options.title != undefined) title = options.title
+            if(options.defaultColor != undefined) defaultColor = options.defaultColor
+            if(options.mode != undefined) mode = options.mode
+            if(options.x1title != undefined) x1title = options.x1title
+            if(options.x2title != undefined) x2title = options.x2title
+            if(options.x3title != undefined) x3title = options.x3title
 
         }
 
-        if(this.checkNumber("x1col", x1col))
-            x1col = parseFloat(x1col)
+        if(this.checkNumber("x1col", x1col)) x1col = parseFloat(x1col)
         else x1col = Math.min(0, df[0].length-1)
-        if(this.checkNumber("x2col", x2col))
-            x2col = parseFloat(x2col)
+        if(this.checkNumber("x2col", x2col)) x2col = parseFloat(x2col)
         else x2col = Math.min(1, df[0].length-1)
-        if(this.checkNumber("x3col", x3col))
-            x3col = parseFloat(x3col)
+        if(this.checkNumber("x3col", x3col)) x3col = parseFloat(x3col)
         else x3col = Math.min(2, df[0].length-1)
         
         //>= because comparing indices with numbers
@@ -923,15 +883,10 @@ export class Plot
         let colorMap, dfColors
         if(mode != "barchart")
         {
-            colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset)
-            if(colorMap === -1)
-            {
-                // COLORLIB requests to restart "getColorMap" using labeled = true
-                labeled = true
-                options.labeled = labeled
-                colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset)
-            }
+            colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset, this.oldData.labelColorMap, this.oldData.numberOfLabels)
             dfColors = colorMap.dfColors
+            this.oldData.labelColorMap = colorMap.labelColorMap
+            this.oldData.numberOfLabels = colorMap.numberOfLabels
         }
 
         // display information about the labels
@@ -939,36 +894,58 @@ export class Plot
 
         // by this point only dfColors stays relevant. So the function above can be easily moved to a different class to clear up the code here
 
+
+
+
+
         // plotDataFrame
         //-------------------------//
         //       normalizing       //
         //-------------------------//
         // finds out by how much the values (as well as colors) to divide and for the colors also a displacement
 
+        // what is happening here?
+        // minX1, maxX2, etc. are being loaded from the cache. The cache is initialized with 0 values
+        // so they are zero now
+        // then the dataframe gets analyzed (if enabled) and the min and max values are updated
+
+        // if it is disabled, the old values from the cache are not updated. this is the default case for addDataPoint.
+        // that means new datapoint might be so far away from the initial plot that they cannot be seen anymore, because it gets scaled according to the old normalization information
+        // if the values of that datapoint are so ridiculously large compared to the initial plot
+        // what is the initial plot? that's the dataframe one plotted initially (for example using plotCsvString(...) before using addDataPoint
 
         // normalize, so that the farthest away point is still within the xLen yLen zLen frame
-        // TODO logarithmic normalizing
+        // TODO logarithmic normalizing (what about the displayed numbers, how are they going to get logarithmic scaling? What about the helper lines)
  
         let startValueIndex = 0
         if(df.length >= 2)
             // assume second line if possible, because headers might be accidentally still there (because of wrong configuration)
             startValueIndex = 1
 
+       
+        // the default values are 0. after the normalization loops the case of
+        // them still being 0 will be handled by assigning 1 to x1-x3frac
+        let minX1 = this.oldData.normalization.minX1
+        let maxX1 = this.oldData.normalization.maxX1
+        let minX2 = this.oldData.normalization.minX2
+        let maxX2 = this.oldData.normalization.maxX2
+        let minX3 = this.oldData.normalization.minX3
+        let maxX3 = this.oldData.normalization.maxX3
+
+        // console.error({minX1,maxX1,minX2,maxX2,minX3,maxX3})
         
-        let minX2 = 0
-        let maxX2 = 1
-        let minX1 = 0
-        let maxX1 = 1
-        let minX3 = 0
-        let maxX3 = 1
-        
-        //keep old plot and normalization has not been calculated yet?
-        //if(keepOldPlot && this.dfCache.normalization === {})
+        // keep old plot and normalization has not been calculated yet?
+        // if(keepOldPlot && this.oldData.normalization === {})
         if(normalizeX1)
         {
-            maxX1 = df[startValueIndex][x1col]
-            minX1 = df[startValueIndex][x1col]
-            // determine max for normalisation
+            // if default values are still in the variables, use the first entry in the dataframe
+            if(maxX1 === 0 && minX1 === 0)
+            {
+                maxX1 = df[startValueIndex][x1col]
+                minX1 = df[startValueIndex][x1col]
+            }
+
+            // determine min and max for normalisation
             for(let i = 0; i < df.length; i++)
             {
                 if((df[i][x1col]) > maxX1)
@@ -979,27 +956,28 @@ export class Plot
 
             // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
             if(keepOldPlot)
-                for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                for(let i = 0; i < this.oldData.dataframe.length; i++)
                 {
-                    if(parseFloat(this.dfCache.dataframe[i][x1col]) > maxX1)
-                        maxX1 = this.dfCache.dataframe[i][x1col]
-                    if(parseFloat(this.dfCache.dataframe[i][x1col]) < minX1)
-                        minX1 = this.dfCache.dataframe[i][x1col]
+                    let check = parseFloat(this.oldData.dataframe[i][x1col])
+                    if(check > maxX1)
+                        maxX1 = check
+                    if(check < minX1)
+                        minX1 = check
                 }
-                
-            //x1frac = Math.max(Math.abs(maxX1), Math.abs(minX1)) // based on largest |value|
-            x1frac = Math.abs(maxX1-minX1) // based on distance between min and max
-            
-            if(x1frac === 0)
-                x1frac = 1 // all numbers are the same, therefore maxX1 equals minX1, therefore x1frac is 0. prevent divison by zero
         }
 
         if(mode != "barchart") // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
         {
             if(normalizeX2)
             {
-                maxX2 = df[startValueIndex][x2col]
-                minX2 = df[startValueIndex][x2col]
+                // if default values are still in the variables, use the first entry in the dataframe
+                if(maxX2 === 0 && minX2 === 0)
+                {
+                    maxX2 = df[startValueIndex][x2col]
+                    minX2 = df[startValueIndex][x2col]
+                }
+
+                // determine min and max for normalisation
                 for(let i = 0; i < df.length; i++)
                 {
                     if((df[i][x2col]) > maxX2)
@@ -1010,30 +988,27 @@ export class Plot
 
                 // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
                 if(keepOldPlot)
-                    for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                    for(let i = 0; i < this.oldData.dataframe.length; i++)
                     {
-                        if(parseFloat(this.dfCache.dataframe[i][x2col]) > maxX2)
-                            maxX2 = this.dfCache.dataframe[i][x2col]
-                        if(parseFloat(this.dfCache.dataframe[i][x2col]) < minX2)
-                            minX2 = this.dfCache.dataframe[i][x2col]
+                        let check = parseFloat(this.oldData.dataframe[i][x2col])
+                        if(check > maxX2)
+                            maxX2 = check
+                        if(check < minX2)
+                            minX2 = check
                     }
-                // a hybrid solution of checking the distance between the points and checking the |value|
-                //let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
-                //let b = Math.abs(maxX2-minX2) // based on distance between min and max
-                //x2frac = Math.max(a, b) // hybrid
-
-                x2frac = Math.abs(maxX2-minX2) // based on distance between min and max
-
-                if(x2frac === 0)
-                    x2frac = 1 // all numbers are the same, therefore maxX2 equals minX2, therefore x2frac is 0. prevent divison by zero
             }
         }
 
         if(normalizeX3)
         {
-            maxX3 = df[startValueIndex][x3col]
-            minX3 = df[startValueIndex][x3col]
+            // if default values are still in the variables, use the first entry in the dataframe
+            if(maxX3 === 0 && minX3 === 0)
+            {
+                maxX3 = df[startValueIndex][x3col]
+                minX3 = df[startValueIndex][x3col]
+            }
             
+            // determine min and max for normalisation
             for(let i = 0; i < df.length; i++)
             {
                 if((df[i][x3col]) > maxX3)
@@ -1044,23 +1019,34 @@ export class Plot
             
             // take care of normalizing it together with the cached dataframe in case keepOldPlot is true
             if(keepOldPlot)
-                for(let i = 0; i < this.dfCache.dataframe.length; i++)
+                for(let i = 0; i < this.oldData.dataframe.length; i++)
                 {
-                    // in the df are only strings. Math.abs not only makes it positive, it also parses that string to a number
-                    if(parseFloat(this.dfCache.dataframe[i][x3col]) > maxX3)
-                        maxX3 = this.dfCache.dataframe[i][x3col]
-                    if(parseFloat(this.dfCache.dataframe[i][x3col]) < minX3)
-                        minX3 = this.dfCache.dataframe[i][x3col]
+                    let check = parseFloat(this.oldData.dataframe[i][x3col])
+                    if(check > maxX3)
+                        maxX3 = check
+                    if(check < minX3)
+                        minX3 = check
                 }
-                
-            //x3frac = Math.max(Math.abs(maxX3), Math.abs(minX3)) // based on largest |value|
-            x3frac = Math.abs(maxX3-minX3) // based on distance between min and max
-            
-            if(x3frac === 0)
-                x3frac = 1 // all numbers are the same, therefore maxX3 equals minX3, therefore x3frac is 0. prevent divison by zero
         }
 
+        //x1frac = Math.max(Math.abs(maxX1), Math.abs(minX1)) // based on largest |value|
+        x1frac = Math.abs(maxX1-minX1) // based on distance between min and max
+        if(x1frac === 0)
+            x1frac = 1 // all numbers are the same, therefore maxX1 equals minX1, therefore x1frac is 0. prevent divison by zero
+
+        x2frac = Math.abs(maxX2-minX2)
+        if(x2frac === 0)
+            x2frac = 1
+
+        x3frac = Math.abs(maxX3-minX3)
+        if(x3frac === 0)
+            x3frac = 1
+
         this.benchmarkStamp("normalized the data")
+
+
+
+
 
         
         if(mode === "barchart")
@@ -1073,7 +1059,7 @@ export class Plot
 
 
 
-            // this.dfCache.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
+            // this.oldData.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
             // let xBarOffset = 1/this.dimensions.xRes/2
             // let zBarOffset = 1/this.dimensions.zRes/2
 
@@ -1128,12 +1114,14 @@ export class Plot
             // if needed, reconstruct the complete barchart
             let valid = this.IsPlotmeshValid("barchart")
             // shape of bars changed? recreate from scratch
-            // let paddingValid = (options.barchartPadding === undefined && this.dfCache.options.barchartPadding === undefined) || (barchartPadding === this.dfCache.options.barchartPadding)
+            // let paddingValid = (options.barchartPadding === undefined && this.oldData.options.barchartPadding === undefined) || (barchartPadding === this.oldData.options.barchartPadding)
 
             if(!valid || !keepOldPlot)
             {
                 this.SceneHelper.disposeMesh(this.plotmesh)
                 this.resetCache()
+                
+                this.oldData.barsGrid = {}
                 
                 // into this group fill the bars
                 let cubegroup = new THREE.Group()
@@ -1144,26 +1132,7 @@ export class Plot
             }
 
             // load what is stored
-            let barsGrid = this.dfCache.barsGrid
-
-            // if undefined, start creating a new barsGrid
-            if(barsGrid === undefined)
-            {
-                barsGrid = {}
-                this.dfCache.barsGrid = barsGrid
-            }
-
-
-            // dispose, reset if not needed anymore
-            if(!keepOldPlot)
-            {
-                for(let keyx in barsGrid)
-                    for(let keyz in barsGrid)
-                        this.SceneHelper.disposeMesh(barsGrid[keyx][keyz].bar)
-
-                barsGrid = {}
-                this.dfCache.barsGrid = barsGrid
-            }
+            let barsGrid = this.oldData.barsGrid
             
 
             // fill the barsGrid array with the added heights of the bars
@@ -1178,9 +1147,9 @@ export class Plot
             let factorX3 = (this.dimensions.zVerticesCount)/x3frac
 
             // use the maximums from the recent run if keepOldPlot
-            maxX2 = this.dfCache.normalization.maxX2
-            minX2 = this.dfCache.normalization.minX2
-            if(minX2 === undefined || maxX2 === undefined || !keepOldPlot)
+            maxX2 = this.oldData.normalization.maxX2
+            minX2 = this.oldData.normalization.minX2
+            if(!keepOldPlot)
             {
                 // bars all start at y = 0 and grow towards -inf and +inf, so 0 is safe to assume
                 maxX2 = 0
@@ -1232,7 +1201,8 @@ export class Plot
                 if(barsGrid[x][z].y < minX2)
                     minX2 = barsGrid[x][z].y
 
-                // if needed create the bar
+                // if needed create the bar. Don't set the height yet
+                // the height gets set once maxX2 and minX2 are ready
                 if(barsGrid[x][z].bar === undefined)
                 {
                     barsGrid[x][z].bar = createBar(x, z, this.plotmesh)
@@ -1249,7 +1219,7 @@ export class Plot
             // don't get fooled and write code here and suspect it to run after the
             // normalization. Write it below the loop that calls addToHeights. Code below this comment
             // is for preparation of the normalization
-
+            
             for(let i = 0; i < df.length; i ++)
             {
 
@@ -1268,8 +1238,8 @@ export class Plot
                 let x_float = (df[i][x1col]-minX1)*factorX1
                 let z_float = (df[i][x3col]-minX3)*factorX3
                 
-                let x_le = Math.floor(x_float) // left
-                let z_ba = Math.floor(z_float) // back
+                let x_le = x_float|0 // left
+                let z_ba = z_float|0 // back
 
                 let y = (df[i][x2col]) // don't normalize yet
 
@@ -1315,8 +1285,8 @@ export class Plot
                 // a lower value of normalizationSmoothing will result in faster jumping around plots. 0 Means no smoothing this happens, because 
                 // sometimes the plot might be close to 0 everywhere. This is not visible because of the normalization though one the sign
                 // changes, it will immediatelly jump to be normalized with a different sign. To prevent this one can smoothen the variable x2frac
-                // x2frac = (x2frac + normalizationSmoothing*this.dfCache.previousX2frac)/(normalizationSmoothing+1)
-                // this.dfCache.previousX2frac = x2frac
+                // x2frac = (x2frac + normalizationSmoothing*this.oldData.previousX2frac)/(normalizationSmoothing+1)
+                // this.oldData.previousX2frac = x2frac
                 // this is a little bit too experimental at the moment. Once everything runs properly stable it's worth thinking about it
             }
 
@@ -1407,7 +1377,7 @@ export class Plot
             let wireframeLinewidth = dataPointSize*100
 
             let isItValid = this.IsPlotmeshValid("lineplot")
-            let isOldMaterialSimilar = (this.dfCache != undefined && this.dfCache.material != undefined && wireframeLinewidth === this.dfCache.material.wireframeLinewidth)
+            let isOldMaterialSimilar = (this.oldData != undefined && this.oldData.material != undefined && wireframeLinewidth === this.oldData.material.wireframeLinewidth)
 
             if(!keepOldPlot || !isItValid || !isOldMaterialSimilar)
             {
@@ -1420,13 +1390,13 @@ export class Plot
                     linejoin: "round"
                     })
 
-                this.dfCache.material = material
+                this.oldData.material = material
                 this.plotmesh = new THREE.Group()
                 this.plotmesh.name = "lineplot"
                 this.SceneHelper.scene.add(this.plotmesh)
             }
 
-            let material = this.dfCache.material
+            let material = this.oldData.material
             let group = this.plotmesh
             let geometry = new THREE.Geometry()
             
@@ -1472,13 +1442,13 @@ export class Plot
             let isItValid = this.IsPlotmeshValid("scatterplot")
         
             // laod the recently used material from the cache
-            let material = this.dfCache.material
+            let material = this.oldData.material
 
             // the material is created here
-            if(material === undefined || !isItValid || material != undefined && material != dataPointSize)
+            if(material === null || !isItValid || material != null && material != dataPointSize)
             {
                 // only dispose the old mesh if it is not used anymore
-                if(!keepOldPlot)
+                if(!keepOldPlot || this.plotmesh == undefined)
                 {
                     this.SceneHelper.disposeMesh(this.plotmesh)
                     this.plotmesh = new THREE.Group()
@@ -1507,6 +1477,7 @@ export class Plot
                 "Db21tZW50AAAAAABDcmVhdGVkIHdpdGggR0lNUGQuZQcAAACJSURBVCjPvZK7DcAgDESJUlAyAqMwGhktozACJUWEE+fQORJSlCp"+
                 "ueJI/wnd27hHpwLuK7DcEkYqMCHJyxShBkVcoqEV1VGhoQltW6KNb+xfAhjE6iOABxSAAqkEENIMEON4gA/of8OU/8xbzprMas2I"+
                 "Uk/Ka4LSAptAmGkcraa7ZzQPgSfBIECf/CnPyltYpaAAAAABJRU5ErkJggg=="
+                // advantages over canvas: alpha pixels are not black. no need to redraw the circle
 
                 let datapointSprite = new THREE.TextureLoader().load(circle)
                 //let datapointSprite = new THREE.ImageUtils.loadTexture(circle)
@@ -1531,23 +1502,27 @@ export class Plot
                     vertexColors: true,
                 })
 
-                this.dfCache.material = material
+                this.oldData.material = material
             }
 
             let group = this.plotmesh
             let geometry = new THREE.Geometry()
-            
+
             for(let i = 0; i < df.length; i ++)
             {
                 let vertex = new THREE.Vector3()
-                vertex.x = (df[i][x1col]-minX1)/x1frac*this.dimensions.xLen
-                vertex.y = (df[i][x2col]-minX2)/x2frac*this.dimensions.yLen
-                vertex.z = (df[i][x3col]-minX3)/x3frac*this.dimensions.zLen
+                vertex.x = df[i][x1col]
+                vertex.y = df[i][x2col]
+                vertex.z = df[i][x3col]
 
                 // three.js handles invalid vertex already by skipping them
                 geometry.vertices.push(vertex)
                 geometry.colors.push(dfColors[i])
             }
+
+            // normalize
+            this.plotmesh.scale.set(1/x1frac,1/x2frac,1/x3frac)
+            this.plotmesh.position.set(-minX1/x1frac,-minX2/x2frac,-minX3/x3frac)
 
             geometry.verticesNeedUpdate = true
 
@@ -1569,69 +1544,116 @@ export class Plot
         // update cache
 
         // those are always handy to remember and they are needed in some cases
-        this.dfCache.normalization.x1frac = x1frac
-        this.dfCache.normalization.x2frac = x2frac
-        this.dfCache.normalization.x3frac = x3frac
+        this.oldData.normalization.x1frac = x1frac
+        this.oldData.normalization.x2frac = x2frac
+        this.oldData.normalization.x3frac = x3frac
 
-        if(updateCache === true) // if updating is allowed. is only important for the dataframe basically
+        if(updateOldData === true) // if updating is allowed. is only important for the dataframe basically
         {
-
             if(headerRow != undefined)
-                this.dfCache.dataframe = ([headerRow]).concat(df)
+                this.oldData.dataframe = ([headerRow]).concat(df)
             else
-                this.dfCache.dataframe = df
+                this.oldData.dataframe = df
 
-            this.dfCache.x1col = x1col
-            this.dfCache.x2col = x2col
-            this.dfCache.x3col = x3col
+            this.oldData.x1col = x1col
+            this.oldData.x2col = x2col
+            this.oldData.x3col = x3col
 
-            this.dfCache.options = options
+            this.oldData.options = options
+        }
+
+
+        
+        // plotDataFrame
+        //-------------------------//
+        //       Axes Numbers      //
+        //-------------------------//
+
+
+        if(this.SceneHelper.axes != undefined)
+        {
+            // remember that axes get disposed when the dimensions (xLen, yLen, zLen) are changing
+            // so updateNumbersAlongAxis should get called (that means updatex_ should be true) when they don't exist or something
+
+            let xLen = this.dimensions.xLen
+            let yLen = this.dimensions.yLen
+            let zLen = this.dimensions.zLen
+
+
+            // decide about the visibility
+            let updatex1 = this.axesNumbersNeedUpdate || normalizeX1 && xLen != 0 && this.oldData.normalization.maxX1 !== maxX1 && this.oldData.normalization.minX1 !== minX1
+            let updatex2 = this.axesNumbersNeedUpdate || normalizeX2 && yLen != 0 && this.oldData.normalization.maxX2 !== maxX2 && this.oldData.normalization.minX2 !== minX2
+            let updatex3 = this.axesNumbersNeedUpdate || normalizeX3 && zLen != 0 && this.oldData.normalization.maxX3 !== maxX3 && this.oldData.normalization.minX3 !== minX3
+
+            this.axesNumbersNeedUpdate = false
+
+            this.oldData.normalization = {}
+            this.oldData.normalization.minX1 = minX1
+            this.oldData.normalization.maxX1 = maxX1
+            this.oldData.normalization.minX2 = minX2
+            this.oldData.normalization.maxX2 = maxX2
+            this.oldData.normalization.minX3 = minX3
+            this.oldData.normalization.maxX3 = maxX3
+
+            let offset2 = -0.075
+
+            if(updatex1)
+            {
+                this.SceneHelper.xNumbers = this.SceneHelper.updateNumbersAlongAxis(
+                    numberDensity, xLen, this.SceneHelper.xNumbers, minX1, maxX1, (value)=>
+                    {
+                        return new THREE.Vector3(value, offset2, offset2)
+                    })
+            }
+            
+            if(updatex3)
+            {
+                this.SceneHelper.zNumbers = this.SceneHelper.updateNumbersAlongAxis(
+                    numberDensity, zLen, this.SceneHelper.zNumbers, minX3, maxX3, (value)=>
+                    {
+                        return new THREE.Vector3(offset2, offset2, value)
+                    })
+            }
+
+            // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
+            // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
+            // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
+            // to the top by minX1. axesNumbersNeedUpdateNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
+            // barcharts: let ypos = normalization.maxX2 / normalization.x2frac * yLen
+            // default: let ypos = (normalization.maxX2 - normalization.minX2) / normalization.x2frac * yLen
+            if(updatex2)
+            {
+                let minX2_2 = minX2
+                if(mode == "barchart")
+                    minX2_2 = 0
+                this.SceneHelper.yNumbers = this.SceneHelper.updateNumbersAlongAxis(
+                    numberDensity, yLen, this.SceneHelper.yNumbers, minX2_2, maxX2, (value)=>
+                    {
+                        return new THREE.Vector3(offset2, value, offset2)
+                    })
+            }
+        }
+        else
+        {
+            // make sure to update those, no matter what's going on with the axis
+            // they are needed for addDataPoint, because otherwise one would have
+            // to iteate over the complete dataset including the new point again.
+            this.oldData.normalization = {}
+            this.oldData.normalization.minX1 = minX1
+            this.oldData.normalization.maxX1 = maxX1
+            this.oldData.normalization.minX2 = minX2
+            this.oldData.normalization.maxX2 = maxX2
+            this.oldData.normalization.minX3 = minX3
+            this.oldData.normalization.maxX3 = maxX3
         }
 
         this.SceneHelper.makeSureItRenders(this.animationFunc)
-
-        //updating the axes. Only update them when the numbers actually change
-        if(this.dfCache.normalization.minX1 !== minX1 ||
-            this.dfCache.normalization.maxX1 !== maxX1 ||
-            this.dfCache.normalization.minX2 !== minX2 ||
-            this.dfCache.normalization.maxX2 !== maxX2 ||
-            this.dfCache.normalization.minX3 !== minX3 ||
-            this.dfCache.normalization.maxX3 !== maxX3)
-        {
-            
-            this.dfCache.normalization = {}
-            this.dfCache.normalization.minX1 = minX1
-            this.dfCache.normalization.maxX1 = maxX1
-            this.dfCache.normalization.minX2 = minX2
-            this.dfCache.normalization.maxX2 = maxX2
-            this.dfCache.normalization.minX3 = minX3
-            this.dfCache.normalization.maxX3 = maxX3
-
-            if(mode === "barchart")
-            {
-                // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
-                // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
-                // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
-                // to the top by minX1. updateAxesNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
-                // barcharts: let ypos = normalization.maxX2 / normalization.x2frac * yLen
-                // default: let ypos = (normalization.maxX2 - normalization.minX2) / normalization.x2frac * yLen
-                let normalization = this.dfCache.normalization
-                normalization.minX2 = 0
-                if(this.SceneHelper.axes != undefined)
-                    this.SceneHelper.updateAxesNumbers(this.dimensions, normalization, numberDensity)
-            }
-            else
-            {
-                if(this.SceneHelper.axes != undefined)
-                    this.SceneHelper.updateAxesNumbers(this.dimensions, this.dfCache.normalization, numberDensity)
-            }
-        }
     }
 
 
 
     /**
-     * repeats the drawing using the dataframe memorized in dfCache, but adds a new datapoint to it
+     * repeats the drawing using the dataframe memorized in oldData, but adds a new datapoint to it
      * @param {any} newDatapoint Array that contains the attributes of the datapoints in terms of x1, x2, x3, x4, x5 etc.
      * @param {object} options
      * - mode {string}: "barchart", "scatterplot" or "lineplot"
@@ -1664,55 +1686,57 @@ export class Plot
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
     addDataPoint(newDatapoint, options={})
-    {
-        if(this.dfCache === undefined)
-            this.resetCache()
-            
+    {            
         // overwrite old options
         for(let key in options)
-            this.dfCache.options[key] = options[key]
+            this.oldData.options[key] = options[key]
 
         // default keepOldPlot, but make it possible to overwrite it.
-        this.dfCache.options.keepOldPlot = true // true, so that the old plot gets extended with the new datapoint
+        this.oldData.options.keepOldPlot = true // true, so that the old plot gets extended with the new datapoint
         if(options.keepOldPlot != undefined)
-            this.dfCache.options.keepOldPlot = options.keepOldPlot
+            this.oldData.options.keepOldPlot = options.keepOldPlot
 
         // the following have to be like this:
-        this.dfCache.options.header = false // no header in newDataPoint
-        this.dfCache.options.updateCache = false // false, because don't delete the original dataframe from cache
-        this.dfCache.options.maxX1
+        this.oldData.options.header = false // no header in newDataPoint
+        this.oldData.options.updateOldData = false // false, because don't delete the original dataframe from cache
+        this.oldData.options.maxX1
 
         // those default values are important to be like this.
         if(options.normalizeX1 === undefined)
-            this.dfCache.options.normalizeX1 = false
+            this.oldData.options.normalizeX1 = false
         if(options.normalizeX2 === undefined)
-            this.dfCache.options.normalizeX2 = false
+            this.oldData.options.normalizeX2 = false
         if(options.normalizeX3 === undefined)
-            this.dfCache.options.normalizeX3 = false
-        if(this.dfCache.options.normalizeX1 || this.dfCache.options.normalizeX2 || this.dfCache.options.normalizeX3)
-            console.warn("addDataPoint with turned on normalization options will not align the new datapoint with the old plots normalization.")
+            this.oldData.options.normalizeX3 = false
+        // if(this.oldData.options.normalizeX1 || this.oldData.options.normalizeX2 || this.oldData.options.normalizeX3)
+        //     console.warn("addDataPoint with turned on normalization options will not align the new datapoint with the old plots normalization.")
 
         // create the datapoint data structure (an array) from this
         if(typeof(newDatapoint) === "string")
         {
-            newDatapoint = newDatapoint.split(this.dfCache.separator)
+            newDatapoint = newDatapoint.split(this.oldData.separator)
             for(let i = 0;i < newDatapoint.length; i++)
                 newDatapoint[i] = newDatapoint[i].trim()
         }
 
         // create a new dataframe from scratch if non existant
-        this.dfCache.dataframe[this.dfCache.dataframe.length] = newDatapoint
+        this.oldData.dataframe[this.oldData.dataframe.length] = newDatapoint
         
-        if(newDatapoint.length != this.dfCache.dataframe[0].length)
-            return console.error("the new datapoint does not match the number of column in the cached dataframe ("+newDatapoint.length+" != "+this.dfCache.dataframe[0].length+")")
+        if(newDatapoint.length != this.oldData.dataframe[0].length)
+            return console.error("the new datapoint does not match the number of column in the cached dataframe ("+newDatapoint.length+" != "+this.oldData.dataframe[0].length+")")
 
         // because of keepOldPlot, only hand the newDatapoint over to plotDataFrame
         this.plotDataFrame([newDatapoint],
-            this.dfCache.x1col,
-            this.dfCache.x2col,
-            this.dfCache.x3col,
-            this.dfCache.options, // dfCache.options got overwritten in this function
-            true)
+            this.oldData.x1col,
+            this.oldData.x2col,
+            this.oldData.x3col,
+            this.oldData.options // oldData.options got overwritten in this function
+            )
+
+        // destroy the cached string csv checkstring, indicate that the dataframe has been modified by addDataPoint
+        // do this, because otherwise when plotting the same (initial) dataframe again it might not realize that the cached dataframe has
+        // been extended by addDataPoint, so plotCsvString might use the cached (longer) dataframe than the one passed as parameter
+        this.oldData.checkstring += "_addDP"
 
         return 0
     }
@@ -1740,7 +1764,7 @@ export class Plot
             for(let key in options.colorMap.labelColorMap)
             {
                 legendHTML += "<tr>"
-                legendHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + options.colorMap.labelColorMap[key].getHexString() + ";\"></span></td>"
+                legendHTML += "<td><span class=\"jsP3D_labelColor\" style=\"background-color:#" + options.colorMap.labelColorMap[key].color.getHexString() + ";\"></span></td>"
                 legendHTML += "<td>" + key + "</td>"
                 legendHTML += "</tr>"
             }
@@ -1776,7 +1800,6 @@ export class Plot
         this.legend.x1title = ""
         this.legend.x2title = ""
         this.legend.x3title = ""
-        this.legend.colors = {}
     }
 
 
@@ -1793,13 +1816,17 @@ export class Plot
 
 
     /**
-     * appends the legend to a specific container. Make sure to style it using the css of your website because otherwise the colored span elements will not be visible.
+     * appends the legend to a specific container. It is already generated at this point.
+     * 
+     * Make sure to style it using the css of your website because otherwise the colored
+     * span elements will not be visible.
+     * 
      * @param {DOM} container
      * @return returns the dom element of the legend
      */
     createLegend(container)
     {
-        if(container === null || container === undefined)
+        if(container === null)
             return console.error("container for createLegend not found")
         container.appendChild(this.legend.element)
         return(this.legend.element)
@@ -1817,18 +1844,18 @@ export class Plot
     {
         let obj = this.plotmesh
 
-        if(obj === undefined)
+        if(obj === null)
         {
-            this.redraw = false
+            this.updatePlotmesh = false
             return false
         }
             
         // it either has children because it's a group it has a geometry. if both are undefined, it's not valid anymore.
 
-        if(this.redraw === true) // this is the only place where this.redraw is taken into account
+        if(this.updatePlotmesh === true) // this is the only place where this.updatePlotmesh is taken into account
         {
             this.SceneHelper.disposeMesh(obj)
-            this.redraw = false
+            this.updatePlotmesh = false
             return false
         }
 
@@ -1841,7 +1868,7 @@ export class Plot
 
             
         this.SceneHelper.disposeMesh(obj)
-        this.redraw = false
+        this.updatePlotmesh = false
         return false
     }
 
@@ -1853,33 +1880,29 @@ export class Plot
      */
     resetCache()
     {
-        this.dfCache = {}
+        this.oldData = {}
 
-        this.dfCache.normalization = {}
-    
-        this.dfCache.material = undefined
-        this.dfCache.dataframe = []
-        this.dfCache.x1col = 0
-        this.dfCache.x2col = 1
-        this.dfCache.x3col = 2
-        this.dfCache.checkstring = ""
-        this.dfCache.options = {}
-        this.dfCache.minX2 = undefined
-        this.dfCache.maxX2 = undefined
-        this.dfCache.barsGrid = undefined
+        this.oldData.normalization = {
+            minX1: 0,
+            maxX1: 0,
+            minX2: 0,
+            maxX2: 0,
+            minX3: 0,
+            maxX3: 0,
+        }
+
+        this.oldData.labeld = {}
+        this.oldData.numberOfLabels = 0
+        this.oldData.material = null
+        this.oldData.dataframe = []
+        this.oldData.x1col = 0
+        this.oldData.x2col = 1
+        this.oldData.x3col = 2
+        this.oldData.checkstring = ""
+        this.oldData.options = {}
+        this.oldData.barsGrid = null
     }
 
-
-
-    /**
-     * returns the cache
-     */
-    getCache()
-    {
-        if(this.dfCache === undefined)
-            resetCache()
-        return this.dfCache
-    }
 
 
     /**
@@ -1899,7 +1922,7 @@ export class Plot
      */
     setAxesColor(color)
     {
-        this.SceneHelper.createAxes(color, this.dimensions, this.dfCache.normalization)
+        this.SceneHelper.createAxes(color, this.dimensions, this.oldData.normalization)
         this.SceneHelper.makeSureItRenders(this.animationFunc)
     }
 
@@ -1983,10 +2006,12 @@ export class Plot
 
         // move
         this.SceneHelper.centerCamera(this.dimensions)
-        this.SceneHelper.updateAxesSize(this.dimensions,this.dfCache.normalization)
+        this.SceneHelper.updateAxesSize(this.dimensions,this.oldData.normalization)
 
         // vertices counts changed, so the mesh has to be recreated
-        this.redraw = true
+        this.updatePlotmesh = true
+        // axes have to be updates aswell
+        this.axesNumbersNeedUpdate = true
 
         // takes effect once the mesh gets created from new, except for the lengths indicated by the axes. those update immediatelly
         //this.SceneHelper.render()
@@ -2003,8 +2028,8 @@ export class Plot
         let dimensions = this.dimensions
 
         //merge the normalization info into dimensions
-        for(let key in this.dfCache.normalization)
-            dimensions[key] = this.dfCache.normalization[key]
+        for(let key in this.oldData.normalization)
+            dimensions[key] = this.oldData.normalization[key]
 
         return this.dimensions
     }

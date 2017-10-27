@@ -27,37 +27,63 @@ export function convertToHeat(value,min=-1,max=1,hueOffset=0)
 }
 
 
+
 /**
  * returns dfColors. An array, indexes are the same as the vertices of the
  * scatterplot in the geometry.vertices array. dfColors contains THREE.Color objects
  * (supports numbers or color strings (0x...,"#...","rgb(...)","hsl(...)"))
  * The parameters have the same names as in JsPlot3D.js. Just forward them to this function
  * @param {any[][]} df the dataframe without the headers
+ * @param {*} colorCol 
+ * @param {*} defaultColor 
+ * @param {*} labeled 
+ * @param {*} header 
  * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
- * @return An array, indexes are the same as the vertices of the scatterplot in the geometry.vertices array. it contains THREE.Color objects
+ * @param {*} hueOffset 
+ * @param {*} oldLabelsMap 
  * @private
  */
-export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=true,hueOffset=0)
+export function getColorMap(df, colorCol, defaultColor, labeled, header, filterColor=true, hueOffset=0, labelColorMap={}, numberOfLabels=0)
 {
     let dfColors = new Array(df.length) // array of THREE.Color objects that contain the individual color information of each datapoint in the same order as df
     
-    if(colorCol != -1 && df.length >= 2) // does the user even want colors? Are there even a few datapoints so that they can be colored in different ways?
-    {
-        let numberOfLabels = 0
-        // let numberOfLabels = df.length
-        // the color gets divided by (1-1/numberOfLabels) so that red does not appear twice.
-        // e.g. 3 labels would be red, turqoise, red. if numberOfLabels would get initialized with 0, that formula would diverge to -inf
-        // 1 would make that term zero, so that the color would diverge to inf. a high number converges that term to 1, so the color won't be touched
+    let firstDataPointLine = 0
+    if(header)
+        firstDataPointLine = 1
 
-        // take care that all the labels are numbers
-        let map = {}
-        let labelColorMap = {} // store label names together with the used color
+    // validating the settings.
+    // check for labeled == false, because getColorObjctFromAnyString is only important for unlabeled data.
+    if(labeled == false && colorCol != -1 && getColorObjectFromAnyString(df[firstDataPointLine][colorCol]) == undefined)
+    {
+
+        // didn't work. try some stuff
+        if(header == false && df.length >= 2)
+        {
+            console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
+                "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" "+
+                "Now trying with header = true.")
+            header = true
+            firstDataPointLine = 1
+        }
+        
+        if(getColorObjectFromAnyString(df[firstDataPointLine][colorCol]) == undefined)
+        {
+            // assume labels
+            console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
+                "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" "+
+                "Now assuming labeled = true.")
+            labeled = true
+        }
+    }
+
+    if(colorCol != -1) // does the user even want colors?
+    {
 
         // also normalize the colors so that I can do hsl(clr/clrMax,100%,100%)
         // no need to check if it's numbers or not, because dfColors carries only numbers
         // Assume the first value. No worries about wether or not those are actually numbers, because if not the script below will take care
-        let clrMax = df[1][colorCol]
-        let clrMin = df[1][colorCol]
+        let clrMax = df[firstDataPointLine][colorCol]
+        let clrMin = df[firstDataPointLine][colorCol]
         
         // the following function just updates clrMax and clrMin, only available within the function that wraps this (getColorMap(...))
         let findHighestAndLowest = (value) =>
@@ -84,9 +110,9 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
             // e.g. "group1" "group2" "tall" "small" "0" "1" "flower" "tree"
 
             // check the second line, because there might be headers accidentally in the first row
-            if((df[1][colorCol]+"").startsWith("rgb") ||
-            (df[1][colorCol]+"").startsWith("hsl") ||
-            ((df[1][colorCol]+"").startsWith("#") && df[0][colorCol].length === 7))
+            if((df[firstDataPointLine][colorCol]+"").startsWith("rgb") ||
+            (df[firstDataPointLine][colorCol]+"").startsWith("hsl") ||
+            ((df[firstDataPointLine][colorCol]+"").startsWith("#") && df[0][colorCol].length === 7))
             {
                 console.warn(df[0][colorCol]+" might be a color. \"labeled\" is set true. For the stored colors to show up, try \"labeled=false\"")
             }
@@ -96,26 +122,36 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
             for(let i = 0; i < df.length; i++)
             {
                 label = df[i][colorCol] // read the label/classification
-                if(map[label] === undefined) // is this label still unknown?
+                if(labelColorMap[label] === undefined) // is this label still unknown?
                 {
-                    map[label] = numberOfLabels // map it to an unique number
+                    labelColorMap[label] = {}
+                    labelColorMap[label].number = numberOfLabels // map it to an unique number
                     numberOfLabels ++ // make sure the next label gets a different number
                 }
-                // copy the labels to dfColors as numbers. They are going to be converted to THREE.Color objects in the next loop.
-                dfColors[i] = parseFloat(map[label])
-                findHighestAndLowest(dfColors[i]) // update clrMin and clrMax
             }
 
             // how much distance between each hue:
             let hueDistance = 1/(numberOfLabels)
             for(let i = 0; i < dfColors.length; i++)
             {
-                dfColors[i] = new THREE.Color(0).setHSL(dfColors[i]*hueDistance+hueOffset,0.95,0.55)
-                labelColorMap[df[i][colorCol]] = dfColors[i] // store the label name together with the color
+                let label = df[i][colorCol]
+                let color
+                if(labelColorMap[label].color === undefined)
+                {
+                    color = new THREE.Color(0).setHSL(labelColorMap[label].number*hueDistance+hueOffset,0.95,0.55)
+                    labelColorMap[label].color = color // store the label name together with the color
+                }
+                else
+                {
+                    color = labelColorMap[label].color
+                }
+                dfColors[i] = color
             }
 
+            console.log(labelColorMap)
+
             // CASE 1 dfColors now contains labels
-            return {labelColorMap,dfColors}
+            return {labelColorMap,dfColors,numberOfLabels}
         }
         else
         {
@@ -127,14 +163,13 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
 
             // if it is a string value
             // check the second line, because there might be headers accidentally in the first row
-            if(isNaN(parseFloat(df[1][colorCol])))
+            if(isNaN(parseFloat(df[firstDataPointLine][colorCol])))
             {
                 filterColor = false // don't apply normalization and heatmapfilters to it
 
                 // try to extract color information from the string
                 // check the second line, because there might be headers accidentally in the first row
-
-                if(getColorObjectFromAnyString(df[1][colorCol]) != undefined)
+                if(getColorObjectFromAnyString(df[firstDataPointLine][colorCol]) != undefined)
                 {
                     for(let i = 0; i < df.length; i++)
                     {
@@ -145,21 +180,9 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
                         dfColors[i] = clr
                     }
                 }
-                else
-                {
-                    // nothing worked, print a warning
-
-                    console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
-                        "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" Possible formats "+
-                        "for this column are numbers, hex values \"#123abc\", rgb values \"rgb(r,g,b)\", hsl values \"hsl(h,s,l)\". "+
-                        "Now assuming labeled = true and restarting.")
-
-                    // restart. Tell the Plot class to restart
-                    return -1
-                }
 
                 // CASE 2 dfColors now contains colors created from RGB, # and HSL strings
-                return {labelColorMap,dfColors}
+                return {labelColorMap,dfColors,numberOfLabels: 0}
             }
             else
             {
@@ -195,7 +218,7 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
             }
 
             // CASE 3 dfColors now contains a heatmap
-            return {labelColorMap,dfColors}
+            return {labelColorMap,dfColors,numberOfLabels: 0}
         }
         else
         {
@@ -207,18 +230,16 @@ export function getColorMap(df,colorCol,defaultColor,labeled,header,filterColor=
             }
 
             // CASE 4 dfColors now contains many colors, copied from the dataframe
-            return {labelColorMap,dfColors}
+            return {labelColorMap,dfColors,numberOfLabels: 0}
         }
     }
-    else
-    {
-        // colorCol is -1
-        for(let i = 0; i < df.length; i++)
-            dfColors[i] = getColorObjectFromAnyString(defaultColor)
+    
+    // colorCol is -1
+    for(let i = 0; i < df.length; i++)
+        dfColors[i] = getColorObjectFromAnyString(defaultColor)
 
-        // CASE 5 dfColors now contains all the same color
-        return {labelColorMap:{}, dfColors}
-    }
+    // CASE 5 dfColors now contains all the same color
+    return {labelColorMap:{}, dfColors,numberOfLabels: 0}
 }
 
 
@@ -276,5 +297,6 @@ export function getColorObjectFromAnyString(color)
         let hsl = color.substring(4,color.length-1).split(",")
         return new THREE.Color(0).setHSL(parseFloat(hsl[0]),parseFloat(hsl[1]),parseFloat(hsl[2]))
     }
+    
     return undefined
 }

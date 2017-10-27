@@ -15,8 +15,8 @@ export default class JsP3D_SceneHelper
     constructor()
     {
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
-        this.recentlyUsedNormalization = undefined
-        this.recentlyUsedDimensions = undefined
+        this.recentlyUsedNormalization = null
+        this.recentlyUsedDimensions = null
         this.textScale = 1/7
     }
 
@@ -162,8 +162,8 @@ export default class JsP3D_SceneHelper
     {
         this.disposeMesh(this.axes)
         this.disposeMesh(this.gridHelper)
-        this.axes = undefined
-        this.gridHelper = undefined
+        this.axes = null
+        this.gridHelper = null
     }
 
 
@@ -301,6 +301,7 @@ export default class JsP3D_SceneHelper
 
     /**
      * creates numbers according to the parameters. They are going to be displayed along the axis.
+     * If the number object is already defined, only the texture and position will be updated for performance reasons
      * 
      * This function can create the numbers for all three axes and basically even more than that,
      * it's just a matter of how you define the position lamda function in the parameters
@@ -308,27 +309,39 @@ export default class JsP3D_SceneHelper
      * @param {number} numberCount how many numbers to display along the axis
      * @param {number} axisLen length of the axis
      * @param {object} numbersGroup THREE.Group that contains all the numbers
-     * @param {number} min the vlaue of the lowest datapoint
-     * @param {number} max the value of the highest datapoint
+     * @param {number} min the vlaue of the lowest datapoint (as available in the dataframe)
+     * @param {number} max the value of the highest datapoint (as available in the dataframe)
      * @param {function} position example: (value)=>{return new THREE.Vector3(value, offset2, offset2)}
      * @return {object} with numbers populated group
      */
-    createNumbersAlongAxis(numberCount, axisLen, numbersGroup, min, max, position)
+    updateNumbersAlongAxis(numberDensity, axisLen, numbersGroup, min, max, position)
     {
-        let step = axisLen/numberCount
+        let numberCount = numberDensity*axisLen|0
         if(numbersGroup == undefined || numbersGroup.children.length != numberCount)
         {
             numbersGroup = new THREE.Group()
             numbersGroup.name = "numbers"
         }
 
+        // load the numbers that have already been created at some point:
         let children = numbersGroup.children
-
+        // the numbers are stored as children inside a group. one group for each axes. (the groups are stored inside this.axes.children)
+        // to access the children inside the group, use this index:
         let index = 0
+        // x is the value in terms of the position in the actual 3D space on the axis
+        // step indicates how far away the numbers are in terms of the actual 3D space
+        let step = axisLen/numberCount
         for(let x = step; x <= axisLen; x += step)
         {
-            let number = max/numberCount*(index+1) + min
-            console.log(number)
+            // the higher the index the higher the number
+
+            // this is the number that is going to be displayed
+            // max-min results in the range of numbers. divide it by the numberCount to get the step-size for each number
+            // multiply it by index+1 to get this stepsize*2. example: min = 0.5, max = 1, numberCount = 3
+            // 0.5/3*1+0.5 = 0.666       0.5/3*2+0.5 = 0.833       0.5/3*3+0.5 = 1
+            // with 0.5 being left out because it would be where all three axis meet and there is not enough space for numbers
+            let number = (max-min)/numberCount*(index+1) + min
+            
             if(typeof(number) !== "number")
                 return console.error("at least on of the parameters is not a number. Please check:",{numberCount, axisLen, min, max})
 
@@ -340,18 +353,22 @@ export default class JsP3D_SceneHelper
             let pos = position(x)
             if(children[index] == undefined)
             {
+                // not yet defined: create from scratch
                 let textObject = this.placeLetter(text, pos)
                 textObject.originalNumber = number
                 numbersGroup.add(textObject)
             }
             else
             {
+                // already defined: update texture and position
                 this.updateLetterTextureOnSprite(children[index], text)
                 children[index].position.set(pos.x, pos.y, pos.z)
             }
             index ++
         }
         
+        this.axes.add(numbersGroup)
+
         return numbersGroup
     }
 
@@ -362,7 +379,7 @@ export default class JsP3D_SceneHelper
      * @param {object} dimensions {xLen, yLen, zLen} 
      * @param {object} normalization {maxX1, maxX2, maxX3} 
      */
-    updateAxesNumbers(dimensions, normalization, numberDensity)
+    /*updateAxesNumbers(dimensions, normalization, numberDensity)
     {
         // is there even all the information needed for normalization available?
         if(isNaN(normalization.maxX1 + normalization.maxX2 + normalization.maxX3))
@@ -372,37 +389,33 @@ export default class JsP3D_SceneHelper
         if(this.axes == undefined)
             return console.warn("no axes are available. try", this.createAxes)
 
-        /*this.disposeMesh(this.xNumber)
-        this.disposeMesh(this.yNumber)
-        this.disposeMesh(this.zNumber)*/
-
         let xLen = dimensions.xLen
         let yLen = dimensions.yLen
         let zLen = dimensions.zLen
 
         // decide about the visibility
-        let showx1 = dimensions.xLen != 0 && dimensions.xRes != 0
-        let showx2 = dimensions.yLen != 0 && dimensions.yRes != 0
-        let showx3 = dimensions.zLen != 0 && dimensions.zRes != 0
+        let showx1 = normalization.normalizeX1 && dimensions.xLen != 0 && dimensions.xRes != 0
+        let showx2 = normalization.normalizeX2 && dimensions.yLen != 0 && dimensions.yRes != 0
+        let showx3 = normalization.normalizeX3 && dimensions.zLen != 0 && dimensions.zRes != 0
 
         let offset2 = -0.075
 
         if(showx1)
         {
-            this.xNumbers = this.createNumbersAlongAxis(numberDensity*xLen|0, xLen, this.xNumbers, normalization.minX1, normalization.maxX1, (value)=>{return new THREE.Vector3(value, offset2, offset2)})
+            this.xNumbers = this.updateNumbersAlongAxis(numberDensity*xLen|0, xLen, this.xNumbers, normalization.minX1, normalization.maxX1, (value)=>{return new THREE.Vector3(value, offset2, offset2)})
             this.axes.add(this.xNumbers)
         }
         if(showx2)
         {
-            this.yNumbers = this.createNumbersAlongAxis(numberDensity*yLen|0, yLen, this.yNumbers, normalization.minX2, normalization.maxX2, (value)=>{return new THREE.Vector3(offset2, value, offset2)})
+            this.yNumbers = this.updateNumbersAlongAxis(numberDensity*yLen|0, yLen, this.yNumbers, normalization.minX2, normalization.maxX2, (value)=>{return new THREE.Vector3(offset2, value, offset2)})
             this.axes.add(this.yNumbers)
         }
         if(showx3)
         {
-            this.zNumbers = this.createNumbersAlongAxis(numberDensity*zLen|0, zLen, this.zNumbers, normalization.minX3, normalization.maxX3, (value)=>{return new THREE.Vector3(offset2, offset2, value)})
+            this.zNumbers = this.updateNumbersAlongAxis(numberDensity*zLen|0, zLen, this.zNumbers, normalization.minX3, normalization.maxX3, (value)=>{return new THREE.Vector3(offset2, offset2, value)})
             this.axes.add(this.zNumbers)
         }
-    }
+    }*/
 
 
 
@@ -431,9 +444,9 @@ export default class JsP3D_SceneHelper
     createAxes(color, dimensions, normalization)
     {
         this.disposeMesh(this.axes)
-        this.xNumber = undefined
-        this.yNumber = undefined
-        this.zNumber = undefined
+        this.xNumber = null
+        this.yNumber = null
+        this.zNumber = null
 
         let xLen = dimensions.xLen
         let yLen = dimensions.yLen
