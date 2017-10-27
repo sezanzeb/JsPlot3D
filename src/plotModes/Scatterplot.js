@@ -42,8 +42,6 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     let yLen = dimensions.yLen
     let zLen = dimensions.zLen
 
-    console.log(dimensions)
-
 
     let isItValid = parent.IsPlotmeshValid("scatterplot")
 
@@ -119,7 +117,7 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     
     // normalize
     parent.plotmesh.scale.set(xLen/x1frac,yLen/x2frac,zLen/x3frac)
-    parent.plotmesh.position.set(-minX1/x1frac,-minX2/x2frac,-minX3/x3frac)
+    parent.plotmesh.position.set(-minX1/x1frac*xLen,-minX2/x2frac*yLen,-minX3/x3frac*zLen)
 
     parent.benchmarkStamp("made a scatterplot")
 }

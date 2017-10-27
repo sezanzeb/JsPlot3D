@@ -317,4 +317,5 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // write back. as normalization points to the object in the Plot class, it will be overwritten there
     normalization.minX2 = minX2
     normalization.maxX2 = maxX2
+    normalization.x2frac = x2frac
 }

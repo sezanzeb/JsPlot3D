@@ -13,6 +13,9 @@ import * as THREE from "three"
 
 // make the COLORLIB available as member of this module
 export const colorLib = COLORLIB
+export const XAXIS = 1
+export const YAXIS = 2
+export const ZAXIS = 3
 
 export class Plot
 {
@@ -736,7 +739,7 @@ export class Plot
         let x1frac=1
         let x2frac=1
         let x3frac=1
-        let numberDensity=2
+        let numberDensity=3
         // let normalizationSmoothing=0
 
         // when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
@@ -874,6 +877,9 @@ export class Plot
             return console.error("dataframe is empty")
 
         this.benchmarkStamp("checked Parameters")
+
+
+
 
         // only for scatterplot relevant at the moment. Going to be called when the mode is detected as scatterplot
 
@@ -1023,7 +1029,7 @@ export class Plot
                 maxX3 = df[startValueIndex][x3col]
                 minX3 = df[startValueIndex][x3col]
             }
-            
+
             // determine min and max for normalisation
             for(let i = 0; i < df.length; i++)
             {
@@ -1054,6 +1060,8 @@ export class Plot
         if(x2frac === 0)
             x2frac = 1
 
+        console.log(maxX2,minX2,x2frac)
+
         x3frac = Math.abs(maxX3-minX3)
         if(x3frac === 0)
             x3frac = 1
@@ -1078,6 +1086,7 @@ export class Plot
             // those values got overwritten in barchart(...):
             minX2 = normalization.minX2
             maxX2 = normalization.maxX2
+            x2frac = normalization.x2frac
                 
             this.benchmarkStamp("made a barchart")
         }
@@ -1137,36 +1146,6 @@ export class Plot
                 
             this.benchmarkStamp("made a scatterplot")
         }
-        
-        
-        // plotDataFrame
-        //-------------------------//
-        //         Caching         //
-        //-------------------------//
-        // used for addDataPoint to store what was plotted the last time
-        // also used to store the material in some cases so that it does not have to be recreated each time
-
-        // now that the script arrived here, store the options to make easy redraws possible
-        // update cache
-
-        // those are always handy to remember and they are needed in some cases
-        this.oldData.normalization.x1frac = x1frac
-        this.oldData.normalization.x2frac = x2frac
-        this.oldData.normalization.x3frac = x3frac
-
-        if(updateOldData === true) // if updating is allowed. is only important for the dataframe basically
-        {
-            if(headerRow != undefined)
-                this.oldData.dataframe = ([headerRow]).concat(df)
-            else
-                this.oldData.dataframe = df
-
-            this.oldData.x1col = x1col
-            this.oldData.x2col = x2col
-            this.oldData.x3col = x3col
-
-            this.oldData.options = options
-        }
 
 
         
@@ -1175,6 +1154,11 @@ export class Plot
         //       Axes Numbers      //
         //-------------------------//
 
+        if(this.oldData.options.mode != mode)
+        {
+            this.SceneHelper.disposeAllAxesNumbers()
+            this.axesNumbersNeedUpdate = true
+        }
 
         if(this.SceneHelper.axes != undefined)
         {
@@ -1201,42 +1185,31 @@ export class Plot
             this.oldData.normalization.minX3 = minX3
             this.oldData.normalization.maxX3 = maxX3
 
-            let offset2 = -0.075
-
             if(updatex1)
             {
-                this.SceneHelper.xNumbers = this.SceneHelper.updateNumbersAlongAxis(
-                    numberDensity, xLen, this.SceneHelper.xNumbers, minX1, maxX1, (value)=>
-                    {
-                        return new THREE.Vector3(value, offset2, offset2)
-                    })
+                this.SceneHelper.updateNumbersAlongAxis(numberDensity, xLen, XAXIS, minX1, maxX1)
             }
             
-            if(updatex3)
-            {
-                this.SceneHelper.zNumbers = this.SceneHelper.updateNumbersAlongAxis(
-                    numberDensity, zLen, this.SceneHelper.zNumbers, minX3, maxX3, (value)=>
-                    {
-                        return new THREE.Vector3(offset2, offset2, value)
-                    })
-            }
-
             // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
             // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
             // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
             // to the top by minX1. axesNumbersNeedUpdateNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
-            // barcharts: let ypos = normalization.maxX2 / normalization.x2frac * yLen
-            // default: let ypos = (normalization.maxX2 - normalization.minX2) / normalization.x2frac * yLen
             if(updatex2)
             {
                 let minX2_2 = minX2
+                let yLen_2 = yLen
                 if(mode == "barchart")
+                {
                     minX2_2 = 0
-                this.SceneHelper.yNumbers = this.SceneHelper.updateNumbersAlongAxis(
-                    numberDensity, yLen, this.SceneHelper.yNumbers, minX2_2, maxX2, (value)=>
-                    {
-                        return new THREE.Vector3(offset2, value, offset2)
-                    })
+                    yLen_2 = yLen * (maxX2-minX2_2)/x2frac
+                    console.log(yLen_2,maxX2,x2frac)
+                }
+                this.SceneHelper.updateNumbersAlongAxis(numberDensity, yLen_2, YAXIS, minX2_2, maxX2)
+            }
+
+            if(updatex3)
+            {
+                this.SceneHelper.updateNumbersAlongAxis(numberDensity, zLen, ZAXIS, minX3, maxX3)
             }
         }
         else
@@ -1251,6 +1224,38 @@ export class Plot
             this.oldData.normalization.maxX2 = maxX2
             this.oldData.normalization.minX3 = minX3
             this.oldData.normalization.maxX3 = maxX3
+        }
+
+        
+        this.oldData.options.mode = mode
+
+        // plotDataFrame
+        //-------------------------//
+        //         History         //
+        //-------------------------//
+        // used for addDataPoint to store what was plotted the last time
+        // also used to store the material in some cases so that it does not have to be recreated each time
+
+        // now that the script arrived here, store the options to make easy redraws possible
+        // update cache
+
+        // those are always handy to remember and they are needed in some cases
+        this.oldData.normalization.x1frac = x1frac
+        this.oldData.normalization.x2frac = x2frac
+        this.oldData.normalization.x3frac = x3frac
+
+        if(updateOldData === true) // if updating is allowed. is only important for the dataframe basically
+        {
+            if(headerRow != undefined)
+                this.oldData.dataframe = ([headerRow]).concat(df)
+            else
+                this.oldData.dataframe = df
+
+            this.oldData.x1col = x1col
+            this.oldData.x2col = x2col
+            this.oldData.x3col = x3col
+
+            this.oldData.options = options
         }
 
         this.SceneHelper.makeSureItRenders(this.animationFunc)
@@ -1486,6 +1491,7 @@ export class Plot
      */
     resetCache()
     {
+        console.error("reset")
         this.oldData = {}
 
         this.oldData.normalization = {
@@ -1505,8 +1511,10 @@ export class Plot
         this.oldData.x2col = 1
         this.oldData.x3col = 2
         this.oldData.checkstring = ""
-        this.oldData.options = {}
         this.oldData.barsGrid = null
+        
+        this.oldData.options = {}
+        this.oldData.options.mode = ""
     }
 
 
@@ -1581,7 +1589,6 @@ export class Plot
      * - xLen length of the x-axis. This is for the frame for data normalisation and formula plotting
      * - yLen length of the y-axis. This is for the frame for data normalisation and formula plotting
      * - zLen length of the z-axis. This is for the frame for data normalisation and formula plotting
-     * TODO set offset of the plot
      */
     setDimensions(dimensions)
     {
@@ -1605,9 +1612,6 @@ export class Plot
 
         this.dimensions.xVerticesCount = Math.max(1, Math.round(this.dimensions.xLen*this.dimensions.xRes))
         this.dimensions.zVerticesCount = Math.max(1, Math.round(this.dimensions.zLen*this.dimensions.zRes))
-
-        if(this.axes != undefined) //check that because axes might have been removed at some point manually using removeAxes()
-            this.SceneHelper.createAxes(this.axesColor) // recreate
     
 
         // move

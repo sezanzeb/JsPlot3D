@@ -39,7 +39,8 @@ sizeOf(file, function(err, dimensions) {
     {
         for(let y = 0;y < height; y+=step)
         {
-            for(let x = 0; x < width; x+=step)
+            let x = 0
+            for(; x < width; x+=step)
             {
                 pngIndex = (y*width+x)*4 // 4 because r g b FF
                 clr = pixels[pngIndex] + "," + pixels[pngIndex+1] + "," + pixels[pngIndex+2]
@@ -55,6 +56,29 @@ sizeOf(file, function(err, dimensions) {
                 data += long + "," + lat + "," + clr + "\n"
             }
 
+
+            // by parsing the next line vice versa (start at the rightmost pixel and proceed to the left)
+            // the plot can be shown using the lineplot mode. otherwise lines would zick zack between the lines
+
+            y += step
+            if(!(y < height))
+                break
+
+            for(; x > 0; x-=step)
+            {
+                pngIndex = (y*width+x)*4 // 4 because r g b FF
+                clr = pixels[pngIndex] + "," + pixels[pngIndex+1] + "," + pixels[pngIndex+2]
+
+                // don't create datapoints for black pixels
+                if(pixels[pngIndex]+pixels[pngIndex+1]+pixels[pngIndex+2] < 100)
+                    continue
+
+                long = (29.625+x/120)
+                lat = (-13.2562+y/80)
+                
+                // example: 40,10,255,128,10
+                data += long + "," + lat + "," + clr + "\n"
+            }
             // after width steps, start a new line by incrementing y
         }
 

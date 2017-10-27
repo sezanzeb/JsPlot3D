@@ -310,20 +310,38 @@ export default class SceneHelper
      * 
      * @param {number} numberCount how many numbers to display along the axis
      * @param {number} axisLen length of the axis
-     * @param {object} numbersGroup THREE.Group that contains all the numbers
+     * @param {object} axisNumber JSPLOT3D.XAXIS, JSPLOT3D.YAXIS or JSPLOT3D.ZAXIS
      * @param {number} min the vlaue of the lowest datapoint (as available in the dataframe)
      * @param {number} max the value of the highest datapoint (as available in the dataframe)
-     * @param {function} position example: (value)=>{return new THREE.Vector3(value, offset2, offset2)}
      * @return {object} with numbers populated group
      */
-    updateNumbersAlongAxis(numberDensity, axisLen, numbersGroup, min, max, position)
+    updateNumbersAlongAxis(numberDensity, axisLen, axisNumber, min, max)
     {
-        let numberCount = numberDensity*axisLen|0
+
+        //// Selecting parameters
+
+        // get the group that contains the numbers according to axisNumber
+        let numbersGroupName = ({1:"xNumbers", 2:"yNumbers", 3:"zNumbers"})[axisNumber]
+        let numbersGroup = this[numbersGroupName]
+
+        // select the function for updating the number position
+        let offset2 = -0.075
+        let position = ({
+            1:(value)=>{return new THREE.Vector3(offset2, offset2, value)},
+            2:(value)=>{return new THREE.Vector3(offset2, value, offset2)},
+            3:(value)=>{return new THREE.Vector3(value, offset2, offset2)}
+        })[axisNumber]
+
+        let numberCount = (numberDensity*axisLen)|0 // +0.5 to be a little bit more liberal
         if(numbersGroup == undefined || numbersGroup.children.length != numberCount)
         {
             numbersGroup = new THREE.Group()
-            numbersGroup.name = "numbers"
+            numbersGroup.name = numbersGroupName
+            this[numbersGroupName] = numbersGroup
         }
+
+
+
 
         // load the numbers that have already been created at some point:
         let children = numbersGroup.children
@@ -376,50 +394,6 @@ export default class SceneHelper
 
 
 
-    /**
-     * updates the axes with a new length and new numbers to display
-     * @param {object} dimensions {xLen, yLen, zLen} 
-     * @param {object} normalization {maxX1, maxX2, maxX3} 
-     */
-    /*updateAxesNumbers(dimensions, normalization, numberDensity)
-    {
-        // is there even all the information needed for normalization available?
-        if(isNaN(normalization.maxX1 + normalization.maxX2 + normalization.maxX3))
-            // undefined + 2 = NaN
-            return
-
-        if(this.axes == undefined)
-            return console.warn("no axes are available. try", this.createAxes)
-
-        let xLen = dimensions.xLen
-        let yLen = dimensions.yLen
-        let zLen = dimensions.zLen
-
-        // decide about the visibility
-        let showx1 = normalization.normalizeX1 && dimensions.xLen != 0 && dimensions.xRes != 0
-        let showx2 = normalization.normalizeX2 && dimensions.yLen != 0 && dimensions.yRes != 0
-        let showx3 = normalization.normalizeX3 && dimensions.zLen != 0 && dimensions.zRes != 0
-
-        let offset2 = -0.075
-
-        if(showx1)
-        {
-            this.xNumbers = this.updateNumbersAlongAxis(numberDensity*xLen|0, xLen, this.xNumbers, normalization.minX1, normalization.maxX1, (value)=>{return new THREE.Vector3(value, offset2, offset2)})
-            this.axes.add(this.xNumbers)
-        }
-        if(showx2)
-        {
-            this.yNumbers = this.updateNumbersAlongAxis(numberDensity*yLen|0, yLen, this.yNumbers, normalization.minX2, normalization.maxX2, (value)=>{return new THREE.Vector3(offset2, value, offset2)})
-            this.axes.add(this.yNumbers)
-        }
-        if(showx3)
-        {
-            this.zNumbers = this.updateNumbersAlongAxis(numberDensity*zLen|0, zLen, this.zNumbers, normalization.minX3, normalization.maxX3, (value)=>{return new THREE.Vector3(offset2, offset2, value)})
-            this.axes.add(this.zNumbers)
-        }
-    }*/
-
-
 
     /**
      * If axesare available, call createAxes to recreate them. If not, do nothing
@@ -431,7 +405,24 @@ export default class SceneHelper
         if(this.axes == undefined)
             return
         
+        this.disposeAllAxesNumbers()
         this.createAxes(this.axesColor,dimensions,normalization)
+    }
+
+
+
+    /**
+     * removes all the numbers from all three axes
+     */
+    disposeAllAxesNumbers()
+    {
+        // not that xNumbers, yNumbers and zNumbers are set in JsPlot3D.js when updateNumbersAlongAxis is called
+        if(this.axes != undefined)
+        {
+            this.disposeMesh(this.xNumbers)
+            this.disposeMesh(this.yNumbers)
+            this.disposeMesh(this.zNumbers)
+        }
     }
 
     
@@ -565,13 +556,13 @@ export default class SceneHelper
 
 
 
-        // create a new gridHelper that divides the 3Dspace into 4 pieces
-        let gridHelper1 = new THREE.GridHelper(1, 2, colorObject, colorObject)
+        // create a new gridHelper that divides the 3Dspace into 9 pieces
+        let gridHelper1 = new THREE.GridHelper(1, 3, colorObject, colorObject)
         gridHelper1.geometry.translate(0.5,0,0.5)
         gridHelper1.geometry.scale(dimensions.xLen,1,dimensions.zLen)
         // appearance
         gridHelper1.material.transparent = true
-        gridHelper1.material.opacity = 0.3
+        gridHelper1.material.opacity = 0.2
         axes.add(gridHelper1)
 
         // gridhelper on the x-y and z-y planes. But they don't actually look that good I think
@@ -603,6 +594,9 @@ export default class SceneHelper
 
         axes.name = "axesGroup"
 
+        axes.dimensions = dimensions
+        axes.normalization = normalization
+
         // add the axes group to the scene and store it locally in the object
         this.scene.add(axes)
     }
@@ -614,6 +608,7 @@ export default class SceneHelper
      */
     disposeMesh(mesh)
     {   
+        
         if(mesh != undefined)
         {
             if(mesh.geometry != undefined)
