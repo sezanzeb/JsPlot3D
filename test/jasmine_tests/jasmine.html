@@ -181,7 +181,7 @@
         for(let key in tests)
         {
             it(key+" to "+tests[key], function() {
-                expect(JSPLOT3D.COLORLIB.getColorObjectFromAnyString(key).getHexString()).toBe(tests[key])
+                expect(JSPLOT3D.colorLib.getColorObjectFromAnyString(key).getHexString()).toBe(tests[key])
             })      
         }
     })

@@ -1,12 +1,14 @@
-const THREE = require("three")
-const OrbitControls = require('three-orbit-controls')(THREE)
-const COLORLIB = require("./JsP3D_ColorLib.js")
-
 /**
  * Takes care of rendering, axes, lightening, camera, scene, disposing etc.
  * @private
  */
-export default class JsP3D_SceneHelper
+
+import * as THREE from "three"
+import * as COLORLIB from "./ColorLib.js"
+import threeorbitcontrols from 'three-orbit-controls'
+const OrbitControls = threeorbitcontrols(THREE)
+
+export default class SceneHelper
 {
 
     /**

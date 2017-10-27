@@ -3,10 +3,10 @@
 /**
  * @private
  */
-export default class JsP3D_MathParser
+export default class MathParser
 {
     /**
-     * this is the constructor for the class called "JsP3D_MathParser" which is used to handle calculations.
+     * this is the constructor for the class called "MathParser" which is used to handle calculations.
      * There is nothing api relevant here
      * @param {object} parent instance of JsPlot3D 
      */
