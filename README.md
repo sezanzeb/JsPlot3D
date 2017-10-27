@@ -11,6 +11,8 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
     <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/2Dheat.png">
 </p>
 
+_<sup>(The current version shows gridlines and numbers along the axes)</sup>_
+
 Download: http://hip70890b.de/downloads/JsPlot3D.js
 
 For more information (**building**) please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
