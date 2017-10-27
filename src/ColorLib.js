@@ -42,7 +42,9 @@ export function convertToHeat(value,min=-1,max=1,hueOffset=0)
  * @param {boolean} header true if there are headers in the dataframe ("street","number",...)
  * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
  * @param {number} hueOffset color offset. 0.5 inverts the hue (red goes turqoise)
- * @param {object} oldLabelsMap .labelColorMap attribute of the return value of this function from the past
+ * @param {object} labelColorMap .labelColorMap attribute of the return value of this function from the past
+ * @param {number} numberOfLabels the number of labels that is stored inside (the old) labelColorMap.
+ * This is also returned from getColorMap. Also see the description of the labelColorMap parameter
  * @private
  */
 export function getColorMap(df, colorCol, defaultColor, labeled, header, filterColor=true, hueOffset=0, labelColorMap={}, numberOfLabels=0)
@@ -77,6 +79,11 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
             labeled = true
         }
     }
+
+    // if it is not supposed to be rendered as labeled data, avoid
+    // printing the old Labels that were eventually passed to this function 
+    if(!labeled)
+        labelColorMap = {}
 
     // now create the dfColors array
     if(colorCol != -1) // does the user even want colors?

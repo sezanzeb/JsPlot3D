@@ -883,6 +883,14 @@ export class Plot
         //(unnormalized numbers or color strings (#fff, rgb, hsl)) for each vertex (by index)
 
         // headers are already removed from df by now
+
+        // if this plot is not adding something to an existing plot, don't pass old labels to getColorMap
+        if(!keepOldPlot)
+        {
+            this.oldData.labelColorMap = {}
+            this.oldData.numberOfLabels = 0
+        }
+
         let colorMap, dfColors
         if(mode != "barchart")
         {
@@ -1477,7 +1485,7 @@ export class Plot
             maxX3: 0,
         }
 
-        this.oldData.labeld = {}
+        this.oldData.labelColorMap = {}
         this.oldData.numberOfLabels = 0
         this.oldData.material = null
         this.oldData.dataframe = []
