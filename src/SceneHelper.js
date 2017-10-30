@@ -413,7 +413,7 @@ export default class SceneHelper
         let offset2 = -0.075
         let position = ([
             (value)=>{return new THREE.Vector3(value, -offset2, offset2)}, // x-Axis
-            (value)=>{return new THREE.Vector3(offset2, value, offset2)}, // y-Axis
+            (value)=>{return new THREE.Vector3(offset2, value, offset2/2)}, // y-Axis
             (value)=>{return new THREE.Vector3(offset2, -offset2, value)}  // z-Axis
         ])[axisNumber-1]
 
@@ -425,7 +425,6 @@ export default class SceneHelper
         ])[axisNumber-1]
 
         let numberCount = (numberDensity*axisLen)|0
-
 
 
         // load the numbers that have already been created at some point:

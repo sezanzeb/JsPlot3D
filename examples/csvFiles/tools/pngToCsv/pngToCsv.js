@@ -52,6 +52,9 @@ sizeOf(file, function(err, dimensions) {
                 long = (29.625+x/120)
                 lat = (-13.2562+y/80)
                 
+                if(clr.match("undefined"))
+                    break
+                
                 // example: 40,10,255,128,10
                 data += long + "," + lat + "," + clr + "\n"
             }
@@ -75,6 +78,9 @@ sizeOf(file, function(err, dimensions) {
 
                 long = (29.625+x/120)
                 lat = (-13.2562+y/80)
+
+                if(clr.match("undefined"))
+                    break
                 
                 // example: 40,10,255,128,10
                 data += long + "," + lat + "," + clr + "\n"

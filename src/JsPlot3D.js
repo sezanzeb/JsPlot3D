@@ -90,7 +90,7 @@ export class Plot
 
     /**
      * plots a formula into the container as 3D Plot
-     * @param {string} originalFormula string of formula
+     * @param {string} originalFormula string of formula. example: sin(x1) + x3
      * @param {object} options json object with one or more of the following parameters:
      * - mode {string}: "barchart", "scatterplot", "polygon" or "lineplot"
      * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
@@ -130,6 +130,15 @@ export class Plot
         let x2frac = 1
         let normalizeX2 = true
         
+        let title = originalFormula
+        let x1title = "x1"
+        let x2title = "y(x1,x3)"
+        let x3title = "x3"
+        if(options.title != undefined)  title = options.title
+        if(options.x1title != undefined) x1title = options.x1title
+        if(options.x2title != undefined) x2title = options.x2title
+        if(options.x3title != undefined) x3title = options.x3title
+
         if(options.mode != undefined) mode = options.mode
         if(options.x2frac != undefined) x2frac = options.x2frac
         if(options.normalizeX2 != undefined) normalizeX2 = options.normalizeX2
@@ -231,14 +240,6 @@ export class Plot
             // This requires some more work. -inf and +inf values should be indicated by hidden faces around those vertices
 
             // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
-            let title = ""
-            let x1title = "x1"
-            let x2title = "x2"
-            let x3title = "x3"
-            if(options.title != undefined)  title = options.title
-            if(options.x1title != undefined) x1title = options.x1title
-            if(options.x2title != undefined) x2title = options.x2title
-            if(options.x3title != undefined) x3title = options.x3title
             this.populateLegend({x1title, x2title, x3title, title})
 
             // same goes for colors. plotFormula has to handle them on it's own
@@ -246,9 +247,9 @@ export class Plot
             if(this.checkNumber("hueOffset", options.hueOffset))
                 hueOffset = parseFloat(options.hueOffset)
                 
-            /*let numberDensity = 2
+            let numberDensity = 3
             if(this.checkNumber("numberDensity", options.numberDensity))
-                numberDensity = parseFloat(options.numberDensity)*/
+                numberDensity = parseFloat(options.numberDensity)
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
@@ -294,77 +295,65 @@ export class Plot
             // modifying vertex positions:
             // https://github.com/mrdoob/three.js/issues/972
             let y = 0
-            let vIndex = 0
 
-            // to counter the need for dividing each iteration
-            let x1Actual = 0 // x
-            let x3Actual = (this.dimensions.zVerticesCount-1)/this.dimensions.zRes // z
-            let x1ActualStep = 1/this.dimensions.xRes
-            let x3ActualStep = 1/this.dimensions.zRes
-            let minX2 = 0
-            let maxX2 = 0
+            // so what is this "Actual"?
+            // it is about the dimension in mathematical space, which happens to be the same space as the 3Dimensional space
+            // there are xVerticesCount Vertices per 1 xLen, e.g. 20. That means x1ActualStep is 1/20
+            let minX2 = this.MathParser.f(0, 0) * this.dimensions.yLen
+            let maxX2 = this.MathParser.f(0, 0) * this.dimensions.yLen
 
             /*let faceIndex1 = 0
             let faceIndex2 = 0*/
 
-
-            for(let z = this.dimensions.zVerticesCount; z >= 0; z--)
+            for(let vIndex = 0; vIndex < this.plotmesh.geometry.vertices.length; vIndex ++)
             {
-                for(let x = 0; x <= this.dimensions.xVerticesCount; x++)
+                y = this.MathParser.f(this.plotmesh.geometry.vertices[vIndex].x, this.plotmesh.geometry.vertices[vIndex].z)
+
+                /*// in each face there are 3 attributes, which stand for the vertex Indices (Which are vIndex basically)
+                // faces are ordered so that the vIndex in .c is in increasing order. If faceIndex.c has an unmatching value, increase
+                // the faceindex and therefore switch to a different face which mathes .c with vIndex.
+                while(faceIndex1 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex1].c < vIndex)
                 {
-                    y = this.MathParser.f(x1Actual, x3Actual)
-
-                    /*// in each face there are 3 attributes, which stand for the vertex Indices (Which are vIndex basically)
-                    // faces are ordered so that the vIndex in .c is in increasing order. If faceIndex.c has an unmatching value, increase
-                    // the faceindex and therefore switch to a different face which mathes .c with vIndex.
-                    while(faceIndex1 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex1].c < vIndex)
-                    {
-                        faceIndex1++
-                    }
-                    // the result of this operation is: faces[faceIndex].c === vIndex
-
-                    // do similar for faceIndex2.
-                    while(faceIndex2 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex2].a < vIndex)
-                    {
-                        faceIndex2++
-                    }*/
-                    
-                    this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
-
-                    if(!isNaN(y) && Math.abs(y) != Number.POSITIVE_INFINITY)
-                    {
-                        this.plotmesh.geometry.vertices[vIndex].y = y
-                        
-                        if(y > maxX2)
-                            maxX2 = y
-                        if(y < minX2)
-                            minX2 = y
-                    }
-                    else
-                    {
-                        // console.warn("this does not fully work yet. Some vertex are at y = 0 but that face should be invisible")
-
-                        // there are two faces per vertex that have VIndex as face.c
-                        /*if(this.plotmesh.geometry.faces[faceIndex1+1] != undefined)
-                        {
-                            this.plotmesh.geometry.faces[faceIndex1].materialIndex = 1
-                            this.plotmesh.geometry.faces[faceIndex1+1].materialIndex = 1
-                            this.plotmesh.geometry.faces[faceIndex1+2].materialIndex = 1
-                        }
-
-                        //every second face has vIndex as face.a. 0 _ 1 _ 2 _ 3
-                        if(this.plotmesh.geometry.faces[faceIndex2] != undefined)
-                        {
-                            this.plotmesh.geometry.faces[faceIndex2].materialIndex = 1
-                        }*/
-                        // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
-                    }
-
-                    vIndex ++
-                    x1Actual += x1ActualStep
+                    faceIndex1++
                 }
-                x1Actual = 0
-                x3Actual -= x3ActualStep
+                // the result of this operation is: faces[faceIndex].c === vIndex
+
+                // do similar for faceIndex2.
+                while(faceIndex2 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex2].a < vIndex)
+                {
+                    faceIndex2++
+                }*/
+                
+                this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
+
+                if(!isNaN(y) && Math.abs(y) != Number.POSITIVE_INFINITY && this.plotmesh.geometry.vertices[vIndex])
+                {
+                    this.plotmesh.geometry.vertices[vIndex].y = y
+                    
+                    if(y > maxX2)
+                        maxX2 = y
+                    if(y < minX2)
+                        minX2 = y
+                }
+                else
+                {
+                    // console.warn("this does not fully work yet. Some vertex are at y = 0 but that face should be invisible")
+
+                    // there are two faces per vertex that have VIndex as face.c
+                    /*if(this.plotmesh.geometry.faces[faceIndex1+1] != undefined)
+                    {
+                        this.plotmesh.geometry.faces[faceIndex1].materialIndex = 1
+                        this.plotmesh.geometry.faces[faceIndex1+1].materialIndex = 1
+                        this.plotmesh.geometry.faces[faceIndex1+2].materialIndex = 1
+                    }
+
+                    //every second face has vIndex as face.a. 0 _ 1 _ 2 _ 3
+                    if(this.plotmesh.geometry.faces[faceIndex2] != undefined)
+                    {
+                        this.plotmesh.geometry.faces[faceIndex2].materialIndex = 1
+                    }*/
+                    // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
+                }
             }
 
             
@@ -389,14 +378,16 @@ export class Plot
             {
                 let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
                 let b = Math.abs(maxX2-minX2) // based on distance between min and max
-                x2frac = Math.max(a, b) // hybrid
+                x2frac = Math.max(a, b)/this.dimensions.yLen // hybrid
                 this.plotmesh.geometry.scale(1,1/x2frac,1)
             }
 
-        
-            // if(this.SceneHelper.axes != undefined)
-            //     this.SceneHelper.updateAxesNumbers(this.dimensions, {minX1: 0, maxX1: 1, minX2: 0, maxX2: 1, minX3: 0, maxX3: 1}, numberDensity)
+            // update the numbers along the axes. minimum for x1 and x3 are 0, maximum are the length
+            this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.xLen, XAXIS, 0, this.dimensions.xLen)
+            this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.yLen, YAXIS, minX2, maxX2)
+            this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.zLen, ZAXIS, 0, this.dimensions.zLen)
 
+            // name and write down as children so that it can be rendered
             this.plotmesh.name = "polygonFormula"
             this.SceneHelper.scene.add(this.plotmesh)
 
@@ -1194,6 +1185,7 @@ export class Plot
             this.oldData.normalization.maxX2 = maxX2
             this.oldData.normalization.minX3 = minX3
             this.oldData.normalization.maxX3 = maxX3
+            this.oldData.numberDensity = numberDensity
 
             if(updatex1)
             {
@@ -1539,6 +1531,7 @@ export class Plot
 
     /**
      * not used for initialization, but rather for changing dimensions during runtime. will trigger axes recreation
+     * Note that this has to be done before creating a plot
      * @param {object} dimensions json object can contain the following:
      * - xRes number of vertices for the x-axis
      * - zRes number of vertices for the z-axis
@@ -1696,12 +1689,13 @@ export class Plot
     }
 
     /**
-     * Creates new axes with the defined color and triggers a rerender
+     * Creates new axes with the defined color and triggers a rerender. Note that this has to be done before creating a plot
      * @param {String} color axes color. Examples: 0xffffff, "#ff6600", "rgb(1,0.5,0)", "hsl(0.7,0.6,0.3)"
      */
     setAxesColor(color)
     {
         this.SceneHelper.createAxes(color, this.dimensions, this.oldData.normalization)
+
         this.SceneHelper.makeSureItRenders(this.animationFunc)
     }
 

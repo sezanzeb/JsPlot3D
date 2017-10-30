@@ -111,9 +111,10 @@ function getOptions()
 /**
  * plots a .csv file using the contents of the decodedData variable
  */
-// calling it plot() throws an error
 function plotcsv()
 {
+    // (calling it function plot() throws an error)
+
     let x1 = document.getElementById("x1").value
     let x2 = document.getElementById("x2").value
     let x3 = document.getElementById("x3").value
@@ -126,11 +127,12 @@ function plotcsv()
         let table = "<table>"
 
         table += "<tr>"
-        for(var i = 0;i < tableData[0].length; i++)
+        var i
+        for(i = 0;i < tableData[0].length; i++)
             table += "<td>"+i+"</td>"
         table += "</tr>"
 
-        for(var i = 0;i < tableData.length; i++)
+        for(i = 0;i < tableData.length; i++)
             tableData[i] = "<td>"+tableData[i].join("</td><td>")+"</td>"
 
         table += "<tr>"+tableData.join("</tr><tr>")+"</tr>"
@@ -155,7 +157,9 @@ function main()
         recentplot = formulaFormSubmit
         recentplote = e
         var formula = document.getElementById("formulaText").value
-        plot.plotFormula(formula, getOptions())
+        var options = getOptions()
+        options.title = undefined
+        plot.plotFormula(formula, options)
     }
 
 
@@ -170,6 +174,14 @@ function main()
         {
             let reader = new FileReader()
             let file = document.getElementById("fileup").files[0]
+
+            if(!file) {
+                console.error("Something went wrong while processing your file using a JavaScript FileReader, because the file is undefined. Here is some debug information:")
+                console.error(document.getElementById("fileup"))
+                console.error(reader)
+                return window.alert("please reupload your file")
+            }
+
             reader.readAsText(file)
             reader.onload = function(e)
             {
@@ -212,6 +224,7 @@ function main()
     {
         e.preventDefault()
         plot.setBackgroundColor(getVal("backgroundColor"))
+        recentplot(recentplote)
     })
     
     
@@ -219,6 +232,7 @@ function main()
     {
         e.preventDefault()
         plot.setAxesColor(getVal("axesColor"))
+        recentplot(recentplote)
     })
 
 
