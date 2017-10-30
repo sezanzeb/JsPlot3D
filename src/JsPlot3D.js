@@ -20,6 +20,8 @@ export const SCATTERPLOT_MODE = "scatterplot"
 export const BARCHART_MODE = "barchart"
 export const LINEPLOT_MODE = "lineplot"
 export const POLYGON_MODE = "polygon"
+export const TOPCAMERA = 1
+export const DEFAULTCAMERA = 0
 
 
 export class Plot
@@ -43,7 +45,7 @@ export class Plot
         this.clearOldData()
 
         // scene helper is needed for setContainer
-        this.SceneHelper = new SceneHelper()
+        this.SceneHelper = new SceneHelper({width: container.offsetWidth, height: container.offsetHeight})
 
         // first set up the container and the dimensions
         this.setContainer(container)
@@ -58,7 +60,7 @@ export class Plot
 
         // then setup the children of the scene (camera, light, axes)
         this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
-        this.SceneHelper.centerCamera(this.dimensions)
+        this.SceneHelper.centerCamera(this.dimensions) // set camera position
 
         // they need to be updated once setDimensions is called or the mode of the plot changes
         // why on modechange? because barcharts need a different way of displaying them due to the different
@@ -124,7 +126,7 @@ export class Plot
     plotFormula(originalFormula, options ={})
     {
 
-        let mode
+        let mode = "polygon"
         let x2frac = 1
         let normalizeX2 = true
         
@@ -216,7 +218,7 @@ export class Plot
         else
         {
 
-            if(mode != "polygon" && mode != undefined)
+            if(mode != "polygon")
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"polygon\"")
 
             //plotFormula
@@ -570,39 +572,48 @@ export class Plot
                     columnCount = Math.max(columnCount, data[i].split(separator).length)
                 }
 
-                for(let i = 0;i < data.length; i ++)
+                for(let line = 0;line < data.length; line ++)
                 {
                     // remove leading and ending whitespaces in data
-                    data[i] = data[i].trim().split(separator)
+                    data[line] = data[line].trim().split(separator)
                     
                     // make sure every row has the same number of columns
-                    data[i] = data[i].slice(0, columnCount)
-                    data[i] = data[i].concat(new Array(columnCount-data[i].length))
+                    data[line] = data[line].slice(0, columnCount)
+                    data[line] = data[line].concat(new Array(columnCount-data[line].length))
 
-                    for(let j = 0;j < data[i].length; j++)
+                    for(let col = 0;col < data[line].length; col++)
                     {
 
                         // make sure every column has stored a value. if not (maybe because of faulty csv formats), assume 0
-                        if(data[i][j] == undefined) // check for undefined, because slice might create some empty fields if csv is very broken
+                        if(data[line][col] == undefined) // check for undefined, because slice might create some empty fields if csv is very broken
                         {
-                            data[i][j] = 0
+                            data[line][col] = 0
                         }
                         else
                         {
                             // remove quotation marks "bla";"1";"2"
-                            if(data[i][j][0] === "\"")
-                                if(data[i][j][data[i][j].length-1] === "\"")
-                                    data[i][j] = data[i][j].slice(1,-1)
+                            if(data[line][col][0] === "\"")
+                                if(data[line][col][data[line][col].length-1] === "\"")
+                                    data[line][col] = data[line][col].slice(1,-1)
 
                             // don't assume that all lines have the same format when looking at the same column
                             // that means every cell has to be parsed
                                 
                             // parse if possible. if not leave it as it is
-                            let parsed = parseFloat(data[i][j])
+                            let parsed = parseFloat(data[line][col])
                             if(!isNaN(parsed))
-                                data[i][j] = parsed // number
+                            {
+                                data[line][col] = parsed // number
+                            }
+                            // check if the recent line was a number. if "", assume 0 then
+                            else if(data[line][col] === "" && typeof data[line-1][col] === "number")
+                            {
+                                data[line][col] = 0
+                            }
                             else
-                                data[i][j].trim() // string
+                            {
+                                data[line][col].trim() // string
+                            }
                         }
                     }
                 }
@@ -610,7 +621,7 @@ export class Plot
             else
             {
                 // The user trusts the csv and wants maximum performance
-                // that means: no quotation marks and all rows have the same number of columns
+                // that means: no quotation marks and all rows have the same number of columns and contain the same datatypes
                 let startLine = 0
                 if(header)
                     startLine = 1
@@ -622,9 +633,9 @@ export class Plot
                 // iterate over columns
                 for(let col = 0;col < data[0].length; col++)
                 {
-                    // check if that line can be parsed
+                    // check if that column can be parsed
                     if(!isNaN(parseFloat(data[startLine][col]))) // if parsable as number 
-                        for(let line = 0;line < data.length; line ++) // continue like so for all following datapoints/rows without further checking
+                        for(let line = 0;line < data.length; line ++) // continue like so for all following datapoints/rows/lines without checking again
                             data[line][col] = parseFloat(data[line][col])
                 }
             }
@@ -892,7 +903,7 @@ export class Plot
         }
 
         let colorMap, dfColors
-        if(mode != "barchart")
+        if(mode !== "barchart")
         {
             colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset, this.oldData.labelColorMap, this.oldData.numberOfLabels)
             dfColors = colorMap.dfColors
@@ -988,7 +999,7 @@ export class Plot
                 }
         }
 
-        if(mode != "barchart") // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
+        if(mode !== "barchart") // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
         {
             if(normalizeX2)
             {
@@ -1080,7 +1091,7 @@ export class Plot
             //        Bar Chart        //
             //-------------------------//
 
-            barchart(this, df, colors, columns, normalization, appearance, dimensions)
+            barchart(this, df, colors, columns, normalization, appearance, this.SceneHelper.cameraMode)
             // those values got overwritten in barchart(...):
             minX2 = normalization.minX2
             maxX2 = normalization.maxX2
@@ -1137,7 +1148,7 @@ export class Plot
             //-------------------------//
             // This is the default mode
             
-            if(mode != "scatterplot" && mode != undefined)
+            if(mode !== "scatterplot")
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
                 
             scatterplot(this, df, colors, columns, normalization, appearance, dimensions)
@@ -1152,7 +1163,8 @@ export class Plot
         //       Axes Numbers      //
         //-------------------------//
 
-        if(this.oldData.options.mode != mode)
+        // if the mode changed, recreate the numbers because the normalization might have changed
+        if(this.oldData.options.mode !== mode)
         {
             this.SceneHelper.disposeAllAxesNumbers()
             this.axesNumbersNeedUpdate = true
@@ -1169,9 +1181,9 @@ export class Plot
 
 
             // decide about the visibility
-            let updatex1 = this.axesNumbersNeedUpdate || normalizeX1 && xLen != 0 && this.oldData.normalization.maxX1 !== maxX1 && this.oldData.normalization.minX1 !== minX1
-            let updatex2 = this.axesNumbersNeedUpdate || normalizeX2 && yLen != 0 && this.oldData.normalization.maxX2 !== maxX2 && this.oldData.normalization.minX2 !== minX2
-            let updatex3 = this.axesNumbersNeedUpdate || normalizeX3 && zLen != 0 && this.oldData.normalization.maxX3 !== maxX3 && this.oldData.normalization.minX3 !== minX3
+            let updatex1 = this.axesNumbersNeedUpdate || normalizeX1 && this.oldData.normalization.maxX1 !== maxX1 && this.oldData.normalization.minX1 !== minX1
+            let updatex2 = this.axesNumbersNeedUpdate || normalizeX2 && this.oldData.normalization.maxX2 !== maxX2 && this.oldData.normalization.minX2 !== minX2
+            let updatex3 = this.axesNumbersNeedUpdate || normalizeX3 && this.oldData.normalization.maxX3 !== maxX3 && this.oldData.normalization.minX3 !== minX3
 
             this.axesNumbersNeedUpdate = false
 
@@ -1196,7 +1208,7 @@ export class Plot
             {
                 let minX2_2 = minX2
                 let yLen_2 = yLen
-                if(mode == "barchart")
+                if(mode === "barchart")
                 {
                     minX2_2 = 0
                     yLen_2 = yLen * (maxX2-minX2_2)/x2frac
@@ -1346,6 +1358,12 @@ export class Plot
         // been extended by addDataPoint, so plotCsvString might use the in oldData stored (longer) dataframe than the one passed as parameter
         this.oldData.checkstring += "_addDP"
 
+        // numbers might change
+        if(options.normalizeX1 || options.normalizeX2 || options.normalizeX3)
+        {
+            this.axesNumbersNeedUpdate = true
+        }
+
         return 0
     }
 
@@ -1361,11 +1379,11 @@ export class Plot
         // update the legend with the label color information
         // open legend, add title
         let legendHTML = ""
-        if(options.title != undefined && options.title != "")
+        if(options.title && options.title != "")
             legendHTML += "<h1>"+options.title+"</h1>"
 
         // add info about the labels and the colors
-        if(options.colorMap != undefined && options.colorMap.labelColorMap != {})
+        if(options.colorMap && options.colorMap.labelColorMap != {})
         {
             // label colors:
             legendHTML += "<table class =\"jsP3D_labelColorLegend\"><tbody>" // can't append to innerHTML directly for some funny reason
@@ -1381,11 +1399,11 @@ export class Plot
 
         // axes titles:
         legendHTML += "<table class =\"jsP3D_axesTitleLegend\"><tbody>"
-        if(options.x1title != undefined)
+        if(options.x1title)
             legendHTML += "<tr><td>x:</td><td>"+options.x1title+"</td></tr>"
-        if(options.x2title != undefined)
+        if(this.SceneHelper.cameraMode != TOPCAMERA && options.x2title)
             legendHTML += "<tr><td>y:</td><td>"+options.x2title+"</td></tr>"
-        if(options.x3title != undefined)
+        if(options.x3title)
             legendHTML += "<tr><td>z:</td><td>"+options.x3title+"</td></tr>"
         legendHTML += "</tbody></table>"
 
@@ -1519,7 +1537,6 @@ export class Plot
 
 
 
-
     /**
      * not used for initialization, but rather for changing dimensions during runtime. will trigger axes recreation
      * @param {object} dimensions json object can contain the following:
@@ -1533,6 +1550,16 @@ export class Plot
     {
         if(typeof(dimensions) != "object")
             return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen")
+
+        if(dimensions.yLen == 0)
+        {
+            dimensions.yLen = 0.001 // 0 will cause trouble because determinants become zero
+            this.SceneHelper.changeCameraMode(TOPCAMERA) // uses an orthographic camera
+        }
+        else
+        {
+            this.SceneHelper.changeCameraMode(DEFAULTCAMERA)
+        }
 
         if(dimensions.xRes != undefined)
             this.dimensions.xRes = Math.max(1, Math.abs(dimensions.xRes|0))
@@ -1549,6 +1576,8 @@ export class Plot
             console.warn("xVerticesCount and zVerticesCount cannot be manually overwritten. They are the product of Length and Resolution.",
                 "Example: setDimensions({xRes:10, xLen:2}) xVerticesCount now has a value of 20")
 
+        // no need to check here if specific parameters were defined in dimensions, because this accesses
+        // this.dimensions which contains those values, that were not defined here as parameter
         this.dimensions.xVerticesCount = Math.max(1, Math.round(this.dimensions.xLen*this.dimensions.xRes))
         this.dimensions.zVerticesCount = Math.max(1, Math.round(this.dimensions.zLen*this.dimensions.zRes))
     
@@ -1559,8 +1588,7 @@ export class Plot
 
         // vertices counts changed, so the mesh has to be recreated
         this.updatePlotmesh = true
-        // axes have to be updates aswell
-        this.axesNumbersNeedUpdate = true
+        // axes have to be updates aswellc
 
         // takes effect once the mesh gets created from new, except for the lengths indicated by the axes. those update immediatelly
         //this.SceneHelper.render()

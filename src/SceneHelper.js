@@ -20,7 +20,9 @@ export default class SceneHelper
         this.recentlyUsedNormalization = null
         this.recentlyUsedDimensions = null
         this.textScale = 1/7
-        
+        this.cameraMode = 0 // default 0, which is the default orbitcontrolled perspective mode
+
+        // inside those groups the various numbers that are displayed along the axes are stored as children
         this.xNumbers = new THREE.Group()
         this.xNumbers.name = "xNumbers"
 
@@ -43,6 +45,10 @@ export default class SceneHelper
     {
         let backgroundColor =0xffffff
         let axesColor = 0x000000
+        
+        // width and height of the canvas in px
+        this.width = cameraOptions.width
+        this.height = cameraOptions.height
 
         if(sceneOptions.backgroundColor != undefined)
             backgroundColor = sceneOptions.backgroundColor
@@ -50,27 +56,13 @@ export default class SceneHelper
             axesColor = sceneOptions.axesColor
         
         this.scene = new THREE.Scene()
-        this.createArcCamera(cameraOptions.width, cameraOptions.height)
+        this.createArcCamera()
 
         this.setBackgroundColor(backgroundColor)
 
         this.createLight()
 
         this.createAxes(axesColor, dimensions)
-    }
-
-
-
-    /**
-     * moves the camera to pos (1st parameter) and makes it look at target (2nd parameter)
-     * @param {number[]} pos THREE.Vector3 camera position {x, y, z}
-     * @param {number[]} target THREE.Vector3 camera target. The center of what can be seen on the screen {x, y, z}
-     */
-    moveCamera(pos, target)
-    {
-        this.camera.position.set(pos.x, pos.y, pos.z)
-        this.cameraControls.target.set(target.x, target.y, target.z)
-        this.camera.lookAt(this.cameraControls.target)
     }
 
 
@@ -91,30 +83,114 @@ export default class SceneHelper
         if(this.camera.type === "OrthographicCamera")
             zoom = 1
 
-        this.camera.position.set(zoom*(xLen/2), zoom*(Math.max(zLen, yLen)), zoom*(zLen+xLen))
+        let x, y, z
+        if(this.cameraMode == 0)
+        {
+            x = zoom*(xLen/2)
+            y = zoom*(Math.max(zLen, yLen))
+            z = zoom*(zLen+xLen)
+        }
+        else if(this.cameraMode == 1)
+        {
+            // topCamera
+            x = xLen/2
+            y = Math.max(xLen,zLen)*2
+            z = zLen/2
+            this.camera.initial_y = y
+        }
+
+        this.camera.position.set(x, y, z)
         this.cameraControls.target.set(xLen/2, yLen/2, zLen/2)
         this.camera.lookAt(this.cameraControls.target)
         this.render()
     }
 
 
+
+    /**
+     * changes the mode of the camera
+     * @param {number} mode either JSPLO3D.TOPCAMERA or JSPLOT3D.DEFAULTCAMERA
+     */
+    changeCameraMode(mode)
+    {
+        // already using that mode? Then just return and do nothing
+        if(this.cameraMode == mode)
+            return
+
+        this.cameraControls.dispose()
+        // TODO will this cause a memory leak because of cameras not being removed?
+        // Can't dispose camera. workaround would be to keep the cameras in the storage and switch them
+        if(mode == 1)
+        {
+            // orthographic camera looking from the top
+            this.createTopCamera()
+            this.createAxes(this.axesColor, this.dimensions, this.normalization)
+        }
+        else
+        {
+            // unkown or 0: default
+            this.createArcCamera()
+        }
+        this.cameraMode = mode
+        this.render()
+    }
+
+
+
+    createTopCamera()
+    {
+        let width = this.width
+        let height = this.height
+        let near = 0 // when objects start to disappear at zoom-in
+        let far = 50 // when objects start to disappear at zoom-out
+        let a = Math.min(width, height)
+        let camera = new THREE.OrthographicCamera(-width/a, width/a, height/a,-height/a, near, far)
+
+        // helps to control the sprite size to be roughly the same as in the default perspective mode camera
+        // camera.scale.set(0.5, 0.5, 0.5)
+
+        let controls = new (OrbitControls(THREE))(camera, this.renderer.domElement)
+        controls.enableKeys = false
+
+        // the point of this is, that i can disable this by overwriting it
+        // when doing animations no need to use the event listener anymore
+        this.onChangeCamera = this.render
+        controls.addEventListener("change", ()=>{
+            // change y position, so that the sprite size stays the same. Without the following
+            // line the sprites maintain the same size on the screen in px despite zoom factor
+            this.camera.position.y = this.camera.initial_y/this.camera.zoom
+            this.render()
+        })
+
+        controls.enableDamping = true
+        controls.dampingFactor = 0.25
+        controls.enableZoom = true
+        controls.enableRotate = false
+        // controls.maxDistance = 5
+        // controls.minDistance = 0.3
+
+        this.camera = camera
+        this.cameraControls = controls
+    }
+
+
+
     /** 
      * Creates the camera
      */
-    createArcCamera(width, height)
+    createArcCamera()
     {
-
+        // the cameras position is set in centerCamera, which is called on setDimensions and during the constructor in JsPlot3D.js
+        let width = this.width
+        let height = this.height
         let viewAngle = 40
         let aspect = width / height
         let near = 0.05 // when objects start to disappear at zoom-in
         let far = 50 // when objects start to disappear at zoom-out
         let camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        // let a = Math.min(width, height)
-        // let camera = new THREE.OrthographicCamera(-width/a, width/a, height/a,-height/a, near, far)
 
         let controls = new (OrbitControls(THREE))(camera, this.renderer.domElement)
         controls.enableKeys = false
-        controls.target.set(0.5,0.5,0.5)
 
         // the point of this is, that i can disable this by overwriting it
         // when doing animations no need to use the event listener anymore
@@ -125,11 +201,9 @@ export default class SceneHelper
         controls.dampingFactor = 0.25
         controls.enableZoom = true
         controls.rotateSpeed = 0.3
+        controls.enableRotate = true
         // controls.maxDistance = 5
         // controls.minDistance = 0.3
-
-        // start looking at the target initially
-        camera.lookAt(controls.target)
 
         this.camera = camera
         this.cameraControls = controls
@@ -176,21 +250,24 @@ export default class SceneHelper
      * creates a THREE.Sprite object that has a canvas as texture that was filled with text. uses createLetterTexture to create the texture.
      * @param {string} letter examples: "a", "lksdfj", 0.546, 91734917, "78n6"
      * @param {Vector3} position Vector3 object {x, y, z}
+     * @param {string} align "center", "left" or "right"
+     * @param {number} scale scaling of the letter, default is 1
      */
-    placeLetter(letter, position)
+    placeLetter(letter, position, align="center", scale=1)
     {
         letter = ""+letter
-        let canvasToTexture = this.createLetterTexture(letter)
+        let canvasToTexture = this.createLetterTexture(letter, align)
         let geometry = new THREE.Geometry()
 
-        // I'm using Points and PointsMaterial instead of SpriteMaterial so that sizeAttenuation can be used
+        // I'm using Points and PointsMaterial instead of SpriteMaterial so that sizeAttenuation: false can be used
+        // Sprite and SpriteMaterial zooms the sprites when zooming in
         geometry.vertices.push(new THREE.Vector3(0, 0, 0)) // 0, 0, 0 so that I can move it around using the position.set()
         let textureToSprite = new THREE.Points(geometry, new THREE.PointsMaterial({
             map: canvasToTexture,
             depthTest: true,
             // depthWrite: false,
             sizeAttenuation: false,
-            size: canvasToTexture.image.width * this.textScale,
+            size: canvasToTexture.image.width * this.textScale * scale,
             transparent: true,
         }))
         textureToSprite.position.set(position.x, position.y, position.z)
@@ -213,9 +290,12 @@ export default class SceneHelper
     /**
      * returns a THREE.Material object that contains text as texture
      * @param {string} letter examples: "a", "lksdfj", 0.546, 91734917, "78n6"
+     * @param {string} align "center", "right" or "left"
      */
-    createLetterTexture(letter)
+    createLetterTexture(letter, align)
     {
+        let fontSize = 80
+
         letter = ""+letter
         // write text to a canvas
         let textCanvas = document.createElement("canvas")
@@ -224,14 +304,11 @@ export default class SceneHelper
         // textCanvas.width = letter.length * 64
         // the texture size has to be a power of two for each dimension
         // letter.length -> width. 2 -> 2, 3 -> 4, 4 -> 4, 5 -> 8, 6 -> 8, 7 -> 8, etc.
-        textCanvas.width = Math.pow(2, (Math.log2(letter.length)|0)+1)*64
-        textCanvas.height = textCanvas.width
+        textCanvas.width = Math.pow(2, (Math.log2(letter.length)|0)+2)*64
+        textCanvas.height = textCanvas.width // 128 // power of 2 and greater than 80 // will be scaled and distored if not quadratic
 
         // prepare the textwriting
         let context2d = textCanvas.getContext("2d")
-        let fontSize = 80
-        //let bgColorRGBa = "rgba(" + this.backgroundColor.r*255 + "," + this.backgroundColor.g*255 + "," + this.backgroundColor.b*255 + "," + "1" + ")"
-        context2d.font = "Bold "+fontSize+"px sans-serif"
         
         // IMPRTANT: when editing this, keep in mind that light text produces slight black outlines (because of the nature of THREE.js)
         // the same goes for light outlines drawn on the canvas. They also have some slightly black pixels around them. Even white shadows have some darkish fragments.
@@ -273,14 +350,15 @@ export default class SceneHelper
         }
         
         // write it centered
-        let textwidth = letter.length*64 // this would be the approach for a monospace fonts, but it somewhat approximates other fonts aswell
-        context2d.strokeText(letter, (textCanvas.width - textwidth)/2, textCanvas.height/2) // write outline
-        context2d.fillText(letter, (textCanvas.width - textwidth)/2, textCanvas.height/2) // write text
+        context2d.font = "Bold "+fontSize+"px sans-serif"
+        context2d.textAlign = align
+        context2d.strokeText(letter, textCanvas.width/2, textCanvas.height/2 + fontSize/4) // write outline
+        context2d.fillText(letter, textCanvas.width/2, textCanvas.height/2 + fontSize/4) // write text
 
         // create a texture from the canvas
-        let canvasToTexture = new THREE.Texture(textCanvas)
+        let canvasToTexture = new THREE.CanvasTexture(textCanvas)
 
-        canvasToTexture.needsUpdate = true
+        // canvasToTexture.needsUpdate = true // canvasTexture has this true by default
 
         return canvasToTexture
     }
@@ -291,12 +369,13 @@ export default class SceneHelper
      * updates the text shown on a sprite (creates a new lettertexture using createLetterTexture and updates a THREE.Mesh/Sprite/etc.)
      * @param {object} sprite sprite object that contains the text as texture (THREE.Sprite)
      * @param {string} letter new text to be displayed on the sprite
+     * @param {string} align "center", "right" or "left"
      */
-    updateLetterTextureOnSprite(sprite, letter)
+    updateLetterTextureOnSprite(sprite, letter, align)
     {
         letter = ""+letter
         sprite.material.map.dispose()
-        sprite.material.map = this.createLetterTexture(letter, 80)
+        sprite.material.map = this.createLetterTexture(letter, align)
         sprite.material.size = sprite.material.map.image.width * this.textScale
         sprite.material.needsUpdate = true
     }
@@ -312,7 +391,7 @@ export default class SceneHelper
      * 
      * @param {number} numberCount how many numbers to display along the axis
      * @param {number} axisLen length of the axis
-     * @param {object} axisNumber JSPLOT3D.XAXIS, JSPLOT3D.YAXIS or JSPLOT3D.ZAXIS
+     * @param {number} axisNumber JSPLOT3D.XAXIS, JSPLOT3D.YAXIS or JSPLOT3D.ZAXIS
      * @param {number} min the vlaue of the lowest datapoint (as available in the dataframe)
      * @param {number} max the value of the highest datapoint (as available in the dataframe)
      * @return {object} with numbers populated group
@@ -323,16 +402,27 @@ export default class SceneHelper
         //// Selecting parameters
 
         // get the group that contains the numbers according to axisNumber
-        let numbersGroupName = ({1:"xNumbers", 2:"yNumbers", 3:"zNumbers"})[axisNumber]
+        let numbersGroupName = ([
+            "xNumbers",
+            "yNumbers",
+            "zNumbers"
+        ])[axisNumber-1]
         let numbersGroup = this[numbersGroupName]
 
         // select the function for updating the number position
         let offset2 = -0.075
-        let position = ({
-            1:(value)=>{return new THREE.Vector3(offset2, offset2, value)},
-            2:(value)=>{return new THREE.Vector3(offset2, value, offset2)},
-            3:(value)=>{return new THREE.Vector3(value, offset2, offset2)}
-        })[axisNumber]
+        let position = ([
+            (value)=>{return new THREE.Vector3(value, -offset2, offset2)}, // x-Axis
+            (value)=>{return new THREE.Vector3(offset2, value, offset2)}, // y-Axis
+            (value)=>{return new THREE.Vector3(offset2, -offset2, value)}  // z-Axis
+        ])[axisNumber-1]
+
+        // align of the text. the goal is to nicely align it with the axes
+        let align = ([
+            "center", // x-Axis
+            "right", // y-Axis
+            "right"  // z-Axis
+        ])[axisNumber-1]
 
         let numberCount = (numberDensity*axisLen)|0
 
@@ -346,6 +436,7 @@ export default class SceneHelper
         // x is the value in terms of the position in the actual 3D space on the axis
         // step indicates how far away the numbers are in terms of the actual 3D space
         let step = axisLen/numberCount
+        
         for(let x = step; x <= axisLen; x += step)
         {
             // the higher the index the higher the number
@@ -356,27 +447,27 @@ export default class SceneHelper
             // 0.5/3*1+0.5 = 0.666       0.5/3*2+0.5 = 0.833       0.5/3*3+0.5 = 1
             // with 0.5 being left out because it would be where all three axis meet and there is not enough space for numbers
             let number = (max-min)/numberCount*(index+1) + min
-            
-            if(typeof(number) !== "number")
-                return console.error("at least on of the parameters is not a number. Please check:",{numberCount, axisLen, min, max})
 
             // if the number didn't change, don't do anything
             if(children[index] != undefined && children[index].originalNumber === number)
+            {
                 continue
+            }
 
             let text = number.toPrecision(3)
             let pos = position(x)
             if(children.length - 1 < index) // if children are not yet created
             {
                 // not yet defined: create from scratch
-                let textObject = this.placeLetter(text, pos)
+                let textObject = this.placeLetter(text, pos, align)
                 textObject.originalNumber = number
                 numbersGroup.add(textObject)
             }
             else
             {
                 // already defined: update texture and position
-                this.updateLetterTextureOnSprite(children[index], text)
+                this.updateLetterTextureOnSprite(children[index], text, align)
+                children[index].originalNumber = number
                 children[index].position.set(pos.x, pos.y, pos.z)
             }
 
@@ -443,17 +534,18 @@ export default class SceneHelper
      */
     createAxes(color, dimensions, normalization)
     {
+        this.dimensions = dimensions
+        this.normalization = normalization
+
+
         this.disposeMesh(this.axes)
-        this.xNumber = null
-        this.yNumber = null
-        this.zNumber = null
 
         let xLen = dimensions.xLen
         let yLen = dimensions.yLen
         let zLen = dimensions.zLen
 
         let showx1 = dimensions.xLen != 0 && dimensions.xRes != 0
-        let showx2 = dimensions.yLen != 0 && dimensions.yRes != 0
+        let showx2 = this.cameraMode != 1 && dimensions.yRes != 0
         let showx3 = dimensions.zLen != 0 && dimensions.zRes != 0
 
         let axes = new THREE.Group()
@@ -545,19 +637,19 @@ export default class SceneHelper
 
         if(showx1) {
             let xLetter
-            xLetter = this.placeLetter("x", new THREE.Vector3(xLen*percentage+offset,0,0), 80, 0.05)
+            xLetter = this.placeLetter("x", new THREE.Vector3(xLen*percentage+offset, 0, 0), "center", 1.3)
             axes.add(xLetter)
         }
 
         if(showx2) {
             let yLetter
-            yLetter = this.placeLetter("y", new THREE.Vector3(0, yLen*percentage+offset,0), 80, 0.05)
+            yLetter = this.placeLetter("y", new THREE.Vector3(0, yLen*percentage+offset, 0), "center", 1.3)
             axes.add(yLetter)
         }
 
         if(showx3) {
             let zLetter
-            zLetter = this.placeLetter("z", new THREE.Vector3(0,0, zLen*percentage+offset), 80, 0.05)
+            zLetter = this.placeLetter("z", new THREE.Vector3(0, 0, zLen*percentage+offset), "center", 1.3)
             axes.add(zLetter)
         }
 
@@ -566,6 +658,10 @@ export default class SceneHelper
         // create a new gridHelper that divides the 3Dspace into 9 pieces
         let gridHelper1 = new THREE.GridHelper(1, 3, colorObject, colorObject)
         gridHelper1.geometry.translate(0.5,0,0.5)
+
+        if(yLen == 0)
+            gridHelper1.geometry.translate(0,-0.1,0)
+
         gridHelper1.geometry.scale(dimensions.xLen,1,dimensions.zLen)
         // appearance
         gridHelper1.material.transparent = true

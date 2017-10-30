@@ -5,10 +5,11 @@
 Plots functions and .csv files. Based on three.js. It is written in ES6 syntax and compiled using Webpack.
 
 <p align="center">
-    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatterplot.png">
-    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barchart.png">
-    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/lineplot.png">
-    <img width="23%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/2Dheat.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barcgart.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/spatial2D.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatterplot.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/lineplot.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/formula.png">
 </p>
 
 _<sup>(The current version shows gridlines and numbers along the axes)</sup>_

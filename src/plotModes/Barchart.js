@@ -9,9 +9,10 @@ import * as COLORLIB from "../ColorLib.js"
  * @param {object} columns {x1col, x2col, x3col}
  * @param {object} normalization {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
  * @param {object} appearance {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
+ * @param {object} mode 0 or 1 (JSPLOT3D.DEFAULTCAMERA or JSPLOT3D.TOPCAMERA)
  * @private
  */
-export default function barchart(parent, df, colors, columns, normalization, appearance)
+export default function barchart(parent, df, colors, columns, normalization, appearance, mode)
 {    
     let hueOffset = colors.hueOffset
     
@@ -38,7 +39,8 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // let xBarOffset = 1/parent.dimensions.xRes/2
     // let zBarOffset = 1/parent.dimensions.zRes/2
 
-
+    if(mode == 1)
+        console.warn("scatterplot mode is recommended") // much more performance
 
     // if normalization is on, make sure that the bars at x=0 or z=0 don't intersect the axes
     let xOffset = 0
@@ -63,7 +65,12 @@ export default function barchart(parent, df, colors, columns, normalization, app
     {
         // create the bar
         // I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
-        let shape = new THREE.CubeGeometry((1-barchartPadding)/(parent.dimensions.xRes+xfracIncrease),1,(1-barchartPadding)/(parent.dimensions.zRes+zfracIncrease))
+        let shape
+        let height = 1 // default is always 1. The height is changed using scale at a later point
+        if(mode == 1) // topcamera
+            height = 0 // in this case create is as planes with only 4 vertex (i don't need more than that, a + for performance)
+
+        shape = new THREE.CubeGeometry((1-barchartPadding)/(parent.dimensions.xRes+xfracIncrease),height,(1-barchartPadding)/(parent.dimensions.zRes+zfracIncrease))
 
         // use translate when the position property should not be influenced
         // shape.translate(xBarOffset,0, zBarOffset)
@@ -267,6 +274,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     }
 
     // now color the children & normalize
+    let factor = 1/(x2frac/parent.dimensions.yLen) // normalize
     for(let x in barsGrid)
     {
         for(let z in barsGrid[x])
@@ -292,14 +300,10 @@ export default function barchart(parent, df, colors, columns, normalization, app
                     bar.material.visible = false
                 }
 
-                y = y/x2frac*parent.dimensions.yLen
+                y = y*factor
                 
-                // those are the vertex of the barchart that surround the top face
                 // no need to recompute normals, because they still face in the same direction
-                bar.geometry.vertices[0].y = y
-                bar.geometry.vertices[1].y = y
-                bar.geometry.vertices[4].y = y
-                bar.geometry.vertices[5].y = y
+                bar.scale.set(1,y,1)
                 
                 // make sure the updated vertex actually display
                 bar.geometry.verticesNeedUpdate = true

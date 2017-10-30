@@ -12,15 +12,13 @@ h1,h2 {
 }
 
 .jsP3D_legend {
-    margin: 10px 0px 0px 0px;
-    border: 1px solid #fff;
-    padding: 5px 10px;
-    border-radius: 2px;
-    position: absolute;
-    top: 10px;
+    margin: 0px;
+    padding: 15px 25px;
+    border-radius: 0px 0px 5px 5px;
     max-height: 550px;
-    margin-left: 20px;
     overflow: auto;
+    background: #38424e;
+    border-top: 1px solid rgba(0,0,0,0.4);
 }
 
 .jsP3D_legend h1 {
@@ -48,7 +46,6 @@ h1,h2 {
 }
 
 .jsP3D_axesTitleLegend {
-    width: 100%;
     margin-top: 4px;
 }
 
@@ -150,7 +147,7 @@ a {
     height:600px;
     margin:0px auto;
     display:block;
-    border-radius: 5px;
+    border-radius: 5px 5px 0px 0px;
     overflow: hidden;
     text-align:left;
 }

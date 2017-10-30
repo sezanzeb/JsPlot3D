@@ -34,9 +34,9 @@ function getVal(id)
     if(value == "false")
         value = false
     
-    // null by default
+    // undefined by default
     if(value === "")
-        value = null
+        value = undefined
 
     // 0xhex
     let parsed = parseInt(value)
@@ -82,13 +82,27 @@ function getOptions()
     var labeled = getVal("labeled")
     
     return {
-        mode,normalizeX1,normalizeX2,
-        normalizeX3,xRes,zRes,barchartPadding,
-        barSizeThreshold,defaultColor,
-        hueOffset,title,x1title,x2title,
-        x3title,fraction,keepOldPlot,colorCol,
-        dataPointSize,header,separator,
-        labeled
+        mode: mode,
+        normalizeX1: normalizeX1,
+        normalizeX2: normalizeX2,
+        normalizeX3: normalizeX3,
+        xRes: xRes,
+        zRes: zRes,
+        barchartPadding: barchartPadding,
+        barSizeThreshold: barSizeThreshold,
+        defaultColor: defaultColor,
+        hueOffset: hueOffset,
+        title: title,
+        x1title: x1title,
+        x2title: x2title,
+        x3title: x3title,
+        fraction: fraction,
+        keepOldPlot: keepOldPlot,
+        colorCol: colorCol,
+        dataPointSize: dataPointSize,
+        header: header,
+        separator: separator,
+        labeled: labeled,        
     }
 }
 

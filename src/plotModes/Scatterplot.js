@@ -80,6 +80,7 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
             transparent: true,
             alphaTest: 0.5,
             vertexColors: true,
+            sizeAttenuation: true,
         })
 
         parent.oldData.material = material
