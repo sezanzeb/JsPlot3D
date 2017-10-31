@@ -13,7 +13,7 @@ Link the scripts and create an element as container
 ```html
     <script src="https://threejs.org/build/three.js"></script>
     <script type="text/javascript" src="JsPlot3D.js"></script>
-    <div id="foobar"></div>
+    <div style="width:300px; height:300px" id="foobar"></div>
 ```
 
 Create a new instance of Plot
@@ -48,6 +48,27 @@ Here are the modes and their values:
 
 <br/>
 
+## Displaying Labeled Data
+
+it works with all modes (Except polygon, which is not available outside of plotFormula)
+
+```js
+    var data = "x;y;z;label\n"+
+               "1;2;3;tree\n"+
+               "1;2;4;flower\n"+
+               "2;1;5;painting\n"
+
+    plot.plotCsvString(data, 0, 1, 2, {
+        labeled: true,
+        colorCol: 3,
+        header: true,
+        separator: ";",
+        dataPointSize: 0.5
+    })
+```
+
+<br/>
+
 ## Activating the 2D Mode
 
 Set one of xLen, yLen or zLen to zero
@@ -59,31 +80,10 @@ Set one of xLen, yLen or zLen to zero
 
 <br/>
 
-## Displaying Labeled Data
-
-it works with all modes (Except polygon, which is not available outside of plotFormula)
-
-```js
-    var data = "x,y,z,label\n"+
-               "1;2;3;tree\n"+
-               "1;2;4;flower\n"+
-               "2;1;5;painting\n"
-
-    plot.plotCsvString(data, 0, 1, 2, {
-        labeled: true,
-        colorCol: 3,
-        header: true
-    }
-```
-
-<br/>
-
 ## Plotting Formulas
 
 ```js
-    plot.plotFormula("sin(2*x1+i)*sin(2*x3-i)", {
-        normalizeX2: false
-    })
+    plot.plotFormula("sin(5*x1)*cos(5*x3)")
 ```
 
 supported keywords/operators:
@@ -96,6 +96,8 @@ supported keywords/operators:
 - min, max, abs
 - ^, exp, sqrt
 - !
+
+<br/>
 
 ## Animations
 
