@@ -93,9 +93,9 @@ export default class MathParser
      */
     resetCalculation()
     {
-        this.calculatedPoints = new Array(this.parent.dimensions.xVerticesCount)
+        this.calculatedPoints = new Array(this.parent.dimensions.xRes)
         for(let i = 0;i < this.calculatedPoints.length; i++)
-            this.calculatedPoints[i] = new Float32Array(this.parent.dimensions.zVerticesCount)
+            this.calculatedPoints[i] = new Float32Array(this.parent.dimensions.zRes)
 
         this.parsedFormula = ""
         this.stopRecursion = false

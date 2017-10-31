@@ -7,6 +7,10 @@ import * as THREE from "three"
 import * as COLORLIB from "./ColorLib.js"
 import OrbitControls from "three-orbit-controls"
 
+const DEFAULTCAMERA = 0
+const TOPCAMERA = 1
+const LEFTCAMERA = 2
+const FRONTCAMERA = 3
 
 export default class SceneHelper
 {
@@ -37,7 +41,7 @@ export default class SceneHelper
 
     /**
      * scene setup. Szene, Camera, Lighting, Axes
-     * @param {object} dimensions the dimensions attribute of the Plot class. Contains xLen, yLen, zLen, xRes, zRes, xVerticesCount, zVerticesCount
+     * @param {object} dimensions the dimensions attribute of the Plot class. Contains xLen, yLen, zLen, xRes, zRes, xRes, zRes
      * @param {object} sceneOptions contains the attributes .backgroundColor and .axesColor. Example: {backgroundColor: "#0066ff", axesColor: "#ffffff"}
      * @param {object} cameraOptions object containing "width" and "height" of the canvas on which the plot will be drawn
      */
@@ -73,6 +77,7 @@ export default class SceneHelper
      */
     centerCamera(dimensions)
     {
+
         let xLen = dimensions.xLen
         let yLen = dimensions.yLen
         let zLen = dimensions.zLen
@@ -84,13 +89,13 @@ export default class SceneHelper
             zoom = 1
 
         let x, y, z
-        if(this.cameraMode == 0)
+        if(this.cameraMode === DEFAULTCAMERA)
         {
             x = zoom*(xLen/2)
             y = zoom*(Math.max(zLen, yLen))
             z = zoom*(zLen+xLen)
         }
-        else if(this.cameraMode == 1)
+        else if(this.cameraMode === TOPCAMERA)
         {
             // topCamera
             x = xLen/2
@@ -98,6 +103,24 @@ export default class SceneHelper
             z = zLen/2
             this.camera.initial_y = y
         }
+        else if(this.cameraMode === LEFTCAMERA)
+        {
+            // leftCamera
+            x = -Math.max(yLen,zLen)*2
+            y = yLen/2
+            z = zLen/2
+            this.camera.initial_x = x
+        }
+
+        else if(this.cameraMode === FRONTCAMERA)
+        {
+            // frontCamera
+            x = xLen/2
+            y = yLen/2
+            z = Math.max(xLen,yLen)*2
+            this.camera.initial_z = z
+        }
+
 
         this.camera.position.set(x, y, z)
         this.cameraControls.target.set(xLen/2, yLen/2, zLen/2)
@@ -113,6 +136,7 @@ export default class SceneHelper
      */
     changeCameraMode(mode)
     {
+        
         // already using that mode? Then just return and do nothing
         if(this.cameraMode == mode)
             return
@@ -120,10 +144,22 @@ export default class SceneHelper
         this.cameraControls.dispose()
         // TODO will this cause a memory leak because of cameras not being removed?
         // Can't dispose camera. workaround would be to keep the cameras in the storage and switch them
-        if(mode == 1)
+        if(mode === TOPCAMERA)
         {
             // orthographic camera looking from the top
-            this.createTopCamera()
+            this.createSideViewCamera("y")
+            this.createAxes(this.axesColor, this.dimensions, this.normalization)
+        }
+        else if(mode === LEFTCAMERA)
+        {
+            // orthographic camera looking from the top
+            this.createSideViewCamera("x")
+            this.createAxes(this.axesColor, this.dimensions, this.normalization)
+        }
+        else if(mode === FRONTCAMERA)
+        {
+            // orthographic camera looking from the top
+            this.createSideViewCamera("z")
             this.createAxes(this.axesColor, this.dimensions, this.normalization)
         }
         else
@@ -131,13 +167,19 @@ export default class SceneHelper
             // unkown or 0: default
             this.createArcCamera()
         }
+
         this.cameraMode = mode
         this.render()
     }
 
 
 
-    createTopCamera()
+    /**
+     * orthographic camera that can only view from one side. no orbit controls, just moving left/right up/down
+     * will replace the camera in the scene upon calling
+     * @param {string} dir "x" "y" or "z", which is the axis that is hidden because it's seen from the side
+     */
+    createSideViewCamera(dir)
     {
         let width = this.width
         let height = this.height
@@ -158,7 +200,7 @@ export default class SceneHelper
         controls.addEventListener("change", ()=>{
             // change y position, so that the sprite size stays the same. Without the following
             // line the sprites maintain the same size on the screen in px despite zoom factor
-            this.camera.position.y = this.camera.initial_y/this.camera.zoom
+            this.camera.position[dir] = this.camera["initial_"+dir]/this.camera.zoom
             this.render()
         })
 
@@ -414,18 +456,70 @@ export default class SceneHelper
 
         // select the function for updating the number position
         let offset2 = -0.075
-        let position = ([
-            (value)=>{return new THREE.Vector3(value, -offset2, offset2)}, // x-Axis
-            (value)=>{return new THREE.Vector3(offset2, value, offset2/2)}, // y-Axis
-            (value)=>{return new THREE.Vector3(offset2, -offset2, value)}  // z-Axis
-        ])[axisNumber-1]
+        let position
+        let align
 
-        // align of the text. the goal is to nicely align it with the axes
-        let align = ([
-            "center", // x-Axis
-            "right", // y-Axis
-            "right"  // z-Axis
-        ])[axisNumber-1]
+        if(this.cameraMode == TOPCAMERA)
+        {
+            position = ([
+                (value)=>{return new THREE.Vector3(value, -offset2, offset2)}, // x-Axis
+                ()=>{return new THREE.Vector3(0,0,0)}, // y-Axis (hidden)
+                (value)=>{return new THREE.Vector3(offset2, -offset2, value)}  // z-Axis
+            ])[axisNumber-1]
+            
+            // align of the text. the goal is to nicely align it with the axes
+            align = ([
+                "center", // x-Axis
+                "right", // y-Axis (hidden)
+                "right"  // z-Axis
+            ])[axisNumber-1]
+        }
+        else if(this.cameraMode == LEFTCAMERA)
+        {
+            position = ([
+                ()=>{return new THREE.Vector3(0,0,0)}, // x-Axis (hidden)
+                (value)=>{return new THREE.Vector3(offset2, value, offset2/2)}, // y-Axis
+                (value)=>{return new THREE.Vector3(offset2, offset2, value)}  // z-Axis
+            ])[axisNumber-1]
+            
+            // align of the text. the goal is to nicely align it with the axes
+            align = ([
+                "center", // x-Axis (hidden)
+                "right", // y-Axis
+                "center"  // z-Axis
+            ])[axisNumber-1]
+        }
+        else if(this.cameraMode == FRONTCAMERA)
+        {
+            position = ([
+                (value)=>{return new THREE.Vector3(value, offset2, offset2)}, // x-Axis
+                (value)=>{return new THREE.Vector3(offset2, value, offset2/2)}, // y-Axis
+                ()=>{return new THREE.Vector3(0,0,0)}  // z-Axis (hidden)
+            ])[axisNumber-1]
+            
+            // align of the text. the goal is to nicely align it with the axes
+            align = ([
+                "center", // x-Axis
+                "right", // y-Axis
+                "right"  // z-Axis (hidden)
+            ])[axisNumber-1]
+        }
+        else
+        {
+            // unknown of DEFAULTCAMERA
+            position = ([
+                (value)=>{return new THREE.Vector3(value, -offset2, offset2)}, // x-Axis
+                (value)=>{return new THREE.Vector3(offset2, value, offset2/2)}, // y-Axis
+                (value)=>{return new THREE.Vector3(offset2, -offset2, value)}  // z-Axis
+            ])[axisNumber-1]
+            
+            // align of the text. the goal is to nicely align it with the axes
+            align = ([
+                "center", // x-Axis
+                "right", // y-Axis
+                "right"  // z-Axis
+            ])[axisNumber-1]
+        }
 
         let numberCount = (numberDensity*axisLen)|0
 
@@ -546,9 +640,9 @@ export default class SceneHelper
         let yLen = dimensions.yLen
         let zLen = dimensions.zLen
 
-        let showx1 = dimensions.xLen != 0 && dimensions.xRes != 0
-        let showx2 = this.cameraMode != 1 && dimensions.yRes != 0
-        let showx3 = dimensions.zLen != 0 && dimensions.zRes != 0
+        let showx1 = this.cameraMode != LEFTCAMERA && dimensions.xRes != 0
+        let showx2 = this.cameraMode != TOPCAMERA && dimensions.yRes != 0
+        let showx3 = this.cameraMode != FRONTCAMERA && dimensions.zRes != 0
 
         let axes = new THREE.Group()
         let percentage = 1.1 // how long the axes are to xLen, yLen and zLen
@@ -655,39 +749,36 @@ export default class SceneHelper
             axes.add(zLetter)
         }
 
-
-
         // create a new gridHelper that divides the 3Dspace into 9 pieces
-        let gridHelper1 = new THREE.GridHelper(1, 3, colorObject, colorObject)
-        gridHelper1.geometry.translate(0.5,0,0.5)
+        let gridhelper = new THREE.GridHelper(1, 3, colorObject, colorObject)
+        gridhelper.geometry.translate(0.5, 0, 0.5)
 
-        if(yLen == 0)
-            gridHelper1.geometry.translate(0,-0.1,0)
+        if(this.cameraMode === TOPCAMERA) // user wanted y to be 0
+        {
+            gridhelper.geometry.scale(dimensions.xLen, 1, dimensions.zLen)
+            gridhelper.geometry.translate(0, -0.1, 0)
+        }
+        else if(this.cameraMode === LEFTCAMERA) // user wanted y to be 0
+        {
+            gridhelper.geometry.scale(dimensions.yLen, 1, dimensions.zLen)
+            gridhelper.geometry.rotateZ(Math.PI/2)
+            gridhelper.geometry.translate(0.1, 0, 0)
+        }
+        else if(this.cameraMode === FRONTCAMERA) // user wanted z to be 0
+        {
+            gridhelper.geometry.scale(dimensions.xLen, 1, dimensions.yLen)
+            gridhelper.geometry.rotateX(-Math.PI/2)
+            gridhelper.geometry.translate(0, 0, -0.1)
+        }
+        else
+        {
+            gridhelper.geometry.scale(dimensions.xLen, 1, dimensions.zLen)
+        }
 
-        gridHelper1.geometry.scale(dimensions.xLen,1,dimensions.zLen)
         // appearance
-        gridHelper1.material.transparent = true
-        gridHelper1.material.opacity = 0.2
-        axes.add(gridHelper1)
-
-        // gridhelper on the x-y and z-y planes. But they don't actually look that good I think
-        /*let gridHelper2 = new THREE.GridHelper(1, 1, colorObject, colorObject)
-        gridHelper2.geometry.translate(0.5,0,0.5)
-        gridHelper2.geometry.scale(dimensions.xLen,1,dimensions.yLen)
-        gridHelper2.geometry.rotateX(-Math.PI/2)
-        // appearance
-        gridHelper2.material.transparent = true
-        gridHelper2.material.opacity = 0.1
-        axes.add(gridHelper2)
-
-        let gridHelper3 = new THREE.GridHelper(1, 1, colorObject, colorObject)
-        gridHelper3.geometry.translate(0.5,0,0.5)
-        gridHelper3.geometry.scale(dimensions.yLen,1,dimensions.zLen)
-        gridHelper3.geometry.rotateZ(Math.PI/2)
-        // appearance
-        gridHelper3.material.transparent = true
-        gridHelper3.material.opacity = 0.1
-        axes.add(gridHelper3)*/
+        gridhelper.material.transparent = true
+        gridhelper.material.opacity = 0.2
+        axes.add(gridhelper)
 
 
         // updateAxesNumbers relies on this.axes, so make sure this is assigned before it

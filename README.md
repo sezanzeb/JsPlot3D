@@ -1,7 +1,5 @@
 <p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/title.png"/></p>
 
-**v0.2**
-
 Plots functions and .csv files. Based on three.js. It is written in ES6 syntax and compiled using Webpack.
 
 <p align="center">
@@ -12,11 +10,11 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
     <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/formula.png">
 </p>
 
-Download: http://hip70890b.de/downloads/JsPlot3D.js
+**Download:** http://hip70890b.de/downloads/JsPlot3D.js
 
-For more information (**building**) please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
-
-You can find the **documentation** here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
+- For more information (**building**) please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
+- You can find the **documentation** here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
+- A little HowTo is in USAGE.md
 
 
 ## Live Example
@@ -48,6 +46,7 @@ Please also take a look at the source codes of https://github.com/sezanzeb/JsPlo
 
 You can copy the following to a file.html and open it using your browser. It should work right away and show 6 datapoints in red, blue and green and a legend below it that explainins the colors and the axes
 
+```html
     <div id="plot" style="width:400px; height:350px;"></div>
     <div id="legend"></div>
     <div style="display:none" id="csv">
@@ -83,3 +82,4 @@ You can copy the following to a file.html and open it using your browser. It sho
             border-radius:100%;
         }
     </style>
+```

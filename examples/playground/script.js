@@ -136,7 +136,7 @@ function plotcsv()
     // display the dataframes head
     if(plot.oldData.dataframe != undefined)
     {
-        let tableData = plot.oldData.dataframe.slice(0,27)
+        let tableData = plot.oldData.dataframe.slice(0,19)
         let table = "<table>"
 
         table += "<tr>"

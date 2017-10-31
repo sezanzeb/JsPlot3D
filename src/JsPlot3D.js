@@ -3,6 +3,7 @@
  * @module JsPlot3D
  */
 
+// IMPORTS
 import MathParser from "./MathParser.js"
 import SceneHelper from "./SceneHelper.js"
 import scatterplot from "./plotModes/Scatterplot.js"
@@ -11,8 +12,7 @@ import barchart from "./plotModes/Barchart.js"
 import * as COLORLIB from "./ColorLib.js"
 import * as THREE from "three"
 
-// make the COLORLIB available as member of this module
-export const colorLib = COLORLIB
+// CONSTANTS
 export const XAXIS = 1
 export const YAXIS = 2
 export const ZAXIS = 3
@@ -20,10 +20,17 @@ export const SCATTERPLOT_MODE = "scatterplot"
 export const BARCHART_MODE = "barchart"
 export const LINEPLOT_MODE = "lineplot"
 export const POLYGON_MODE = "polygon"
-export const TOPCAMERA = 1
 export const DEFAULTCAMERA = 0
+export const TOPCAMERA = 1
+export const LEFTCAMERA = 2
+export const FRONTCAMERA = 3
+
+// I need this for the jasmine tests so that colorLib can be
+// testet and not only accessed from within the Plot class-
+export const colorLib = COLORLIB
 
 
+// Main Class for this Tool, exported as JSPLOT3D.Plot
 export class Plot
 {
     /**
@@ -52,10 +59,8 @@ export class Plot
         // don't use setDimensions for the following, as setDimensions is meant
         // to be something to call during runtime and will therefore cause problems
         this.dimensions = {xRes:20, zRes:20, xLen:1, yLen:1, zLen:1}
-        this.dimensions.xVerticesCount = this.dimensions.xRes * this.dimensions.xLen
-        this.dimensions.zVerticesCount = this.dimensions.zRes * this.dimensions.zLen
         
-        // before MathParser, Dimensions have to be called to initialize some stuff (xVerticesCount and zVerticesCount)
+        // before MathParser, Dimensions have to be called to initialize some stuff (xRes and zRes)
         this.MathParser = new MathParser(this)
 
         // then setup the children of the scene (camera, light, axes)
@@ -165,7 +170,7 @@ export class Plot
 
             // if scatterplot, create a dataframe and send it to plotDataFrame
             // multiply those two values for the ArraySize because plotFormula will create that many datapoints
-            let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
+            let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
 
             // three values (x, y and z) that are going to be stored in the dataframe
 
@@ -173,9 +178,9 @@ export class Plot
             let i = 0
             let y = 0
 
-            for(let x = 0; x < this.dimensions.xVerticesCount; x++)
+            for(let x = 0; x < this.dimensions.xRes; x++)
             {
-                for(let z = 0; z < this.dimensions.zVerticesCount; z++)
+                for(let z = 0; z < this.dimensions.zRes; z++)
                 {
                     y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes) // calculate y. y = f(x1, x2)
                     df[i] = new Float32Array(3)
@@ -201,7 +206,7 @@ export class Plot
 
 
             // if barchart, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.dimensions.xVerticesCount * this.dimensions.zVerticesCount)
+            let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
 
             // three values (x, y and z) that are going to be stored in the dataframe
 
@@ -209,9 +214,9 @@ export class Plot
             let i = 0
             let y = 0
 
-            for(let x = 0; x <= this.dimensions.xVerticesCount; x++)
+            for(let x = 0; x <= this.dimensions.xRes; x++)
             {
-                for(let z = 0; z <= this.dimensions.zVerticesCount; z++)
+                for(let z = 0; z <= this.dimensions.zRes; z++)
                 {
                     y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes) // calculate y. y = f(x1, x2)
                     df[i] = new Float32Array(3)
@@ -262,7 +267,7 @@ export class Plot
                 this.disposePlotMesh()
 
                 // create plane, divided into segments
-                let planegeometry = new THREE.PlaneGeometry(this.dimensions.xLen, this.dimensions.zLen, this.dimensions.xVerticesCount, this.dimensions.zVerticesCount)
+                let planegeometry = new THREE.PlaneGeometry(this.dimensions.xLen, this.dimensions.zLen, this.dimensions.xRes, this.dimensions.zRes)
                 // move it
                 planegeometry.rotateX(Math.PI/2)
                 planegeometry.translate(this.dimensions.xLen/2,0, this.dimensions.zLen/2)
@@ -1401,11 +1406,11 @@ export class Plot
 
         // axes titles:
         legendHTML += "<table class =\"jsP3D_axesTitleLegend\"><tbody>"
-        if(options.x1title)
+        if(this.SceneHelper.cameraMode != LEFTCAMERA && options.x1title)
             legendHTML += "<tr><td>x:</td><td>"+options.x1title+"</td></tr>"
         if(this.SceneHelper.cameraMode != TOPCAMERA && options.x2title)
             legendHTML += "<tr><td>y:</td><td>"+options.x2title+"</td></tr>"
-        if(options.x3title)
+        if(this.SceneHelper.cameraMode != FRONTCAMERA && options.x3title)
             legendHTML += "<tr><td>z:</td><td>"+options.x3title+"</td></tr>"
         legendHTML += "</tbody></table>"
 
@@ -1571,10 +1576,30 @@ export class Plot
         this.disposePlotMesh()
         this.clearOldData()
         
-        if(dimensions.yLen == 0)
+        if(dimensions.xLen === 0 && dimensions.yLen === 0)
+            return console.error("only one dimension can be zero",dimensions)
+        if(dimensions.yLen === 0 && dimensions.zLen === 0)
+            return console.error("only one dimension can be zero",dimensions)
+        if(dimensions.zLen === 0 && dimensions.xLen === 0)
+            return console.error("only one dimension can be zero",dimensions)
+
+        if(dimensions.xLen === 0)
+        {
+            dimensions.xLen = 0.001 // 0 will cause trouble because determinants become zero
+            dimensions.xRes = 1
+            this.SceneHelper.changeCameraMode(LEFTCAMERA) // uses an orthographic camera
+        }
+        else if(dimensions.yLen === 0)
         {
             dimensions.yLen = 0.001 // 0 will cause trouble because determinants become zero
+            dimensions.yRes = 1
             this.SceneHelper.changeCameraMode(TOPCAMERA) // uses an orthographic camera
+        }
+        else if(dimensions.zLen === 0)
+        {
+            dimensions.zLen = 0.001 // 0 will cause trouble because determinants become zero
+            dimensions.zRes = 1
+            this.SceneHelper.changeCameraMode(FRONTCAMERA) // uses an orthographic camera
         }
         else
         {
@@ -1591,15 +1616,6 @@ export class Plot
             this.dimensions.yLen = Math.abs(dimensions.yLen)
         if(dimensions.zLen != undefined)
             this.dimensions.zLen = Math.abs(dimensions.zLen)
-
-        if(dimensions.xVerticesCount != undefined || dimensions.zVerticesCount != undefined)
-            console.warn("xVerticesCount and zVerticesCount cannot be manually overwritten. They are the product of Length and Resolution.",
-                "Example: setDimensions({xRes:10, xLen:2}) xVerticesCount now has a value of 20")
-
-        // no need to check here if specific parameters were defined in dimensions, because this accesses
-        // this.dimensions which contains those values, that were not defined here as parameter
-        this.dimensions.xVerticesCount = Math.max(1, (this.dimensions.xLen*this.dimensions.xRes)|0)
-        this.dimensions.zVerticesCount = Math.max(1, (this.dimensions.zLen*this.dimensions.zRes)|0)
     
 
         // move
@@ -1609,7 +1625,7 @@ export class Plot
         // axes have to be updates aswellc
 
         // takes effect once the mesh gets created from new, except for the lengths indicated by the axes. those update immediatelly
-        //this.SceneHelper.render()
+        this.SceneHelper.render()
     }
 
 

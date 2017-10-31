@@ -23,13 +23,7 @@ go to test/index.html
 
 ## How to Use
 
-first, you need to build. See above.
-    
-JsPlot3D.js will then be created in compiled/ automatically
-    
-Take a look into the sourcode of the files in test/. There are a few examples that show what you can do with this tool.
-
-The live example can also help you to understand the parameters: http://hip70890b.de/JsPlot3D_Playground/
+see USAGE.md
 
 
 
@@ -73,6 +67,8 @@ The live example can also help you to understand the parameters: http://hip70890
 ## Documentation
 
 Currently there is a documentation here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
+
+And a little HowTo in USAGE.md
 
 
 ## Attribution

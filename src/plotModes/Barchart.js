@@ -136,11 +136,11 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // fill the barsGrid array with the added heights of the bars
     // get a point from the dataframe. Calculate the coordinates from that.
     // to do this, the value has to be brought down to the normalized value (/x1frac). It now has maximum values of [-1, +1].
-    // multiply by xVerticesCount, to get maximum values of [-xVerticesCount, +xVerticesCount]. Now apply the offset of +xVerticesCount to transform it to
-    //[0, 2*xVerticesCount]
+    // multiply by xRes, to get maximum values of [-xRes, +xRes]. Now apply the offset of +xRes to transform it to
+    //[0, 2*xRes]
     // afterwards get that to an array index. remember, that the array has some parts reserved for negative x and z values by using an offset
-    // so, divide x_float by x1frac and multiply it by xVerticesCount.
-    // x_float = df[i][x1col]/x1frac*xVerticesCount = df[i][x1col]/(x1frac/xVerticesCount) = df[i][x1col]*(xVerticesCount/x1frac) = df[i][x1col]*xVerticesCount/x1frac
+    // so, divide x_float by x1frac and multiply it by xRes.
+    // x_float = df[i][x1col]/x1frac*xRes = df[i][x1col]/(x1frac/xRes) = df[i][x1col]*(xRes/x1frac) = df[i][x1col]*xRes/x1frac
     let factorX1 = (parent.dimensions.xRes-1)/x1frac
     let factorX3 = (parent.dimensions.zRes-1)/x3frac
 

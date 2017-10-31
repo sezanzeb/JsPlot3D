@@ -80,8 +80,8 @@
         })
 
         it("integrity of various variables", function() {
-            expect(plot.MathParser.calculatedPoints.length).toBe(plot.dimensions.xVerticesCount)
-            expect(plot.MathParser.calculatedPoints[0].length).toBe(plot.dimensions.zVerticesCount)
+            expect(plot.MathParser.calculatedPoints.length).toBe(plot.dimensions.xRes)
+            expect(plot.MathParser.calculatedPoints[0].length).toBe(plot.dimensions.zRes)
         })
 
         it("parsing various formulas", function() {
