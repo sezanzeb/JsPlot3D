@@ -2,7 +2,7 @@
 
 This is incomplete. Please also take a look at /test/visual_tests/ and open the files in your browser to see which one does roughly that what you are looking for and then inspect the sourcecode. Some of them contain settings that are not needed but only exist to test if the plot breaks or not.
 
-To learn how to navigate and also understand many of the available settings, please open http://hip70890b.de/JsPlot3D_Playground/ in your browser.
+To learn how to navigate and also understand many of the available settings, please open http://hip70890b.de/JsPlot3D/examples/playground/index.html in your browser.
 
 Also see the documentation, which you can find here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew. Click on "API" on the left hand side of the website.
 

@@ -10,7 +10,7 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
     <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/formula.png">
 </p>
 
-**Download:** http://hip70890b.de/downloads/JsPlot3D.js
+**Download:** http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js
 
 - For more information (**building**) please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
 - You can find the **documentation** here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
@@ -21,7 +21,7 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
 
 Click here for a live example:
 
-http://hip70890b.de/JsPlot3D_Playground/
+http://hip70890b.de/JsPlot3D/examples/playground/index.html
 
 You can uploade one of the csvs in /examples/csvFiles. Or get a .csv dataset (for example on kaggle.com). The live example also gives insight about the settings that can be handed over to plotCsvString, plotDataFrame, plotFormula and addDataPoints.
 
@@ -59,7 +59,7 @@ You can copy the following to a file.html and open it using your browser. It sho
         5.8,2.7,5.1,1.9,Iris-virginica
     </div>
     <script src="http://threejs.org/build/three.min.js"></script>
-    <script src="http://hip70890b.de/downloads/JsPlot3D.js"></script>
+    <script src="http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js"></script>
     <script>
 
         var plot = new JSPLOT3D.Plot(document.getElementById("plot"))
