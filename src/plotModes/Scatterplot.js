@@ -36,20 +36,22 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
 
     let isItValid = parent.IsPlotmeshValid("scatterplot")
 
+    // dispose the old mesh if it is not used/valid anymore
+    if(!keepOldPlot || !isItValid)
+    {
+        parent.disposePlotMesh()
+        
+        parent.plotmesh = new THREE.Group()
+        parent.plotmesh.name = "scatterplot"
+        parent.SceneHelper.scene.add(parent.plotmesh)
+    }
+    
     // laod the recently used material from the cache
     let material = parent.oldData.material
 
     // the material is created here
     if(material === null || !isItValid || (material !== null && material != dataPointSize))
     {
-        // only dispose the old mesh if it is not used anymore
-        if(!keepOldPlot || parent.plotmesh === null)
-        {
-            parent.SceneHelper.disposeMesh(parent.plotmesh)
-            parent.plotmesh = new THREE.Group()
-            parent.plotmesh.name = "scatterplot"
-            parent.SceneHelper.scene.add(parent.plotmesh)
-        }
 
         // base64 created using tools/getBase64.html and tools/sprite.png
         let circle = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABAAQMAAACQp+OdAAAABlBMVEUAAAD///+l2Z/"+

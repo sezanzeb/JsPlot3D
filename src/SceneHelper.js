@@ -394,10 +394,13 @@ export default class SceneHelper
      * @param {number} axisNumber JSPLOT3D.XAXIS, JSPLOT3D.YAXIS or JSPLOT3D.ZAXIS
      * @param {number} min the vlaue of the lowest datapoint (as available in the dataframe)
      * @param {number} max the value of the highest datapoint (as available in the dataframe)
+     * @param {boolean} animated true if the plot is animated
      * @return {object} with numbers populated group
      */
     updateNumbersAlongAxis(numberDensity, axisLen, axisNumber, min, max)
     {
+        if(!this.axes)
+            return
 
         //// Selecting parameters
 
@@ -710,7 +713,6 @@ export default class SceneHelper
      */
     disposeMesh(mesh)
     {   
-        
         if(mesh)
         {
             if(mesh.geometry)

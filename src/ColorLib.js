@@ -15,7 +15,6 @@ export function convertToHeat(value,min=-1,max=1,hueOffset=0)
     let upperColorBoundary = 0+hueOffset // equals red // what the highest value will get
     let lowerColorBoundary = 0.65+hueOffset // equals blue with a faint purple tone // what the lowest value will get
 
-    value = parseFloat(value)
     value = (value-min)/(max-min) // normalize
 
     // heatmap
@@ -171,7 +170,6 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
             //#, rgb and hex
 
             // if it is a string value
-            // check the second line, because there might be headers accidentally in the first row
             if(isNaN(parseFloat(df[firstDataPointLine][colorCol])))
             {
                 filterColor = false // don't apply normalization and heatmapfilters to it
@@ -274,8 +272,9 @@ export function getColorObjectFromAnyString(color)
     color = color.toLocaleLowerCase()
 
     // if it can be parsed, parse it
-    if(!isNaN(parseFloat(color)))
-        return new THREE.Color(parseFloat(color))
+    let colorNumber = parseFloat(color)
+    if(!isNaN(colorNumber))
+        return new THREE.Color(colorNumber)
 
     if(color.startsWith("rgb"))
     {

@@ -42,7 +42,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
 
     if(!keepOldPlot || !isItValid || !isOldMaterialSimilar)
     {
-        parent.SceneHelper.disposeMesh(parent.plotmesh)
+        parent.disposePlotMesh()
 
         let material = new THREE.LineBasicMaterial({
             vertexColors: THREE.VertexColors,

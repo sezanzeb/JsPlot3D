@@ -14,6 +14,7 @@ import * as COLORLIB from "../ColorLib.js"
  */
 export default function barchart(parent, df, colors, columns, normalization, appearance, mode)
 {    
+
     let hueOffset = colors.hueOffset
     
     let x1col = columns.x1col
@@ -61,7 +62,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     }
 
     // helper function
-    let createBar = (x, z, cubegroup) =>
+    let createBar = (x, z) =>
     {
         // create the bar
         // I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
@@ -70,7 +71,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         if(mode == 1) // topcamera
             height = 0 // in this case create is as planes with only 4 vertex (i don't need more than that, a + for performance)
 
-        shape = new THREE.CubeGeometry((1-barchartPadding)/(parent.dimensions.xRes+xfracIncrease),height,(1-barchartPadding)/(parent.dimensions.zRes+zfracIncrease))
+        shape = new THREE.CubeGeometry((1-barchartPadding)/(parent.dimensions.xRes), height, (1-barchartPadding)/(parent.dimensions.zRes))
 
         // use translate when the position property should not be influenced
         // shape.translate(xBarOffset,0, zBarOffset)
@@ -79,31 +80,33 @@ export default function barchart(parent, df, colors, columns, normalization, app
             color: 0xffffff,
             emissive: 0,
             emissiveIntensity: 0.98,
-            roughness: 1,
-            visible: false,
-            side: THREE.DoubleSide
+            roughness: 1
         })
 
         let bar = new THREE.Mesh(shape, plotmat)
-        bar.position.set(x/(parent.dimensions.xRes+xfracIncrease)+xOffset,0, z/(parent.dimensions.zRes+zfracIncrease)+zOffset)
-        bar.geometry.translate(0,0.5,0)
-        cubegroup.add(bar)
+        bar.position.set(x/(parent.dimensions.xRes)+xOffset, 0, z/(parent.dimensions.zRes)+zOffset)
+        bar.geometry.translate(0,0.5,0) // move it so that the bottom plane is at y=0
+        parent.plotmesh.add(bar)
 
         return bar
     }
 
 
     // if needed, reconstruct the complete barchart
-    let valid = parent.IsPlotmeshValid("barchart")
+    let valid = parent.IsPlotmeshValid("barchart") && parent.oldData.barsGrid !== null && barchartPadding == parent.oldData.barchartPadding
     // shape of bars changed? recreate from scratch
     // let paddingValid = (options.barchartPadding === undefined && parent.oldData.options.barchartPadding === undefined) || (barchartPadding === parent.oldData.options.barchartPadding)
 
-    if(!valid || !keepOldPlot)
+    // load what is stored
+    let barsGrid = parent.oldData.barsGrid
+
+    if(!valid)
     {
-        parent.SceneHelper.disposeMesh(parent.plotmesh)
-        parent.clearOldData()
+        parent.disposePlotMesh()
         
-        parent.oldData.barsGrid = {}
+        barsGrid = {}
+        parent.oldData.barsGrid = barsGrid
+        parent.oldData.barchartPadding = barchartPadding
         
         // into this group fill the bars
         let cubegroup = new THREE.Group()
@@ -112,9 +115,20 @@ export default function barchart(parent, df, colors, columns, normalization, app
         parent.plotmesh = cubegroup
         parent.SceneHelper.scene.add(cubegroup)
     }
-
-    // load what is stored
-    let barsGrid = parent.oldData.barsGrid
+    else
+    {
+        // reset all the heights. for key in loops are horribly slow,
+        // but still better than resetting the complete grid and creating it from scratch
+        // because this way the bars don't have to be recreated again
+        if(!keepOldPlot)
+        {
+            for(let x in barsGrid)
+                for(let z in barsGrid[x])
+                {
+                    barsGrid[x][z].y = 0
+                }
+        }
+    }
     
 
     // fill the barsGrid array with the added heights of the bars
@@ -125,8 +139,8 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // afterwards get that to an array index. remember, that the array has some parts reserved for negative x and z values by using an offset
     // so, divide x_float by x1frac and multiply it by xVerticesCount.
     // x_float = df[i][x1col]/x1frac*xVerticesCount = df[i][x1col]/(x1frac/xVerticesCount) = df[i][x1col]*(xVerticesCount/x1frac) = df[i][x1col]*xVerticesCount/x1frac
-    let factorX1 = (parent.dimensions.xVerticesCount)/x1frac
-    let factorX3 = (parent.dimensions.zVerticesCount)/x3frac
+    let factorX1 = (parent.dimensions.xVerticesCount-1)/x1frac
+    let factorX3 = (parent.dimensions.zVerticesCount-1)/x3frac
 
     // use the maximums from the recent run if keepOldPlot
     maxX2 = parent.oldData.normalization.maxX2
@@ -143,13 +157,13 @@ export default function barchart(parent, df, colors, columns, normalization, app
     let addToHeights = (x, y, z, x_float, z_float) =>
     {
         /*
-            *       a +----------+ b
-            *         |     |    |
-            *         |-----+    |
-            *         |     e    |
-            *         |          |
-            *       c +----------+ d
-            */
+         *       a +----------+ b
+         *         |     |    |
+         *         |-----+    |
+         *         |     e    |
+         *         |          |
+         *       c +----------+ d
+         */
         // example: calculate how much to add of y to pixel d. e has the coordinates x_float and z_float
         // calculate the area of the rectangle (called let oppositeSquare) between a (coordinates x and z) and e and multiply that by y
         // that result can be added to [value y of d]
@@ -188,12 +202,8 @@ export default function barchart(parent, df, colors, columns, normalization, app
         if(!barsGrid[x][z].bar)
         {
             barsGrid[x][z].bar = createBar(x, z, parent.plotmesh)
+            barsGrid[x][z].bar.material.emissive.set(COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset))
         }
-        
-        /*console.error(x, z,"is not defined in", barsGrid,
-            "this is a bug. This might happen because the code tries to interpolate beyond the "+
-            "bounds of the grid, but this normally should not be the case."
-        )*/
 
         return
     } // end function declaration of addToHeights
@@ -252,6 +262,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
             addToHeights(x_le, y, z_ba, x_float, z_float)
         }
     }
+    
 
     // percent of largest bar
     barSizeThreshold = barSizeThreshold*Math.max(Math.abs(maxX2), Math.abs(minX2))
@@ -273,40 +284,53 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // this is a little bit too experimental at the moment. Once everything runs properly stable it's worth thinking about it
     }
 
+
     // now color the children & normalize
     let factor = 1/(x2frac/parent.dimensions.yLen) // normalize
     for(let x in barsGrid)
     {
         for(let z in barsGrid[x])
         {
-            let bar = barsGrid[x][z].bar
-            if(bar != undefined)
-            {
-                let y = barsGrid[x][z].y
-                
-                let color = COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset)
-                //bar.material.color.set(color) // .color property should stay the way it is defined (0xffffff), it's important for proper lighting
-                bar.material.emissive.set(color)
 
-                // hide that bar if it's smaller than or equal to the threshold
-                // y is now normalized (|y| is never larger than 1), so barSizeThreshold acts like a percentage value
-                if(Math.abs(y) > barSizeThreshold)
+            let bar = barsGrid[x][z].bar
+
+            let y = barsGrid[x][z].y
+
+            // hide that bar if it's smaller than or equal to the threshold
+            // y is now normalized (|y| is never larger than 1), so barSizeThreshold acts like a percentage value
+            if(Math.abs(y) > barSizeThreshold && y !== 0)
+            {
+                // update colos in a 15fps cycle for better performance
+                if(parent.fps15 == 0)
                 {
-                    // make it visible if it's not zero
-                    bar.material.visible = true
+                    let color = COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset)
+                    //bar.material.color.set(color) // .color property should stay the way it is defined (0xffffff), it's important for proper lighting
+                    bar.material.emissive.set(color)
+                }
+                
+                y = y*factor
+                
+                if(y < 0)
+                {
+                    // don't make the scaling negative, because otherwise the faces at the top receive light from the bottom
+                    // scale them in a positive way and move them to the bottom so that the top face of the bar is at y=0
+                    bar.scale.set(1,-y,1)
+                    bar.position.set(bar.position.x,y,bar.position.z)
                 }
                 else
                 {
-                    bar.material.visible = false
+                    bar.scale.set(1,y,1)
+                    // reset position by moving the bottom face of the bar to y=0
+                    bar.position.set(bar.position.x,0,bar.position.z)
                 }
-
-                y = y*factor
-                
-                // no need to recompute normals, because they still face in the same direction
-                bar.scale.set(1,y,1)
                 
                 // make sure the updated vertex actually display
                 bar.geometry.verticesNeedUpdate = true
+            }
+            else
+            {
+                parent.SceneHelper.disposeMesh(bar)
+                barsGrid[x][z].bar = null
             }
         }
     }

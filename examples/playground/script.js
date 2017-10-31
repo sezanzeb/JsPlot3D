@@ -25,24 +25,37 @@ main()
 function getVal(id)
 {
     var elem = document.getElementById(id)
-
     var value = elem.value
-
-    // boolean
-    if(value == "true")
-        value = true
-    if(value == "false")
-        value = false
-    
     // undefined by default
     if(value === "")
         value = undefined
 
-    // 0xhex
-    let parsed = parseInt(value)
-    if(!isNaN(parsed))
-        if(value.startsWith("0x"))
+    // boolean
+    if(value == "true")
+    {
+        value = true
+    }
+    else if(value == "false")
+    {
+        value = false
+    }
+    else
+    {
+        // 0xhex
+        let parsed
+        if(value && value.startsWith("0x"))
+        {
+            parsed = parseInt(value)
+        }
+        else
+        {
+            parsed = parseFloat(value)
+        }
+        if(!isNaN(parsed))
+        {
             value = parsed
+        }
+    }
 
     return value
 }

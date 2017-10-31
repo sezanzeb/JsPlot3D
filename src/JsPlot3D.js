@@ -81,6 +81,9 @@ export class Plot
         // no animation by default
         this.animationFunc = null
 
+        // to trigger rendering every four frames. +1 % 4, do something if 0 or break if not null
+        this.fps15 = 0
+
         // now render the empty space (axes will be visible)
         this.SceneHelper.render()
     }
@@ -126,7 +129,7 @@ export class Plot
     plotFormula(originalFormula, options ={})
     {
 
-        let mode = "polygon"
+        let mode = POLYGON_MODE
         let x2frac = 1
         let normalizeX2 = true
         
@@ -152,7 +155,7 @@ export class Plot
         this.MathParser.parse(originalFormula) //tell the MathParser to prepare so that f can be executed
         this.oldData.checkstring = "" // don't fool plotCsvString into believing the oldData-object contains still old csv data
 
-        if(mode === "scatterplot")
+        if(mode === SCATTERPLOT_MODE)    
         {
             
             //plotFormula
@@ -188,7 +191,7 @@ export class Plot
             // continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
         }
-        else if(mode === "barchart")
+        else if(mode === BARCHART_MODE)
         {
 
             //plotFormula
@@ -227,8 +230,8 @@ export class Plot
         else
         {
 
-            if(mode != "polygon")
-                console.warn("mode \""+mode+"\" unrecognized. Assuming \"polygon\"")
+            if(mode != POLYGON_MODE)
+                console.warn("mode \""+mode+"\" unrecognized. Assuming \""+POLYGON_MODE+"\"")
 
             //plotFormula
             //-------------------------//
@@ -245,18 +248,19 @@ export class Plot
             // same goes for colors. plotFormula has to handle them on it's own
             let hueOffset = 0
             if(this.checkNumber("hueOffset", options.hueOffset))
-                hueOffset = parseFloat(options.hueOffset)
+                hueOffset = options.hueOffset
                 
             let numberDensity = 3
             if(this.checkNumber("numberDensity", options.numberDensity))
-                numberDensity = parseFloat(options.numberDensity)
+                numberDensity = options.numberDensity
 
             // might need to recreate the geometry and the matieral
             // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
             // no need to check keepOldPlot because it is allowed to use the old mesh every time (if IsPlotmeshValid says it's valid)
             if(!this.IsPlotmeshValid("polygonFormula"))
             {
-                // this.SceneHelper.disposeMesh(this.plotmesh)
+                this.disposePlotMesh()
+
                 // create plane, divided into segments
                 let planegeometry = new THREE.PlaneGeometry(this.dimensions.xLen, this.dimensions.zLen, this.dimensions.xVerticesCount, this.dimensions.zVerticesCount)
                 // move it
@@ -296,9 +300,6 @@ export class Plot
             // https://github.com/mrdoob/three.js/issues/972
             let y = 0
 
-            // so what is this "Actual"?
-            // it is about the dimension in mathematical space, which happens to be the same space as the 3Dimensional space
-            // there are xVerticesCount Vertices per 1 xLen, e.g. 20. That means x1ActualStep is 1/20
             let minX2 = this.MathParser.f(0, 0) * this.dimensions.yLen
             let maxX2 = this.MathParser.f(0, 0) * this.dimensions.yLen
 
@@ -366,14 +367,23 @@ export class Plot
                 let y = this.plotmesh.geometry.vertices[v].y
                 return COLORLIB.convertToHeat(y,minClrX2,maxClrX2,hueOffset)
             }
-            for(let i = 0;i < this.plotmesh.geometry.faces.length; i++)
-            {
-                let face = this.plotmesh.geometry.faces[i]
-                face.vertexColors[0].set(getVertexColor(face.a))
-                face.vertexColors[1].set(getVertexColor(face.b))
-                face.vertexColors[2].set(getVertexColor(face.c))
-            }
 
+            // update the numbers along the axes. minimum for x1 and x3 are 0, maximum are the length
+            // creating and updating textures is a very costly task. Do this in a 15fps cycle
+            if(this.fps15 === 0)
+            {
+                for(let i = 0;i < this.plotmesh.geometry.faces.length; i++)
+                {
+                    let face = this.plotmesh.geometry.faces[i]
+                    face.vertexColors[0].set(getVertexColor(face.a))
+                    face.vertexColors[1].set(getVertexColor(face.b))
+                    face.vertexColors[2].set(getVertexColor(face.c))
+                }
+                this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.xLen, XAXIS,     0, this.dimensions.xLen)
+                this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.yLen, YAXIS, minX2,                maxX2)
+                this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.zLen, ZAXIS,     0, this.dimensions.zLen)
+            }
+            
             if(normalizeX2)
             {
                 let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
@@ -381,11 +391,6 @@ export class Plot
                 x2frac = Math.max(a, b)/this.dimensions.yLen // hybrid
                 this.plotmesh.geometry.scale(1,1/x2frac,1)
             }
-
-            // update the numbers along the axes. minimum for x1 and x3 are 0, maximum are the length
-            this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.xLen, XAXIS, 0, this.dimensions.xLen)
-            this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.yLen, YAXIS, minX2, maxX2)
-            this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.zLen, ZAXIS, 0, this.dimensions.zLen)
 
             // name and write down as children so that it can be rendered
             this.plotmesh.name = "polygonFormula"
@@ -473,7 +478,7 @@ export class Plot
             // seems like the user sent some parameters. check them
 
             // check variables. Overwrite if it's good. If not, default value will remain
-            if(this.checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction)
+            if(this.checkNumber("fraction", options.fraction)) fraction = options.fraction
             if(this.checkBoolean("csvIsInGoodShape", options.csvIsInGoodShape)) csvIsInGoodShape = options.csvIsInGoodShape
             if(this.checkBoolean("header", options.header)) header = options.header
 
@@ -632,8 +637,6 @@ export class Plot
             }
 
             // cache the dataframe. If the same dataframe is used next time, don't parse it again
-            if(options.keepOldPlot != true)
-                this.clearOldData()
             this.oldData.dataframe = data
             this.oldData.checkstring = checkstring
 
@@ -713,7 +716,7 @@ export class Plot
         // default config
         let header = false
         let colorCol =-1
-        let mode = "scatterplot"
+        let mode = SCATTERPLOT_MODE
         let normalizeX1 = true
         let normalizeX2 = true
         let normalizeX3 = true
@@ -759,16 +762,16 @@ export class Plot
                 options.colorCol = -1
             }
 
-            if(this.checkNumber("fraction", options.fraction)) fraction = parseFloat(options.fraction)
-            if(this.checkNumber("barchartPadding", options.barchartPadding)) barchartPadding = parseFloat(options.barchartPadding)
-            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = parseFloat(options.hueOffset)
-            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = parseFloat(options.numberDensity)
-            if(this.checkNumber("x1frac", options.x1frac)) x1frac = parseFloat(options.x1frac)
-            if(this.checkNumber("x2frac", options.x2frac)) x2frac = parseFloat(options.x2frac)
-            if(this.checkNumber("x3frac", options.x3frac)) x3frac = parseFloat(options.x3frac)
-            if(this.checkNumber("colorCol", options.colorCol)) colorCol = parseFloat(options.colorCol)
-            if(this.checkNumber("dataPointSize", options.dataPointSize)) dataPointSize = parseFloat(options.dataPointSize)
-            if(this.checkNumber("barSizeThreshold", options.barSizeThreshold)) barSizeThreshold = parseFloat(options.barSizeThreshold)
+            if(this.checkNumber("fraction", options.fraction)) fraction = options.fraction
+            if(this.checkNumber("barchartPadding", options.barchartPadding)) barchartPadding = options.barchartPadding
+            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = options.hueOffset
+            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = options.numberDensity
+            if(this.checkNumber("x1frac", options.x1frac)) x1frac = options.x1frac
+            if(this.checkNumber("x2frac", options.x2frac)) x2frac = options.x2frac
+            if(this.checkNumber("x3frac", options.x3frac)) x3frac = options.x3frac
+            if(this.checkNumber("colorCol", options.colorCol)) colorCol = options.colorCol
+            if(this.checkNumber("dataPointSize", options.dataPointSize)) dataPointSize = options.dataPointSize
+            if(this.checkNumber("barSizeThreshold", options.barSizeThreshold)) barSizeThreshold = options.barSizeThreshold
             
             if(dataPointSize <= 0)
                 console.error("datapoint size is <= 0. Datapoints will be invisible in scatterplot and lineplot modes")
@@ -799,12 +802,12 @@ export class Plot
 
         }
 
-        if(this.checkNumber("x1col", x1col)) x1col = parseFloat(x1col)
-        else x1col = Math.min(0, df[0].length-1)
-        if(this.checkNumber("x2col", x2col)) x2col = parseFloat(x2col)
-        else x2col = Math.min(1, df[0].length-1)
-        if(this.checkNumber("x3col", x3col)) x3col = parseFloat(x3col)
-        else x3col = Math.min(2, df[0].length-1)
+        if(!this.checkNumber("x1col", x1col))
+            x1col = Math.min(0, df[0].length-1)
+        if(!this.checkNumber("x2col", x2col))
+            x2col = Math.min(1, df[0].length-1)
+        if(!this.checkNumber("x3col", x3col))
+            x3col = Math.min(2, df[0].length-1)
         
         //>= because comparing indices with numbers
         if(x1col >= df[0].length || x2col >= df[0].length || x3col >= df[0].length)
@@ -894,7 +897,8 @@ export class Plot
         }
 
         let colorMap, dfColors
-        if(mode !== "barchart")
+        // no animation 15fps reduction here, as this has to happen for every new datapoint
+        if(mode !== BARCHART_MODE)
         {
             colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset, this.oldData.labelColorMap, this.oldData.numberOfLabels)
             dfColors = colorMap.dfColors
@@ -940,7 +944,7 @@ export class Plot
         // them still being 0 will be handled by assigning 1 to x1-x3frac
         let minX1, maxX1, minX2, maxX2, minX3, maxX3
         // don't use deprecated values
-        if(!keepOldPlot)
+        if(!keepOldPlot || !this.IsPlotmeshValid(mode))
         {
             this.oldData.normalization.minX1 = 0
             this.oldData.normalization.maxX1 = 0
@@ -982,7 +986,7 @@ export class Plot
             if(keepOldPlot)
                 for(let i = 0; i < this.oldData.dataframe.length; i++)
                 {
-                    let check = parseFloat(this.oldData.dataframe[i][x1col])
+                    let check = this.oldData.dataframe[i][x1col]
                     if(check > maxX1)
                         maxX1 = check
                     if(check < minX1)
@@ -990,7 +994,7 @@ export class Plot
                 }
         }
 
-        if(mode !== "barchart") // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
+        if(mode !== BARCHART_MODE) // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
         {
             if(normalizeX2)
             {
@@ -1014,7 +1018,7 @@ export class Plot
                 if(keepOldPlot)
                     for(let i = 0; i < this.oldData.dataframe.length; i++)
                     {
-                        let check = parseFloat(this.oldData.dataframe[i][x2col])
+                        let check = this.oldData.dataframe[i][x2col]
                         if(check > maxX2)
                             maxX2 = check
                         if(check < minX2)
@@ -1045,7 +1049,7 @@ export class Plot
             if(keepOldPlot)
                 for(let i = 0; i < this.oldData.dataframe.length; i++)
                 {
-                    let check = parseFloat(this.oldData.dataframe[i][x3col])
+                    let check = this.oldData.dataframe[i][x3col]
                     if(check > maxX3)
                         maxX3 = check
                     if(check < minX3)
@@ -1074,7 +1078,7 @@ export class Plot
         let appearance = {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
         let dimensions = {xLen: this.dimensions.xLen, yLen: this.dimensions.yLen, zLen: this.dimensions.zLen}
 
-        if(mode === "barchart")
+        if(mode === BARCHART_MODE)
         {
 
             // plotDataFrame
@@ -1118,7 +1122,7 @@ export class Plot
 
 
         }*/
-        else if(mode === "lineplot")
+        else if(mode === LINEPLOT_MODE)
         {
 
             // plotDataFrame
@@ -1139,7 +1143,7 @@ export class Plot
             //-------------------------//
             // This is the default mode
             
-            if(mode !== "scatterplot")
+            if(mode !== SCATTERPLOT_MODE)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
                 
             scatterplot(this, df, colors, columns, normalization, appearance, dimensions)
@@ -1161,10 +1165,11 @@ export class Plot
             this.axesNumbersNeedUpdate = true
         }
 
-        if(this.SceneHelper.axes != undefined)
+        if(this.SceneHelper.axes)
         {
             // remember that axes get disposed when the dimensions (xLen, yLen, zLen) are changing
-            // so updateNumbersAlongAxis should get called (that means updatex_ should be true) when they don't exist or something
+            // so updateNumbersAlongAxis should get called (that means updatex_ should be true) when the numbers don't exist or something
+            // UPDATE: I think it's best that settings like that have to be done before making the plot
 
             let xLen = this.dimensions.xLen
             let yLen = this.dimensions.yLen
@@ -1187,31 +1192,36 @@ export class Plot
             this.oldData.normalization.maxX3 = maxX3
             this.oldData.numberDensity = numberDensity
 
-            if(updatex1)
+            // creating and updating textures is a very costly task. Do this in a 15fps cycle
+            if(this.fps15 === 0)
             {
-                this.SceneHelper.updateNumbersAlongAxis(numberDensity, xLen, XAXIS, minX1, maxX1)
-            }
-            
-            // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
-            // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
-            // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
-            // to the top by minX1. axesNumbersNeedUpdateNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
-            if(updatex2)
-            {
-                let minX2_2 = minX2
-                let yLen_2 = yLen
-                if(mode === "barchart")
+                if(updatex1)
                 {
-                    minX2_2 = 0
-                    yLen_2 = yLen * (maxX2-minX2_2)/x2frac
+                    this.SceneHelper.updateNumbersAlongAxis(numberDensity, xLen, XAXIS, minX1, maxX1, this.animationFunc !== null)
                 }
-                this.SceneHelper.updateNumbersAlongAxis(numberDensity, yLen_2, YAXIS, minX2_2, maxX2)
+                
+                // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
+                // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
+                // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
+                // to the top by minX1. axesNumbersNeedUpdateNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
+                if(updatex2)
+                {
+                    let minX2_2 = minX2
+                    let yLen_2 = yLen
+                    if(mode === BARCHART_MODE)
+                    {
+                        minX2_2 = 0
+                        yLen_2 = yLen * (maxX2-minX2_2)/x2frac
+                    }
+                    this.SceneHelper.updateNumbersAlongAxis(numberDensity, yLen_2, YAXIS, minX2_2, maxX2, this.animationFunc !== null)
+                }
+
+                if(updatex3)
+                {
+                    this.SceneHelper.updateNumbersAlongAxis(numberDensity, zLen, ZAXIS, minX3, maxX3, this.animationFunc !== null)
+                }
             }
 
-            if(updatex3)
-            {
-                this.SceneHelper.updateNumbersAlongAxis(numberDensity, zLen, ZAXIS, minX3, maxX3)
-            }
         }
         else
         {
@@ -1456,12 +1466,13 @@ export class Plot
             
         // it either has children because it's a group it has a geometry. if both are undefined, it's not valid anymore.
 
-        if(this.updatePlotmesh === true) // this is the only place where this.updatePlotmesh is taken into account
+        // instead of setting it to true i directly dispose the mesh from now on
+        /*if(this.updatePlotmesh === true) // this is the only place where this.updatePlotmesh is taken into account
         {
-            this.SceneHelper.disposeMesh(obj)
-            this.updatePlotmesh = false
+            // this.SceneHelper.disposeMesh(obj)
+            // this.updatePlotmesh = false
             return false
-        }
+        }*/
 
 
         if(obj.name === check)
@@ -1471,9 +1482,21 @@ export class Plot
             return true
 
             
-        this.SceneHelper.disposeMesh(obj)
-        this.updatePlotmesh = false
+        // this.SceneHelper.disposeMesh(obj)
+        // this.updatePlotmesh = false
         return false
+    }
+
+
+
+    /**
+     * proper plotmesh removal
+     */
+    disposePlotMesh()
+    {
+        this.SceneHelper.disposeMesh(this.plotmesh)
+        // this.clearOldData() // don't do that, because maybe addDataPoint is used afterwards and that relies on oldData
+        this.plotmesh = null
     }
 
 
@@ -1544,6 +1567,10 @@ export class Plot
         if(typeof(dimensions) != "object")
             return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen")
 
+        // vertices counts changed, so the mesh has to be recreated
+        this.disposePlotMesh()
+        this.clearOldData()
+        
         if(dimensions.yLen == 0)
         {
             dimensions.yLen = 0.001 // 0 will cause trouble because determinants become zero
@@ -1571,16 +1598,14 @@ export class Plot
 
         // no need to check here if specific parameters were defined in dimensions, because this accesses
         // this.dimensions which contains those values, that were not defined here as parameter
-        this.dimensions.xVerticesCount = Math.max(1, Math.round(this.dimensions.xLen*this.dimensions.xRes))
-        this.dimensions.zVerticesCount = Math.max(1, Math.round(this.dimensions.zLen*this.dimensions.zRes))
+        this.dimensions.xVerticesCount = Math.max(1, (this.dimensions.xLen*this.dimensions.xRes)|0)
+        this.dimensions.zVerticesCount = Math.max(1, (this.dimensions.zLen*this.dimensions.zRes)|0)
     
 
         // move
         this.SceneHelper.centerCamera(this.dimensions)
         this.SceneHelper.updateAxesSize(this.dimensions,this.oldData.normalization)
 
-        // vertices counts changed, so the mesh has to be recreated
-        this.updatePlotmesh = true
         // axes have to be updates aswellc
 
         // takes effect once the mesh gets created from new, except for the lengths indicated by the axes. those update immediatelly
@@ -1601,7 +1626,7 @@ export class Plot
      *      var i = 0;
      *      plot.animate(function() {
      *              i += 0.01;
-     *              plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)","barchart");
+     *              plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)",BARCHART_MODE);
      *      }.bind(this))
      * @param {function} animationFunc
      */
@@ -1618,6 +1643,7 @@ export class Plot
     stopAnimation()
     {
         this.animationFunc = null
+        this.fps15 = 0
     }
 
     /**
@@ -1626,6 +1652,9 @@ export class Plot
      */
     callAnimation()
     {
+        this.fps15 += 1
+        this.fps15 = this.fps15 % 4
+
         if(this.animationFunc !== null)
         {
             this.animationFunc()
