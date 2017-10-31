@@ -898,7 +898,7 @@ export class Plot
 
         let colorMap, dfColors
         // no animation 15fps reduction here, as this has to happen for every new datapoint
-        if(mode !== BARCHART_MODE)
+        if(mode !== BARCHART_MODE || labeled) // barcharts can be labeled aswell. if labeled true, get the color map for that.
         {
             colorMap = COLORLIB.getColorMap(df, colorCol, defaultColor, labeled, header, filterColor, hueOffset, this.oldData.labelColorMap, this.oldData.numberOfLabels)
             dfColors = colorMap.dfColors
@@ -1075,7 +1075,7 @@ export class Plot
         let colors = {dfColors, hueOffset}
         let columns = {x1col, x2col, x3col}
         let normalization = {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
-        let appearance = {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
+        let appearance = {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize, labeled}
         let dimensions = {xLen: this.dimensions.xLen, yLen: this.dimensions.yLen, zLen: this.dimensions.zLen}
 
         if(mode === BARCHART_MODE)

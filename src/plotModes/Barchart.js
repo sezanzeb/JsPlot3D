@@ -15,6 +15,7 @@ import * as COLORLIB from "../ColorLib.js"
 export default function barchart(parent, df, colors, columns, normalization, appearance, mode)
 {    
 
+    let dfColors = colors.dfColors
     let hueOffset = colors.hueOffset
     
     let x1col = columns.x1col
@@ -35,6 +36,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     let keepOldPlot = appearance.keepOldPlot
     let barchartPadding = appearance.barchartPadding
     let barSizeThreshold = appearance.barSizeThreshold
+    let labeled = appearance.labeled
     
     // parent.oldData.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
     // let xBarOffset = 1/parent.dimensions.xRes/2
@@ -46,19 +48,14 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // if normalization is on, make sure that the bars at x=0 or z=0 don't intersect the axes
     let xOffset = 0
     let zOffset = 0
-    // because of the offset, render the bars closer to each other so that they
-    // don't exceed the space defined by the gridHelper
-    let xfracIncrease = 0
-    let zfracIncrease = 0
+    // don't exceed the space as shown by the gridHelper
     if(normalizeX1)
     {
-        xOffset = 1/parent.dimensions.xRes/2 //divide by two because to counter the intersection only half of the bar has to be moved away
-        xfracIncrease = 1
+        xOffset = 1/parent.dimensions.xRes/2 //only half of the bar has to be moved away
     }
     if(normalizeX3)
     {
         zOffset = 1/parent.dimensions.zRes/2
-        zfracIncrease = 1
     }
 
     // helper function
@@ -87,6 +84,10 @@ export default function barchart(parent, df, colors, columns, normalization, app
         bar.position.set(x/(parent.dimensions.xRes)+xOffset, 0, z/(parent.dimensions.zRes)+zOffset)
         bar.geometry.translate(0,0.5,0) // move it so that the bottom plane is at y=0
         parent.plotmesh.add(bar)
+
+        // normalize scaling
+        // the plot is basically built inside a 1x1x1 space. now it becomes the xLen, yLen and zLen space
+        parent.plotmesh.scale.set(parent.dimensions.xLen, parent.dimensions.yLen, parent.dimensions.zLen)
 
         return bar
     }
@@ -126,6 +127,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
                 for(let z in barsGrid[x])
                 {
                     barsGrid[x][z].y = 0
+                    barsGrid[x][z].count = 0
                 }
         }
     }
@@ -139,8 +141,8 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // afterwards get that to an array index. remember, that the array has some parts reserved for negative x and z values by using an offset
     // so, divide x_float by x1frac and multiply it by xVerticesCount.
     // x_float = df[i][x1col]/x1frac*xVerticesCount = df[i][x1col]/(x1frac/xVerticesCount) = df[i][x1col]*(xVerticesCount/x1frac) = df[i][x1col]*xVerticesCount/x1frac
-    let factorX1 = (parent.dimensions.xVerticesCount-1)/x1frac
-    let factorX3 = (parent.dimensions.zVerticesCount-1)/x3frac
+    let factorX1 = (parent.dimensions.xRes-1)/x1frac
+    let factorX3 = (parent.dimensions.zRes-1)/x3frac
 
     // use the maximums from the recent run if keepOldPlot
     maxX2 = parent.oldData.normalization.maxX2
@@ -154,7 +156,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
 
     // helper function for interpolation
-    let addToHeights = (x, y, z, x_float, z_float) =>
+    let addToHeights = (x, y, z, x_float, z_float, i) =>
     {
         /*
          *       a +----------+ b
@@ -184,10 +186,12 @@ export default function barchart(parent, df, colors, columns, normalization, app
         {
             barsGrid[x][z] = {} // holds the bar object and y for this x, z position
             barsGrid[x][z].y = 0
+            barsGrid[x][z].count = 0
         }
 
         // update the heights
         barsGrid[x][z].y += y*oppositeSquareArea // initialized with 0, now +=
+
         // +=, because otherwise it won't interpolate. It has to add the value to the existing value
 
         // find the highest bar
@@ -201,8 +205,47 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // the height gets set once maxX2 and minX2 are ready
         if(!barsGrid[x][z].bar)
         {
-            barsGrid[x][z].bar = createBar(x, z, parent.plotmesh)
+            barsGrid[x][z].bar = createBar(x, z)
+            // initial color approximation
             barsGrid[x][z].bar.material.emissive.set(COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset))
+        }
+        
+        // LABELS:
+        if(labeled)
+        {
+            let count = barsGrid[x][z].count
+            let w = oppositeSquareArea
+            
+            // THREE.Color object that represents the label from the datapoint that is being interpolated
+            let newc = new THREE.Color(0).copy(dfColors[i])
+
+            let avg
+            if(count == 0)
+            {
+                avg = newc
+            }
+            else
+            {
+                let oldc
+                oldc = barsGrid[x][z].bar.material.emissive
+                
+                let average = function(newc, old, weight) { return ((newc*weight) + old*(count+(1-weight)))/(count+1) }
+    
+                avg = new THREE.Color(average(newc.r, oldc.r, w), average(newc.g, oldc.g, w), average(newc.b, oldc.b, w))
+                // ((new*weight) + old*(count+(1-weight))))/(count+1) = avgWeighted 
+
+                // for weight=0 it turns to avg = old*(count+1)/(count+1)
+                // for weight=1 it turns to avg = (new + old*count)/(count+1)
+
+                // for count=1 and weight=1 it turns to avg = (new + old*1)/2
+                // for count=1 and weight=0 it turns to avg = (new*0 + old*2)/2
+
+                // for count=1 and weight=0.5 it turns to avg = (new*0.5 + old*1.5)/2
+            }
+
+            barsGrid[x][z].bar.material.emissive.set(avg)
+
+            barsGrid[x][z].count ++
         }
 
         return
@@ -219,10 +262,6 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
         // get coordinates that can fit into an array
         // interpolate. When x and z is at (in case of parseFloat) e.g. 2.5,1. Add one half to 2,1 and the other hald to 3,1 
-        
-        // DEPRECATED: add the following, because the array is twice as large and the center is supposed to be at [xVertCount][zVertCount]
-        // let x_float = df[i][x1col]*factorX1 + parent.dimensions.xVerticesCount+1
-        // let z_float = df[i][x3col]*factorX3 + parent.dimensions.zVerticesCount+1
 
         // when normalizing, the data gets moved from the negative space to the positive space that the axes define
         // Data will then touch the x1x3, x1x2 and x3x2 planes instead of being somewhere far off at negative spaces
@@ -245,21 +284,19 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // if x_float and z_float it somewhere inbewteen
         if(x_float != x_le || z_float != z_ba)
         {
-
-            addToHeights(x_le, y, z_ba, x_float, z_float)
-
             let x_ri = x_le+1 // right
             let z_fr = z_ba+1 // front
 
-            addToHeights(x_ri, y, z_ba, x_float, z_float)
-            addToHeights(x_le, y, z_fr, x_float, z_float)
-            addToHeights(x_ri, y, z_fr, x_float, z_float)
+            addToHeights(x_le, y, z_ba, x_float, z_float, i)
+            addToHeights(x_ri, y, z_ba, x_float, z_float, i)
+            addToHeights(x_le, y, z_fr, x_float, z_float, i)
+            addToHeights(x_ri, y, z_fr, x_float, z_float, i)
         }
         else
         {
             // otherwise I can just plot it a little bit cheaper,
             // when x_float and z_float perfectly aligns with the grid
-            addToHeights(x_le, y, z_ba, x_float, z_float)
+            addToHeights(x_le, y, z_ba, x_float, z_float, i)
         }
     }
     
@@ -286,7 +323,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
 
     // now color the children & normalize
-    let factor = 1/(x2frac/parent.dimensions.yLen) // normalize
+    let factor = 1/(x2frac) // normalize y
     for(let x in barsGrid)
     {
         for(let z in barsGrid[x])
@@ -301,14 +338,15 @@ export default function barchart(parent, df, colors, columns, normalization, app
             if(Math.abs(y) > barSizeThreshold && y !== 0)
             {
                 // update colos in a 15fps cycle for better performance
-                if(parent.fps15 == 0)
+                if(!labeled && parent.fps15 === 0)
                 {
+                    // HEATMAP:
                     let color = COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset)
-                    //bar.material.color.set(color) // .color property should stay the way it is defined (0xffffff), it's important for proper lighting
+                    // bar.material.color.set(color) // .color property should stay the way it is defined (0xffffff), it's important for proper lighting
                     bar.material.emissive.set(color)
                 }
                 
-                y = y*factor
+                y = y * factor
                 
                 if(y < 0)
                 {

@@ -37,24 +37,16 @@ The live example can also help you to understand the parameters: http://hip70890
 
 **Very Important:**
 
-- clean the code
-- increase maintainability
-- move code out of JsPlot3D.js into modules
-- make a module that returns min and max values for standard cases
-- move normalization code into the modules in src/plotModes/*.js. (The x2 normalization in src/plotModes/Barchart.js is already there)
 - be vault tollerant for user input, but not for internal code. use === and !==, don't check everything for == undefined, if it has to be there, assume it is there, if not, fix the bug
 
 **new modes:**
 
 - in case zLen == 0 or zRes <= 1, enter a **2D mode**. In that mode the camera is orthographic and can only be moved in y and x direction. Remove the zAxis line, arrow ,numbers (which are yet to implement) and letter. Move the axes to the front, so that they don't get hidden beneath bars. Do the same for y and x. When y is flat, enter a view-from-top mode. In "appearance" below there is a todo entry about adding numbers to the axis. Those two would work well together. The view-from-top mode would look especially good in barchart mode, you would get some sort of pixelated heatmap image out of the data.
-- add an **isometric ortographic camera mode**
 
 **appearance:**
 
-- in barchart mode add **numbers to the axes** that match the barchart-grid
 - calculate the **average color per bar** (which are sums of y values that are near that grid position) depending on colorCol. At the moment it only dyes according to the y-height
 - make a flat design for the legend in the live example, like the one on the responsive version
-- in responsive mode, replace the word "GitHub" by the github logo
 
 **user experience:**
 
@@ -66,6 +58,9 @@ The live example can also help you to understand the parameters: http://hip70890
 
 - how is the performance for very large dataframes?
 - add a module that handles the creation of dataframes from other data formats, which would help to clean up src/JsPlot3D.js a little
+- move code out of JsPlot3D.js into modules
+- make a module that returns min and max values for standard cases
+- move normalization code into the modules in src/plotModes/*.js. (The x2 normalization in src/plotModes/Barchart.js is already there)
 
 **experimental:**
 
