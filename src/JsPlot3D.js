@@ -1380,6 +1380,7 @@ export class Plot
      * updates the legend with new information. basically recreates the innerHTML of this.legend.element
      * @param {object} colorMap COLORLIB.getColorMap(...) information. can be null
      * @param {object} options json object containing one or more of x1title, x2title, x3title and title
+     * @private
      */
     populateLegend(options)
     {
@@ -1496,11 +1497,12 @@ export class Plot
 
     /**
      * proper plotmesh removal
+     * @private
      */
     disposePlotMesh()
     {
         this.SceneHelper.disposeMesh(this.plotmesh)
-        // this.clearOldData() // don't do that, because maybe addDataPoint is used afterwards and that relies on oldData
+        // this.clearOldData() // don't do that, because maybe addDataPoint is used afterwards and that relies on oldData (does that even make sense? it has to probably)
         this.plotmesh = null
     }
 
@@ -1543,6 +1545,7 @@ export class Plot
      * sets the container of this plot
      * TODO what happens when this function is used during runtime? Can the container be changed? What if the containers have different width and height?
      * @param {object} container DOM-Element of the new container
+     * @private
      */
     setContainer(container)
     {
@@ -1771,6 +1774,7 @@ export class Plot
      * @param {string} varname 
      * @param {any} variable 
      * @param {string} expectedType 
+     * @private
      */
     errorParamType(varname, variable, expectedType)
     {
@@ -1782,6 +1786,7 @@ export class Plot
      * @param {string} varname 
      * @param {any} variable 
      * @return {boolean} true if valid, false if not
+     * @private
      */
     checkBoolean(varname, variable)
     {
@@ -1797,6 +1802,7 @@ export class Plot
      * @param {string} varname 
      * @param {any} variable 
      * @return {boolean} true if valid, false if not
+     * @private
      */
     checkNumber(varname, variable)
     {
