@@ -33,14 +33,9 @@ see USAGE.md
 
 - be vault tollerant for user input, but not for internal code. use === and !==, don't check everything for == undefined, if it has to be there, assume it is there, if not, fix the bug
 
-**appearance:**
-
-- calculate the **average color per bar** (which are sums of y values that are near that grid position) depending on colorCol. At the moment it only dyes according to the y-height
-- make a flat design for the legend in the live example, like the one on the responsive version
-
 **user experience:**
 
-- support **writing the colum header name as x1col x2col x3col and colorCol**
+- support writing the colum header name as x1col x2col x3col and colorCol
 - arrange the live example settings in a more clean way
 - make a quick tutorial for the live example when v1.0 is about to be released
 
@@ -64,7 +59,7 @@ see USAGE.md
 
 Currently there is a documentation here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
 
-And a little HowTo in USAGE.md
+And a little HowTo can be found in USAGE.md
 
 
 ## Attribution
