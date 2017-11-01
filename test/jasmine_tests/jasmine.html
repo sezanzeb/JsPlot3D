@@ -202,7 +202,8 @@
                         console.log("\n\nmode:",mode)
                         plot.plotCsvString(document.getElementById("csv1").innerHTML,0,1,2,{
                             colorCol: 4,
-                            mode: mode
+                            mode: mode,
+                            header: true
                         })
 
                         expect(plot.oldData.normalization.minX1).toBe(1)

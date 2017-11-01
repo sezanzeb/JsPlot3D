@@ -10,6 +10,7 @@ import scatterplot from "./plotModes/Scatterplot.js"
 import lineplot from "./plotModes/Lineplot.js"
 import barchart from "./plotModes/Barchart.js"
 import * as COLORLIB from "./ColorLib.js"
+import * as NORMLIB from "./NormalizationLib.js"
 import * as THREE from "three"
 
 // CONSTANTS
@@ -475,7 +476,7 @@ export class Plot
         let title = ""
         let fraction = 1
         let csvIsInGoodShape = false
-        let header = true // assume header = true for now so that the parsing is not making false assumptions because it looks at headers
+        let header = true
 
         // make sure options is defined
         if(typeof(options) !== {})
@@ -516,7 +517,7 @@ export class Plot
         let checkstring = (title+sCsv.length+samples+fraction+separator).replace(/[\s\t\n\r]/g,"_")
 
         // now check if the checksum changed. If yes, remake the dataframe from the input
-        if(this.oldData === null || this.oldData.checkstring != checkstring)
+        if(this.oldData.checkstring != checkstring)
         {
             
             //plotCsvString
@@ -623,6 +624,8 @@ export class Plot
             {
                 // The user trusts the csv and wants maximum performance
                 // that means: no quotation marks and all rows have the same number of columns and contain the same datatypes
+
+                // important for the script because it has, even if csvIsInGoodShape, to check the datatype of the column values
                 let startLine = 0
                 if(header)
                     startLine = 1
@@ -641,8 +644,8 @@ export class Plot
                 }
             }
 
-            // cache the dataframe. If the same dataframe is used next time, don't parse it again
-            this.oldData.dataframe = data
+            // If the same dataframe is used next time, don't parse it again
+            // this.oldData.dataframe = data // don't do that, the dataframe is being stored in oldData at a later point. don't store it now, if it can't be considered 'old' at the moment
             this.oldData.checkstring = checkstring
 
             this.benchmarkStamp("created the dataframe and cached it")
@@ -719,7 +722,7 @@ export class Plot
         //  parameter type checking  //
         //---------------------------//
         // default config
-        let header = false
+        let header = true
         let colorCol =-1
         let mode = SCATTERPLOT_MODE
         let normalizeX1 = true
@@ -753,6 +756,11 @@ export class Plot
 
 
         // make sure options is defined
+        // TODO fastforward the following in case of addDataPoint or something to increase animation performance
+        // if(optoins.variable1) variable1 = options.variable1
+        // if(optoins.variable2) variable2 = options.variable2
+        // ...
+
         if(typeof(options) === "object")
         {
             // seems like the user sent some parameters. check them
@@ -938,15 +946,9 @@ export class Plot
 
         // normalize, so that the farthest away point is still within the xLen yLen zLen frame
         // TODO logarithmic normalizing (what about the displayed numbers, how are they going to get logarithmic scaling? What about the helper lines)
- 
-        let lineToAssumeFirstMinMaxValues = 0
-        if(df.length >= 2)
-            // assume second line if possible, because headers might be accidentally still there (because of wrong configuration)
-            lineToAssumeFirstMinMaxValues = 1
-
        
         // the default values are 0. after the normalization loops the case of
-        // them still being 0 will be handled by assigning 1 to x1-x3frac
+        // them still being 0 will be handled by assigning 1 to x1frac, x2frac and/or x3frac
         let minX1, maxX1, minX2, maxX2, minX3, maxX3
         // don't use deprecated values
         if(!keepOldPlot || !this.IsPlotmeshValid(mode))
@@ -969,97 +971,29 @@ export class Plot
         
         // keep old plot and normalization has not been calculated yet?
         // if(keepOldPlot && this.oldData.normalization === {})
-        if(normalizeX1)
+        //                if it's a barchart that stacks upon an old plot and the mode didn't just change
+        if(normalizeX1 && !(mode == BARCHART_MODE && keepOldPlot && this.oldData.options.mode === mode))
         {
-            // if default values are still in the variables, use the first entry in the dataframe
-            if(maxX1 === 0 && minX1 === 0)
-            {
-                maxX1 = df[lineToAssumeFirstMinMaxValues][x1col]
-                minX1 = df[lineToAssumeFirstMinMaxValues][x1col]
-            }
-
-            // determine min and max for normalisation
-            for(let i = 0; i < df.length; i++)
-            {
-                if((df[i][x1col]) > maxX1)
-                    maxX1 = df[i][x1col]
-                if((df[i][x1col]) < minX1)
-                    minX1 = df[i][x1col]
-            }
-
-            // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
-            if(keepOldPlot)
-                for(let i = 0; i < this.oldData.dataframe.length; i++)
-                {
-                    let check = this.oldData.dataframe[i][x1col]
-                    if(check > maxX1)
-                        maxX1 = check
-                    if(check < minX1)
-                        minX1 = check
-                }
+            let newDataMax = NORMLIB.getMinMax(df, x1col, this.oldData, keepOldPlot, minX1, maxX1)
+            minX1 = newDataMax.min
+            maxX1 = newDataMax.max
         }
 
         if(mode !== BARCHART_MODE) // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
         {
             if(normalizeX2)
             {
-                // if default values are still in the variables, use the first entry in the dataframe
-                if(maxX2 === 0 && minX2 === 0)
-                {
-                    maxX2 = df[lineToAssumeFirstMinMaxValues][x2col]
-                    minX2 = df[lineToAssumeFirstMinMaxValues][x2col]
-                }
-
-                // determine min and max for normalisation
-                for(let i = 0; i < df.length; i++)
-                {
-                    if((df[i][x2col]) > maxX2)
-                        maxX2 = df[i][x2col]
-                    if((df[i][x2col]) < minX2)
-                        minX2 = df[i][x2col]
-                }
-
-                // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
-                if(keepOldPlot)
-                    for(let i = 0; i < this.oldData.dataframe.length; i++)
-                    {
-                        let check = this.oldData.dataframe[i][x2col]
-                        if(check > maxX2)
-                            maxX2 = check
-                        if(check < minX2)
-                            minX2 = check
-                    }
+                let newDataMax = NORMLIB.getMinMax(df, x2col, this.oldData, keepOldPlot, minX2, maxX2)
+                minX2 = newDataMax.min
+                maxX2 = newDataMax.max
             }
         }
 
-        if(normalizeX3)
+        if(normalizeX3 && !(mode == BARCHART_MODE && keepOldPlot && this.oldData.options.mode === mode))
         {
-            // if default values are still in the variables, use the first entry in the dataframe
-            if(maxX3 === 0 && minX3 === 0)
-            {
-                maxX3 = df[lineToAssumeFirstMinMaxValues][x3col]
-                minX3 = df[lineToAssumeFirstMinMaxValues][x3col]
-            }
-
-            // determine min and max for normalisation
-            for(let i = 0; i < df.length; i++)
-            {
-                if((df[i][x3col]) > maxX3)
-                    maxX3 = df[i][x3col]
-                if((df[i][x3col]) < minX3)
-                    minX3 = df[i][x3col]
-            }
-            
-            // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
-            if(keepOldPlot)
-                for(let i = 0; i < this.oldData.dataframe.length; i++)
-                {
-                    let check = this.oldData.dataframe[i][x3col]
-                    if(check > maxX3)
-                        maxX3 = check
-                    if(check < minX3)
-                        minX3 = check
-                }
+            let newDataMax = NORMLIB.getMinMax(df, x3col, this.oldData, keepOldPlot, minX3, maxX3)
+            minX3 = newDataMax.min
+            maxX3 = newDataMax.max
         }
 
         //x1frac = Math.max(Math.abs(maxX1), Math.abs(minX1)) // based on largest |value|
@@ -1149,7 +1083,7 @@ export class Plot
             // This is the default mode
             
             if(mode !== SCATTERPLOT_MODE)
-                console.warn("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
+                console.error("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
                 
             scatterplot(this, df, colors, columns, normalization, appearance, dimensions)
                 
@@ -1271,7 +1205,11 @@ export class Plot
             this.oldData.x2col = x2col
             this.oldData.x3col = x3col
 
+            options.header = header // making sure that the default value is stored makes some things easier
+            // if the user used the options.header parameter it's fine, as both variables will contain the same information anyway
+
             this.oldData.options = options
+            console.log(this.oldData.options.header)
         }
 
         this.SceneHelper.makeSureItRenders(this.animationFunc)
@@ -1314,39 +1252,40 @@ export class Plot
      */
     addDataPoint(newDatapoint, options ={})
     {            
-        // overwrite old options
-        for(let key in options)
-            this.oldData.options[key] = options[key]
+        // add oldoptions to options
+        for(let key in this.oldData.options)
+            if(!options[key])
+                options[key] = this.oldData.options[key]
 
         // default keepOldPlot, but make it possible to overwrite it.
-        this.oldData.options.keepOldPlot = true // true, so that the old plot gets extended with the new datapoint
         if(options.keepOldPlot != undefined)
-            this.oldData.options.keepOldPlot = options.keepOldPlot
+            options.keepOldPlot = options.keepOldPlot
+        else
+            options.keepOldPlot = true // true, so that the old plot gets extended with the new datapoint
 
         // the following have to be like this:
-        this.oldData.options.header = false // no header in newDataPoint
-        this.oldData.options.updateOldData = false // false, because don't delete the original dataframe from cache
-        this.oldData.options.maxX1
+        options.header = false // no header in newDataPoint
+        options.updateOldData = false // false, because don't delete the original dataframe from cache
 
         // those default values are important to be like this.
         if(options.normalizeX1 === undefined)
-            this.oldData.options.normalizeX1 = false
+            options.normalizeX1 = false
         if(options.normalizeX2 === undefined)
-            this.oldData.options.normalizeX2 = false
+            options.normalizeX2 = false
         if(options.normalizeX3 === undefined)
-            this.oldData.options.normalizeX3 = false
-        // if(this.oldData.options.normalizeX1 || this.oldData.options.normalizeX2 || this.oldData.options.normalizeX3)
+            options.normalizeX3 = false
+        // if(options.normalizeX1 || options.normalizeX2 || options.normalizeX3)
         //     console.warn("addDataPoint with turned on normalization options will not align the new datapoint with the old plots normalization.")
 
         // create the datapoint data structure (an array) from this
         if(typeof(newDatapoint) === "string")
         {
-            newDatapoint = newDatapoint.split(this.oldData.separator)
+            newDatapoint = newDatapoint.split(options.separator)
             for(let i = 0;i < newDatapoint.length; i++)
                 newDatapoint[i] = newDatapoint[i].trim()
         }
 
-        // create a new dataframe from scratch if non existant
+        // add the datapoint to the dataframe
         this.oldData.dataframe[this.oldData.dataframe.length] = newDatapoint
         
         if(newDatapoint.length != this.oldData.dataframe[0].length)
@@ -1357,7 +1296,7 @@ export class Plot
             this.oldData.x1col,
             this.oldData.x2col,
             this.oldData.x3col,
-            this.oldData.options // oldData.options got overwritten in this function
+            options
         )
 
         // destroy the in oldData stored string csv checkstring, indicate that the dataframe has been modified by addDataPoint
@@ -1536,7 +1475,7 @@ export class Plot
         this.oldData.barsGrid = null
         
         this.oldData.options = {}
-        this.oldData.options.mode = ""
+        this.oldData.options.mode = SCATTERPLOT_MODE
     }
 
 

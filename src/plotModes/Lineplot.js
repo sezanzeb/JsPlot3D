@@ -8,9 +8,10 @@ import * as THREE from "three"
  * @param {object} columns {x1col, x2col, x3col}
  * @param {object} normalization {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
  * @param {object} appearance {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
+ * @param {object} dimensions {xLen, yLen, zLen}
  * @private
  */
-export default function lineplot(parent, df, colors, columns, normalization, appearance)
+export default function scatterplot(parent, df, colors, columns, normalization, appearance, dimensions)
 {    
     let dfColors = colors.dfColors
     
@@ -27,6 +28,10 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     
     let keepOldPlot = appearance.keepOldPlot
     let dataPointSize = appearance.dataPointSize
+
+    let xLen = dimensions.xLen
+    let yLen = dimensions.yLen
+    let zLen = dimensions.zLen
     
     
     // iterate over dataframe datapoints, connect the latest point with the new one
@@ -38,13 +43,24 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     let wireframeLinewidth = dataPointSize*100
 
     let isItValid = parent.IsPlotmeshValid("lineplot")
-    let isOldMaterialSimilar = (parent.oldData != undefined && parent.oldData.material != undefined && wireframeLinewidth === parent.oldData.material.wireframeLinewidth)
 
-    if(!keepOldPlot || !isItValid || !isOldMaterialSimilar)
+    // dispose the old mesh if it is not used/valid anymore
+    if(!keepOldPlot || !isItValid)
     {
         parent.disposePlotMesh()
 
-        let material = new THREE.LineBasicMaterial({
+        parent.plotmesh = new THREE.Group()
+        parent.plotmesh.name = "lineplot"
+        parent.SceneHelper.scene.add(parent.plotmesh)
+    }
+
+    // laod the recently used material from the cache
+    let material = parent.oldData.material
+
+    // the material is created here
+    if(material === null || !isItValid || (material !== null && material != dataPointSize))
+    {
+        material = new THREE.LineBasicMaterial({
             vertexColors: THREE.VertexColors,
             linewidth: wireframeLinewidth,
             linecap: "round",
@@ -52,37 +68,32 @@ export default function lineplot(parent, df, colors, columns, normalization, app
         })
 
         parent.oldData.material = material
-        parent.plotmesh = new THREE.Group()
-        parent.plotmesh.name = "lineplot"
-        parent.SceneHelper.scene.add(parent.plotmesh)
     }
 
-    let material = parent.oldData.material
     let group = parent.plotmesh
     let geometry = new THREE.Geometry()
     
     for(let i = 0; i < df.length; i ++)
     {
         let vertex = new THREE.Vector3()
-        vertex.x = (df[i][x1col]-minX1)/x1frac*parent.dimensions.xLen
-        vertex.y = (df[i][x2col]-minX2)/x2frac*parent.dimensions.yLen
-        vertex.z = (df[i][x3col]-minX3)/x3frac*parent.dimensions.zLen
+        vertex.x = df[i][x1col]
+        vertex.y = df[i][x2col]
+        vertex.z = df[i][x3col]
 
         // three.js handles invalid vertex already by skipping them
         geometry.vertices.push(vertex)
-        /*if(i > 1)
-        {
-            let newFace = new THREE.Face3(i-1, i-1, i)
-            newFace.vertexColors[0] = dfColors[i-1]
-            newFace.vertexColors[1] = dfColors[i-1]
-            newFace.vertexColors[2] = dfColors[i]
-            geometry.faces.push(newFace)
-        }*/
-
         geometry.colors.push(dfColors[i])
     }
 
+    geometry.verticesNeedUpdate = true
+    
     let newDataPointSprites = new THREE.Line(geometry, material)
-
+    
     group.add(newDataPointSprites)
+
+    // normalize
+    parent.plotmesh.scale.set(xLen/x1frac,yLen/x2frac,zLen/x3frac)
+    parent.plotmesh.position.set(-minX1/x1frac*xLen,-minX2/x2frac*yLen,-minX3/x3frac*zLen)
+
+    parent.benchmarkStamp("made a lineplot")
 }
