@@ -66,7 +66,6 @@ You can copy the following to a file.html and open it using your browser. It sho
         var data = document.getElementById("csv").innerHTML
         plot.plotCsvString(data,0,1,2,{
             dataPointSize:0.2,
-            labeled:true,
             colorCol:4
         })
         plot.createLegend(document.getElementById("legend"))
