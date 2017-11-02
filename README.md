@@ -77,7 +77,9 @@ You can copy the following to a file.html and open it using your browser. It sho
         
     </script>
     <style>
-        body {font-family:sans-serif; }
+        body {
+            font-family:sans-serif;
+        }
 
         .jsP3D_labelColor {
             width: 10px;
