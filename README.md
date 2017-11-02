@@ -64,9 +64,14 @@ You can copy the following to a file.html and open it using your browser. It sho
 
         var plot = new JSPLOT3D.Plot(document.getElementById("plot"))
         var data = document.getElementById("csv").innerHTML
-        plot.plotCsvString(data,0,1,2,{
-            dataPointSize:0.2,
-            colorCol:4
+        plot.plotCsvString(data, 0, 1, 2, {
+            dataPointSize: 0.2,
+            colorCol: 4,
+    
+            // optional, can be autodetected:
+            labeled: true,
+            header: true,
+            separator: ","
         })
         plot.createLegend(document.getElementById("legend"))
         
@@ -81,4 +86,5 @@ You can copy the following to a file.html and open it using your browser. It sho
             border-radius:100%;
         }
     </style>
+
 ```
