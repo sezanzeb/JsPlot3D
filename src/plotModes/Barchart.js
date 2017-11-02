@@ -1,8 +1,9 @@
 import * as THREE from "three"
 import * as COLORLIB from "../ColorLib.js"
+import * as NORMLIB from "../NormalizationLib.js"
 
 /**
- * called from within JsPlot3D.js class plot. The parameters from this function have the same names as the variables in JsPlot3D.
+ * called from within JsPlot3D.js class plot. The parameters from parent.function have the same names as the variables in JsPlot3D.
  * @param {object} parent this
  * @param {object} df df
  * @param {object} colors {dfColors, hueOffset}
@@ -25,19 +26,47 @@ export default function barchart(parent, df, colors, columns, normalization, app
     let normalizeX1 = normalization.normalizeX1
     let normalizeX2 = normalization.normalizeX2
     let normalizeX3 = normalization.normalizeX3
+
     let x1frac = normalization.x1frac
     let x2frac = normalization.x2frac
     let x3frac = normalization.x3frac
+
     let minX1 = normalization.minX1
     let minX2 = normalization.minX2
     let minX3 = normalization.minX3
+
+    let maxX1 = normalization.maxX1
     let maxX2 = normalization.maxX2
+    let maxX3 = normalization.maxX3
     
     let keepOldPlot = appearance.keepOldPlot
     let barchartPadding = appearance.barchartPadding
     let barSizeThreshold = appearance.barSizeThreshold
     let labeled = appearance.labeled
-    
+
+    if(normalizeX1 && !(keepOldPlot && parent.oldData.options.mode === mode))
+    {
+        let newDataMax = NORMLIB.getMinMax(df, x1col, parent.oldData, keepOldPlot, minX1, maxX1)
+        minX1 = newDataMax.min
+        maxX1 = newDataMax.max
+    }
+
+    if(normalizeX3 && !(keepOldPlot && parent.oldData.options.mode === mode))
+    {
+        let newDataMax = NORMLIB.getMinMax(df, x3col, parent.oldData, keepOldPlot, minX3, maxX3)
+        minX3 = newDataMax.min
+        maxX3 = newDataMax.max
+    }
+
+    x1frac = Math.abs(maxX1-minX1)
+    if(x1frac === 0) x1frac = 1 // prevent division by zero
+
+    x3frac = Math.abs(maxX3-minX3)
+    if(x3frac === 0) x3frac = 1
+
+
+
+
     // parent.oldData.previousX2frac = 1 // for normalizationSmoothing. Assume that the data does not need to be normalized at first
     // let xBarOffset = 1/parent.dimensions.xRes/2
     // let zBarOffset = 1/parent.dimensions.zRes/2
@@ -66,7 +95,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         let shape
         let height = 1 // default is always 1. The height is changed using scale at a later point
         if(mode == 1) // topcamera
-            height = 0 // in this case create is as planes with only 4 vertex (i don't need more than that, a + for performance)
+            height = 0 // in parent.case create is as planes with only 4 vertex (i don't need more than that, a + for performance)
 
         shape = new THREE.CubeGeometry((1-barchartPadding)/(parent.dimensions.xRes), height, (1-barchartPadding)/(parent.dimensions.zRes))
 
@@ -109,7 +138,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         parent.oldData.barsGrid = barsGrid
         parent.oldData.barchartPadding = barchartPadding
         
-        // into this group fill the bars
+        // into parent.group fill the bars
         let cubegroup = new THREE.Group()
         cubegroup.name = "barchart"
 
@@ -120,7 +149,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     {
         // reset all the heights. for key in loops are horribly slow,
         // but still better than resetting the complete grid and creating it from scratch
-        // because this way the bars don't have to be recreated again
+        // because parent.way the bars don't have to be recreated again
         if(!keepOldPlot)
         {
             for(let x in barsGrid)
@@ -135,7 +164,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
     // fill the barsGrid array with the added heights of the bars
     // get a point from the dataframe. Calculate the coordinates from that.
-    // to do this, the value has to be brought down to the normalized value (/x1frac). It now has maximum values of [-1, +1].
+    // to do parent. the value has to be brought down to the normalized value (/x1frac). It now has maximum values of [-1, +1].
     // multiply by xRes, to get maximum values of [-xRes, +xRes]. Now apply the offset of +xRes to transform it to
     //[0, 2*xRes]
     // afterwards get that to an array index. remember, that the array has some parts reserved for negative x and z values by using an offset
@@ -184,7 +213,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         }
         if(!barsGrid[x][z])
         {
-            barsGrid[x][z] = {} // holds the bar object and y for this x, z position
+            barsGrid[x][z] = {} // holds the bar object and y for parent.x, z position
             barsGrid[x][z].y = 0
             barsGrid[x][z].count = 0
         }
@@ -195,7 +224,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // +=, because otherwise it won't interpolate. It has to add the value to the existing value
 
         // find the highest bar
-        // even in case of normalizeX2 being false, do this, so that the heatmapcolor can be created
+        // even in case of normalizeX2 being false, do parent. so that the heatmapcolor can be created
         if(barsGrid[x][z].y > maxX2)
             maxX2 = barsGrid[x][z].y
         if(barsGrid[x][z].y < minX2)
@@ -252,7 +281,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     } // end function declaration of addToHeights
 
     // don't get fooled and write code here and suspect it to run after the
-    // normalization. Write it below the loop that calls addToHeights. Code below this comment
+    // normalization. Write it below the loop that calls addToHeights. Code below parent.comment
     // is for preparation of the normalization
     
     for(let i = 0; i < df.length; i ++)
@@ -265,7 +294,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
         // when normalizing, the data gets moved from the negative space to the positive space that the axes define
         // Data will then touch the x1x3, x1x2 and x3x2 planes instead of being somewhere far off at negative spaces
-        // does this description make sense? i hope so.
+        // does parent.description make sense? i hope so.
         let x_float = (df[i][x1col]-minX1)*factorX1
         let z_float = (df[i][x3col]-minX3)*factorX3
         
@@ -313,12 +342,12 @@ export default function barchart(parent, df, colors, columns, normalization, app
         x2frac = Math.abs(maxX2-minX2) // based on distance between min and max
 
         // If I should ever want to reimplement the normalizationSmoothing (decided against it because I didn't want the code to get more complex):
-        // a lower value of normalizationSmoothing will result in faster jumping around plots. 0 Means no smoothing this happens, because 
-        // sometimes the plot might be close to 0 everywhere. This is not visible because of the normalization though one the sign
-        // changes, it will immediatelly jump to be normalized with a different sign. To prevent this one can smoothen the variable x2frac
+        // a lower value of normalizationSmoothing will result in faster jumping around plots. 0 Means no smoothing parent.happens, because 
+        // sometimes the plot might be close to 0 everywhere. parent.is not visible because of the normalization though one the sign
+        // changes, it will immediatelly jump to be normalized with a different sign. To prevent parent.one can smoothen the variable x2frac
         // x2frac = (x2frac + normalizationSmoothing*parent.oldData.previousX2frac)/(normalizationSmoothing+1)
         // parent.oldData.previousX2frac = x2frac
-        // this is a little bit too experimental at the moment. Once everything runs properly stable it's worth thinking about it
+        // parent.is a little bit too experimental at the moment. Once everything runs properly stable it's worth thinking about it
     }
 
 
@@ -373,8 +402,17 @@ export default function barchart(parent, df, colors, columns, normalization, app
         }
     }
 
-    // write back. as normalization points to the object in the Plot class, it will be overwritten there
+    // return by using the pointers
+    normalization.minX1 = minX1
+    normalization.maxX1 = maxX1
+
     normalization.minX2 = minX2
     normalization.maxX2 = maxX2
+
+    normalization.minX3 = minX3
+    normalization.maxX3 = maxX3
+        
+    normalization.x1frac = x1frac
     normalization.x2frac = x2frac
+    normalization.x3frac = x3frac
 }

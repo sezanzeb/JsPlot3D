@@ -3,15 +3,14 @@
  * @module JsPlot3D
  */
 
-// IMPORTS
+// IMPORTS. Note how three.js is not needed in this file
 import MathParser from "./MathParser.js"
 import SceneHelper from "./SceneHelper.js"
 import scatterplot from "./plotModes/Scatterplot.js"
 import lineplot from "./plotModes/Lineplot.js"
 import barchart from "./plotModes/Barchart.js"
+import polygon from "./plotModes/Polygon.js"
 import * as COLORLIB from "./ColorLib.js"
-import * as NORMLIB from "./NormalizationLib.js"
-import * as THREE from "three"
 
 // CONSTANTS
 export const XAXIS = 1
@@ -102,27 +101,12 @@ export class Plot
      * @param {string} originalFormula string of formula. example: sin(x1) + x3
      * @param {object} options json object with one or more of the following parameters:
      * - mode {string}: "barchart", "scatterplot", "polygon" or "lineplot"
-     * - header {boolean}: a boolean value whether or not there are headers in the first row of the csv file. Default true
-     * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
-     * (0, 1, 2 etc.). Formats of the column within the .csv file allowed:
-     * numbers (normalized automatically, range doesn't matter). Numbers are converted to a heatmap automatically.
-     * Integers that are used as class for labeled data would result in various different hues in the same way.
-     * hex strings ("#f8e2b9"). "rgb(...)" strings. "hsl(...)" strings. strings as labels (make sure to set labeled = true).
-     * - normalizeX1 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X1 Axis
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
-     * - normalizeX3 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X3 Axis
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
-     * - labeled {boolean}: true if colorCol contains labels (such as 0, 1, 2 or frog, cat, dog). This changes the way it is colored.
-     * Having it false on string-labeled data will throw a warning, but it will continue as it was true
-     * - defaultColor {number or string}: examples: #1a3b5c, 0xfe629a, rgb(0.1,0.2,0.3), hsl(0.4,0.5,0.6). Gets applied when either colorCol is -1, undefined or ""
-     * - x1frac {number}: by how much to divide the datapoints x1 value to fit into [-1;1]. will be overwritten if normalization is on
      * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]. will be overwritten if normalization is on
-     * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
-     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     * as if it was a color. (converted to hexadecimal then). Default false
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -134,23 +118,23 @@ export class Plot
      */
     plotFormula(originalFormula, options ={})
     {
-
+        // default options
         let mode = POLYGON_MODE
         let x2frac = 1
         let normalizeX2 = true
-        
         let title = originalFormula
         let x1title = "x1"
         let x2title = "y(x1,x3)"
         let x3title = "x3"
-        if(options.title != undefined)  title = options.title
-        if(options.x1title != undefined) x1title = options.x1title
-        if(options.x2title != undefined) x2title = options.x2title
-        if(options.x3title != undefined) x3title = options.x3title
 
+        // overwrite if available
         if(options.mode != undefined) mode = options.mode
         if(options.x2frac != undefined) x2frac = options.x2frac
         if(options.normalizeX2 != undefined) normalizeX2 = options.normalizeX2
+        if(options.title != undefined) title = options.title
+        if(options.x1title != undefined) x1title = options.x1title
+        if(options.x2title != undefined) x2title = options.x2title
+        if(options.x3title != undefined) x3title = options.x3title
 
         if(originalFormula == undefined || originalFormula === "")
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
@@ -158,8 +142,19 @@ export class Plot
             return console.error("first param of plotFormula (originalFormula) should be string")
 
         this.MathParser.resetCalculation()
-        this.MathParser.parse(originalFormula) //tell the MathParser to prepare so that f can be executed
-        this.oldData.checkstring = "" // don't fool plotCsvString into believing the oldData-object contains still old csv data
+        //tell the MathParser to prepare so that f can be executed
+        this.MathParser.parse(originalFormula)
+        // don't fool plotCsvString into believing the oldData-object contains old csv data. overwrite checkstring therefore
+        this.oldData.checkstring = originalFormula
+
+        // force the following settings:
+        options.header = false
+
+        // write the following settings back to options (because they are different from the default settings in plotDataFrame)
+        options.title = title
+        options.x1title = x1title
+        options.x2title = x2title
+        options.x3title = x3title
 
         if(mode === SCATTERPLOT_MODE)    
         {
@@ -183,11 +178,14 @@ export class Plot
             {
                 for(let z = 0; z < this.dimensions.zRes; z++)
                 {
-                    y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes) // calculate y. y = f(x1, x2)
+                    // calculate y. y = f(x1, x2)
+                    y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes)
+
                     df[i] = new Float32Array(3)
                     df[i][0] = x // store the datapoint
                     df[i][1] = y // store the datapoint
                     df[i][2] = z // store the datapoint
+
                     i++
                 }
             }
@@ -215,15 +213,18 @@ export class Plot
             let i = 0
             let y = 0
 
-            for(let x = 0; x <= this.dimensions.xRes; x++)
+            for(let x = 0; x < this.dimensions.xRes; x++)
             {
-                for(let z = 0; z <= this.dimensions.zRes; z++)
+                for(let z = 0; z < this.dimensions.zRes; z++)
                 {
-                    y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes) // calculate y. y = f(x1, x2)
+                    // calculate y. y = f(x1, x2)
+                    y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes)
+
                     df[i] = new Float32Array(3)
                     df[i][0] = x // store the datapoint
                     df[i][1] = y // store the datapoint
                     df[i][2] = z // store the datapoint
+
                     i++
                 }
             }
@@ -235,7 +236,6 @@ export class Plot
         }
         else
         {
-
             if(mode != POLYGON_MODE)
                 console.warn("mode \""+mode+"\" unrecognized. Assuming \""+POLYGON_MODE+"\"")
 
@@ -243,176 +243,23 @@ export class Plot
             //-------------------------//
             //         Polygon         //
             //-------------------------//
+    
+            let hueOffset = 0
+            let numberDensity = 3
 
-            // TODO:
-            // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
-            // This requires some more work. -inf and +inf values should be indicated by hidden faces around those vertices
+            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = options.hueOffset
+            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = options.numberDensity
+
+            let colors = {hueOffset}
+            let normalization = {normalizeX2, x2frac}
+            let appearance = {numberDensity}
+            let dimensions = this.dimensions
 
             // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
             this.populateLegend({x1title, x2title, x3title, title})
 
-            // same goes for colors. plotFormula has to handle them on it's own
-            let hueOffset = 0
-            if(this.checkNumber("hueOffset", options.hueOffset))
-                hueOffset = options.hueOffset
-                
-            let numberDensity = 3
-            if(this.checkNumber("numberDensity", options.numberDensity))
-                numberDensity = options.numberDensity
+            polygon(this, colors, normalization, appearance, dimensions)
 
-            // might need to recreate the geometry and the matieral
-            // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
-            // no need to check keepOldPlot because it is allowed to use the old mesh every time (if IsPlotmeshValid says it's valid)
-            if(!this.IsPlotmeshValid("polygonFormula"))
-            {
-                this.disposePlotMesh()
-
-                // create plane, divided into segments
-                let planegeometry = new THREE.PlaneGeometry(this.dimensions.xLen, this.dimensions.zLen, this.dimensions.xRes, this.dimensions.zRes)
-                // move it
-                planegeometry.rotateX(Math.PI/2)
-                planegeometry.translate(this.dimensions.xLen/2,0, this.dimensions.zLen/2)
-
-                // color the plane
-                let plotmat = [
-                    new THREE.MeshBasicMaterial({
-                        side: THREE.DoubleSide,
-                        vertexColors: THREE.VertexColors
-                    }),
-                    new THREE.MeshBasicMaterial({
-                        transparent: true,
-                        opacity: 0
-                    })
-                ]
-
-                for(let i = 0;i < planegeometry.faces.length; i++)
-                {
-                    let faceColors = planegeometry.faces[i].vertexColors
-                    faceColors[0] = new THREE.Color(0)
-                    faceColors[1] = new THREE.Color(0)
-                    faceColors[2] = new THREE.Color(0)
-                }
-
-                this.plotmesh = new THREE.Mesh(planegeometry, plotmat)
-                this.plotmesh.name = "polygonFormula"
-            }
-            
-            // if not, go ahead and manipulate the vertices
-
-            // TODO hiding faces if typeof y is not number:
-            // https://stackoverflow.com/questions/11025307/can-i-hide-faces-of-a-mesh-in-three-js
-
-            // modifying vertex positions:
-            // https://github.com/mrdoob/three.js/issues/972
-            let y = 0
-
-            let minX2 = this.MathParser.f(0, 0) * this.dimensions.yLen
-            let maxX2 = this.MathParser.f(0, 0) * this.dimensions.yLen
-
-            /*let faceIndex1 = 0
-            let faceIndex2 = 0*/
-
-            for(let vIndex = 0; vIndex < this.plotmesh.geometry.vertices.length; vIndex ++)
-            {
-                y = this.MathParser.f(this.plotmesh.geometry.vertices[vIndex].x, this.plotmesh.geometry.vertices[vIndex].z)
-
-                /*// in each face there are 3 attributes, which stand for the vertex Indices (Which are vIndex basically)
-                // faces are ordered so that the vIndex in .c is in increasing order. If faceIndex.c has an unmatching value, increase
-                // the faceindex and therefore switch to a different face which mathes .c with vIndex.
-                while(faceIndex1 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex1].c < vIndex)
-                {
-                    faceIndex1++
-                }
-                // the result of this operation is: faces[faceIndex].c === vIndex
-
-                // do similar for faceIndex2.
-                while(faceIndex2 < this.plotmesh.geometry.faces.length && this.plotmesh.geometry.faces[faceIndex2].a < vIndex)
-                {
-                    faceIndex2++
-                }*/
-                
-                this.plotmesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
-
-                if(!isNaN(y) && Math.abs(y) != Number.POSITIVE_INFINITY && this.plotmesh.geometry.vertices[vIndex])
-                {
-                    this.plotmesh.geometry.vertices[vIndex].y = y
-                    
-                    if(y > maxX2)
-                        maxX2 = y
-                    if(y < minX2)
-                        minX2 = y
-                }
-                else
-                {
-                    // console.warn("this does not fully work yet. Some vertex are at y = 0 but that face should be invisible")
-
-                    // there are two faces per vertex that have VIndex as face.c
-                    /*if(this.plotmesh.geometry.faces[faceIndex1+1] != undefined)
-                    {
-                        this.plotmesh.geometry.faces[faceIndex1].materialIndex = 1
-                        this.plotmesh.geometry.faces[faceIndex1+1].materialIndex = 1
-                        this.plotmesh.geometry.faces[faceIndex1+2].materialIndex = 1
-                    }
-
-                    //every second face has vIndex as face.a. 0 _ 1 _ 2 _ 3
-                    if(this.plotmesh.geometry.faces[faceIndex2] != undefined)
-                    {
-                        this.plotmesh.geometry.faces[faceIndex2].materialIndex = 1
-                    }*/
-                    // https://stackoverflow.com/questions/12468906/three-js-updating-geometry-face-materialindex
-                }
-            }
-
-            
-            // now colorate higher vertex get a warmer value
-            // multiply min and max to lower the hue contrast and make it appear mor friendly
-            let maxClrX2 = maxX2*1.3
-            let minClrX2 = minX2*1.3
-            let getVertexColor = (v) =>
-            {
-                let y = this.plotmesh.geometry.vertices[v].y
-                return COLORLIB.convertToHeat(y,minClrX2,maxClrX2,hueOffset)
-            }
-
-            // update the numbers along the axes. minimum for x1 and x3 are 0, maximum are the length
-            // creating and updating textures is a very costly task. Do this in a 15fps cycle
-            if(this.fps15 === 0)
-            {
-                for(let i = 0;i < this.plotmesh.geometry.faces.length; i++)
-                {
-                    let face = this.plotmesh.geometry.faces[i]
-                    face.vertexColors[0].set(getVertexColor(face.a))
-                    face.vertexColors[1].set(getVertexColor(face.b))
-                    face.vertexColors[2].set(getVertexColor(face.c))
-                }
-                this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.xLen, XAXIS,     0, this.dimensions.xLen)
-                this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.yLen, YAXIS, minX2,                maxX2)
-                this.SceneHelper.updateNumbersAlongAxis(numberDensity, this.dimensions.zLen, ZAXIS,     0, this.dimensions.zLen)
-            }
-            
-            if(normalizeX2)
-            {
-                let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
-                let b = Math.abs(maxX2-minX2) // based on distance between min and max
-                x2frac = Math.max(a, b)/this.dimensions.yLen // hybrid
-                this.plotmesh.geometry.scale(1,1/x2frac,1)
-            }
-
-            // name and write down as children so that it can be rendered
-            this.plotmesh.name = "polygonFormula"
-            this.SceneHelper.scene.add(this.plotmesh)
-
-            // normals need to be recomputed so that the lighting works after the transformation
-            this.plotmesh.geometry.computeFaceNormals()
-            this.plotmesh.geometry.computeVertexNormals()
-            this.plotmesh.geometry.__dirtyNormals = true
-            // make sure the updated mesh is actually rendered
-            this.plotmesh.geometry.verticesNeedUpdate = true
-            this.plotmesh.geometry.colorsNeedUpdate = true
-            
-            this.plotmesh.material.needsUpdate = true
-
-            this.SceneHelper.makeSureItRenders(this.animationFunc)
         }
     }
 
@@ -469,7 +316,9 @@ export class Plot
         // only check what is needed in plotCsvString
         
         if(sCsv === "" || !sCsv)
+        {
             return console.error("dataframe arrived empty")
+        }
 
         // default config
         let separator = ","
@@ -510,8 +359,11 @@ export class Plot
         // create a very quick checksum sort of string
         let stepsize = (sCsv.length/20)|0
         let samples = ""
+
         for(let i = 0;i < sCsv.length; i+= stepsize)
+        {
             samples = samples + sCsv[i]
+        }
 
         // take everything into account that changes how the dataframe looks after the processing
         let checkstring = (title+sCsv.length+samples+fraction+separator).replace(/[\s\t\n\r]/g,"_")
@@ -815,12 +667,10 @@ export class Plot
 
         }
 
-        if(!this.checkNumber("x1col", x1col))
-            x1col = Math.min(0, df[0].length-1)
-        if(!this.checkNumber("x2col", x2col))
-            x2col = Math.min(1, df[0].length-1)
-        if(!this.checkNumber("x3col", x3col))
-            x3col = Math.min(2, df[0].length-1)
+        // those have to be always checked
+        if(!this.checkNumber("x1col", x1col)) x1col = Math.min(0, df[0].length-1)
+        if(!this.checkNumber("x2col", x2col)) x2col = Math.min(1, df[0].length-1)
+        if(!this.checkNumber("x3col", x3col)) x3col = Math.min(2, df[0].length-1)
         
         //>= because comparing indices with numbers
         if(x1col >= df[0].length || x2col >= df[0].length || x3col >= df[0].length)
@@ -842,6 +692,19 @@ export class Plot
             x3col = Math.min(x3col, maximumColumn)
         }
 
+        // header auto detection
+        if(options.header == undefined)
+        {
+            if(typeof(df[0][x1col]) != "number" || typeof(df[0][x2col]) != "number" || typeof(df[0][x3col]) != "number")
+            {
+                console.warn("detected headers")
+                header = true
+            }
+            else
+            {
+                header = false
+            }
+        }
 
         if(fraction < 1)
         {
@@ -871,12 +734,9 @@ export class Plot
 
             headerRow = df[0]
             // still set to default values?
-            if(x1title === "x1")
-                x1title = headerRow[x1col]
-            if(x2title === "x2")
-                x2title = headerRow[x2col]
-            if(x3title === "x3")
-                x3title = headerRow[x3col]
+            if(x1title === "x1") x1title = ""+headerRow[x1col]
+            if(x2title === "x2") x2title = ""+headerRow[x2col]
+            if(x3title === "x3") x3title = ""+headerRow[x3col]
             // remove the header from the dataframe. Usually you would just change the starting pointer for
             // the array. don't know if something like that exists in javascript
             df = df.slice(1, df.length)
@@ -934,7 +794,6 @@ export class Plot
         //-------------------------//
         // finds out by how much the values (as well as colors) to divide and for the colors also a displacement
 
-        // what is happening here?
         // minX1, maxX2, etc. are being loaded from the oldData object. They initially have 0 values
         // so they are zero now
         // then the dataframe gets analyzed (if enabled) and the min and max values are updated
@@ -946,6 +805,8 @@ export class Plot
 
         // normalize, so that the farthest away point is still within the xLen yLen zLen frame
         // TODO logarithmic normalizing (what about the displayed numbers, how are they going to get logarithmic scaling? What about the helper lines)
+
+        // EDIT moved most parts of the normalization to the files in ./plotModes/ and ./NormalizationLib.js
        
         // the default values are 0. after the normalization loops the case of
         // them still being 0 will be handled by assigning 1 to x1frac, x2frac and/or x3frac
@@ -966,56 +827,12 @@ export class Plot
         maxX2 = this.oldData.normalization.maxX2
         minX3 = this.oldData.normalization.minX3
         maxX3 = this.oldData.normalization.maxX3
-
-        // console.error({minX1,maxX1,minX2,maxX2,minX3,maxX3})
         
-        // keep old plot and normalization has not been calculated yet?
-        // if(keepOldPlot && this.oldData.normalization === {})
-        //                if it's a barchart that stacks upon an old plot and the mode didn't just change
-        if(normalizeX1 && !(mode == BARCHART_MODE && keepOldPlot && this.oldData.options.mode === mode))
-        {
-            let newDataMax = NORMLIB.getMinMax(df, x1col, this.oldData, keepOldPlot, minX1, maxX1)
-            minX1 = newDataMax.min
-            maxX1 = newDataMax.max
-        }
-
-        if(mode !== BARCHART_MODE) // barcharts need their own way of normalizing x2, because they are the sum of closeby datapoints (interpolation) (and also old datapoints, depending on keepOldPlot)
-        {
-            if(normalizeX2)
-            {
-                let newDataMax = NORMLIB.getMinMax(df, x2col, this.oldData, keepOldPlot, minX2, maxX2)
-                minX2 = newDataMax.min
-                maxX2 = newDataMax.max
-            }
-        }
-
-        if(normalizeX3 && !(mode == BARCHART_MODE && keepOldPlot && this.oldData.options.mode === mode))
-        {
-            let newDataMax = NORMLIB.getMinMax(df, x3col, this.oldData, keepOldPlot, minX3, maxX3)
-            minX3 = newDataMax.min
-            maxX3 = newDataMax.max
-        }
-
-        //x1frac = Math.max(Math.abs(maxX1), Math.abs(minX1)) // based on largest |value|
-        x1frac = Math.abs(maxX1-minX1) // based on distance between min and max
-        if(x1frac === 0)
-            x1frac = 1 // all numbers are the same, therefore maxX1 equals minX1, therefore x1frac is 0. prevent divison by zero
-
-        x2frac = Math.abs(maxX2-minX2)
-        if(x2frac === 0)
-            x2frac = 1
-
-        x3frac = Math.abs(maxX3-minX3)
-        if(x3frac === 0)
-            x3frac = 1
-
-        this.benchmarkStamp("normalized the data")
-
         let colors = {dfColors, hueOffset}
         let columns = {x1col, x2col, x3col}
         let normalization = {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
         let appearance = {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize, labeled}
-        let dimensions = {xLen: this.dimensions.xLen, yLen: this.dimensions.yLen, zLen: this.dimensions.zLen}
+        let dimensions = this.dimensions
 
         if(mode === BARCHART_MODE)
         {
@@ -1026,11 +843,7 @@ export class Plot
             //-------------------------//
 
             barchart(this, df, colors, columns, normalization, appearance, this.SceneHelper.cameraMode)
-            // those values got overwritten in barchart(...):
-            minX2 = normalization.minX2
-            maxX2 = normalization.maxX2
-            x2frac = normalization.x2frac
-                
+            
             this.benchmarkStamp("made a barchart")
         }
         /*else if(mode === "polygon")
@@ -1090,6 +903,19 @@ export class Plot
             this.benchmarkStamp("made a scatterplot")
         }
 
+        // those values got overwritten
+        minX1 = normalization.minX1
+        maxX1 = normalization.maxX1
+
+        minX2 = normalization.minX2
+        maxX2 = normalization.maxX2
+
+        minX3 = normalization.minX3
+        maxX3 = normalization.maxX3
+        
+        x1frac = normalization.x1frac
+        x2frac = normalization.x2frac
+        x3frac = normalization.x3frac
 
         
         // plotDataFrame
@@ -1209,7 +1035,6 @@ export class Plot
             // if the user used the options.header parameter it's fine, as both variables will contain the same information anyway
 
             this.oldData.options = options
-            console.log(this.oldData.options.header)
         }
 
         this.SceneHelper.makeSureItRenders(this.animationFunc)
@@ -1250,32 +1075,33 @@ export class Plot
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
-    addDataPoint(newDatapoint, options ={})
+    addDataPoint(newDatapoint, options={})
     {            
-        // add oldoptions to options
+
+        // add the old options to the current options
         for(let key in this.oldData.options)
-            if(!options[key])
+        {
+            if(options[key] === undefined)
+            {
                 options[key] = this.oldData.options[key]
+            }
+        }
 
+        // the following have to be like this, they can't be overwritten by the user:
+        // no header in newDataPoint and don't delete the original dataframe from cache
+        options.header = false
+        options.updateOldData = false
+
+
+        if(options.normalizeX1 === undefined) options.normalizeX1 = false
+        if(options.normalizeX2 === undefined) options.normalizeX2 = false
+        if(options.normalizeX3 === undefined) options.normalizeX3 = false
         // default keepOldPlot, but make it possible to overwrite it.
-        if(options.keepOldPlot != undefined)
-            options.keepOldPlot = options.keepOldPlot
-        else
-            options.keepOldPlot = true // true, so that the old plot gets extended with the new datapoint
 
-        // the following have to be like this:
-        options.header = false // no header in newDataPoint
-        options.updateOldData = false // false, because don't delete the original dataframe from cache
+        // true by default, so that the old plot gets extended with the new datapoint.
+        // Set to false to replace the old plot with this new single datapoint
+        if(options.keepOldPlot === undefined) options.keepOldPlot = true // check for undefined, it is a boolean value! don't if(!foobar)
 
-        // those default values are important to be like this.
-        if(options.normalizeX1 === undefined)
-            options.normalizeX1 = false
-        if(options.normalizeX2 === undefined)
-            options.normalizeX2 = false
-        if(options.normalizeX3 === undefined)
-            options.normalizeX3 = false
-        // if(options.normalizeX1 || options.normalizeX2 || options.normalizeX3)
-        //     console.warn("addDataPoint with turned on normalization options will not align the new datapoint with the old plots normalization.")
 
         // create the datapoint data structure (an array) from this
         if(typeof(newDatapoint) === "string")
@@ -1289,7 +1115,9 @@ export class Plot
         this.oldData.dataframe[this.oldData.dataframe.length] = newDatapoint
         
         if(newDatapoint.length != this.oldData.dataframe[0].length)
+        {
             return console.error("the new datapoint does not match the number of column in the in oldData stored dataframe ("+newDatapoint.length+" != "+this.oldData.dataframe[0].length+")")
+        }
 
         // because of keepOldPlot, only hand the newDatapoint over to plotDataFrame
         this.plotDataFrame([newDatapoint],
@@ -1298,6 +1126,7 @@ export class Plot
             this.oldData.x3col,
             options
         )
+
 
         // destroy the in oldData stored string csv checkstring, indicate that the dataframe has been modified by addDataPoint
         // do this, because otherwise when plotting the same (initial) dataframe again it might not realize that the in oldData stored dataframe has
@@ -1309,8 +1138,6 @@ export class Plot
         {
             this.axesNumbersNeedUpdate = true
         }
-
-        return 0
     }
 
 
@@ -1327,7 +1154,9 @@ export class Plot
         // open legend, add title
         let legendHTML = ""
         if(options.title && options.title != "")
+        {
             legendHTML += "<h1>"+options.title+"</h1>"
+        }
 
         // add info about the labels and the colors
         if(options.colorMap && options.colorMap.labelColorMap != {})
@@ -1346,17 +1175,16 @@ export class Plot
 
         // axes titles:
         legendHTML += "<table class =\"jsP3D_axesTitleLegend\"><tbody>"
-        if(this.SceneHelper.cameraMode != LEFTCAMERA && options.x1title)
-            legendHTML += "<tr><td>x:</td><td>"+options.x1title+"</td></tr>"
-        if(this.SceneHelper.cameraMode != TOPCAMERA && options.x2title)
-            legendHTML += "<tr><td>y:</td><td>"+options.x2title+"</td></tr>"
-        if(this.SceneHelper.cameraMode != FRONTCAMERA && options.x3title)
-            legendHTML += "<tr><td>z:</td><td>"+options.x3title+"</td></tr>"
+        if(this.SceneHelper.cameraMode != LEFTCAMERA  && options.x1title) legendHTML += "<tr><td>x:</td><td>"+options.x1title+"</td></tr>"
+        if(this.SceneHelper.cameraMode != TOPCAMERA   && options.x2title) legendHTML += "<tr><td>y:</td><td>"+options.x2title+"</td></tr>"
+        if(this.SceneHelper.cameraMode != FRONTCAMERA && options.x3title) legendHTML += "<tr><td>z:</td><td>"+options.x3title+"</td></tr>"
         legendHTML += "</tbody></table>"
 
         // is the content similar? Then don't overwrite because it will trigger rerenders every time (observed in the chromium Elements view)
         if(this.legend.element.innerHTML.trim() != legendHTML) // for some reason I have to trim the current innerHTML
+        {
             this.legend.element.innerHTML = legendHTML
+        }
     }
 
     /**
@@ -1386,7 +1214,10 @@ export class Plot
     createLegend(container)
     {
         if(container === null)
+        {
             return console.error("container for createLegend not found")
+        }
+            
         container.appendChild(this.legend.element)
         return(this.legend.element)
     }
@@ -1405,30 +1236,14 @@ export class Plot
 
         if(obj === null)
         {
-            this.updatePlotmesh = false
             return false
         }
-            
-        // it either has children because it's a group it has a geometry. if both are undefined, it's not valid anymore.
 
-        // instead of setting it to true i directly dispose the mesh from now on
-        /*if(this.updatePlotmesh === true) // this is the only place where this.updatePlotmesh is taken into account
+        if(obj.name === check || obj.type === check)
         {
-            // this.SceneHelper.disposeMesh(obj)
-            // this.updatePlotmesh = false
-            return false
-        }*/
-
-
-        if(obj.name === check)
             return true
+        }
 
-        if(obj.type === check)
-            return true
-
-            
-        // this.SceneHelper.disposeMesh(obj)
-        // this.updatePlotmesh = false
         return false
     }
 
@@ -1456,12 +1271,9 @@ export class Plot
         this.oldData = {}
 
         this.oldData.normalization = {
-            minX1: 0,
-            maxX1: 0,
-            minX2: 0,
-            maxX2: 0,
-            minX3: 0,
-            maxX3: 0,
+            minX1: 0, maxX1: 0,
+            minX2: 0, maxX2: 0,
+            minX3: 0, maxX3: 0,
         }
 
         this.oldData.labelColorMap = {}
@@ -1518,12 +1330,9 @@ export class Plot
         this.disposePlotMesh()
         this.clearOldData()
         
-        if(dimensions.xLen === 0 && dimensions.yLen === 0)
-            return console.error("only one dimension can be zero",dimensions)
-        if(dimensions.yLen === 0 && dimensions.zLen === 0)
-            return console.error("only one dimension can be zero",dimensions)
-        if(dimensions.zLen === 0 && dimensions.xLen === 0)
-            return console.error("only one dimension can be zero",dimensions)
+        if(dimensions.xLen === 0 && dimensions.yLen === 0) return console.error("only one dimension can be zero",dimensions)
+        if(dimensions.yLen === 0 && dimensions.zLen === 0) return console.error("only one dimension can be zero",dimensions)
+        if(dimensions.zLen === 0 && dimensions.xLen === 0) return console.error("only one dimension can be zero",dimensions)
 
         if(dimensions.xLen === 0)
         {
@@ -1548,16 +1357,11 @@ export class Plot
             this.SceneHelper.changeCameraMode(DEFAULTCAMERA)
         }
 
-        if(dimensions.xRes != undefined)
-            this.dimensions.xRes = Math.max(1, Math.abs(dimensions.xRes|0))
-        if(dimensions.zRes != undefined)
-            this.dimensions.zRes = Math.max(1, Math.abs(dimensions.zRes|0))
-        if(dimensions.xLen != undefined)
-            this.dimensions.xLen = Math.abs(dimensions.xLen)
-        if(dimensions.yLen != undefined)
-            this.dimensions.yLen = Math.abs(dimensions.yLen)
-        if(dimensions.zLen != undefined)
-            this.dimensions.zLen = Math.abs(dimensions.zLen)
+        if(dimensions.xRes) this.dimensions.xRes = Math.max(1, Math.abs(dimensions.xRes|0))
+        if(dimensions.zRes) this.dimensions.zRes = Math.max(1, Math.abs(dimensions.zRes|0))
+        if(dimensions.xLen) this.dimensions.xLen = Math.abs(dimensions.xLen)
+        if(dimensions.yLen) this.dimensions.yLen = Math.abs(dimensions.yLen)
+        if(dimensions.zLen) this.dimensions.zLen = Math.abs(dimensions.zLen)
     
 
         // move
@@ -1610,6 +1414,9 @@ export class Plot
      */
     callAnimation()
     {
+        // 0 1 2 3  0 1 2 3  0 1 2 ...
+        // check for this.fps15 === 0 and do something if true
+        // this way a lower fps framerate for certain tasks can be achieved to improve performance
         this.fps15 += 1
         this.fps15 = this.fps15 % 4
 
@@ -1653,7 +1460,9 @@ export class Plot
     benchmarkStamp(identifier)
     {
         if(this.benchmark.enabled === false)
+        {
             return
+        }
 
         console.log(identifier+": "+(window.performance.now()-this.benchmark.recentTime)+"ms")
         this.benchmark.recentTime = window.performance.now()

@@ -27,22 +27,22 @@ function getVal(id)
     var elem = document.getElementById(id)
     var value = elem.value
     // undefined by default
-    if(value === "")
-        value = undefined
+    if(value == "")
+        return undefined
 
     // boolean
     if(value == "true")
     {
-        value = true
+        return true
     }
     else if(value == "false")
     {
-        value = false
+        return false
     }
     else
     {
         // 0xhex
-        let parsed
+        var parsed
         if(value && value.startsWith("0x"))
         {
             parsed = parseInt(value)
@@ -51,6 +51,7 @@ function getVal(id)
         {
             parsed = parseFloat(value)
         }
+
         if(!isNaN(parsed))
         {
             value = parsed
@@ -78,11 +79,7 @@ function getOptions()
     var barSizeThreshold = getVal("barSizeThreshold")
     var defaultColor = getVal("defaultColor")
     var hueOffset = getVal("hueOffset")
-
     var title = getVal("title")
-    if(title == undefined)
-        title = fname
-
     var x1title = getVal("x1title")
     var x2title = getVal("x2title")
     var x3title = getVal("x3title")
@@ -128,22 +125,30 @@ function plotcsv()
 {
     // (calling it function plot() throws an error)
 
-    let x1 = document.getElementById("x1").value
-    let x2 = document.getElementById("x2").value
-    let x3 = document.getElementById("x3").value
-    plot.plotCsvString(data,x1,x2,x3,getOptions())
+    var x1 = document.getElementById("x1").value
+    var x2 = document.getElementById("x2").value
+    var x3 = document.getElementById("x3").value
+    if(x1 == "") x1 = undefined
+    if(x2 == "") x2 = undefined
+    if(x3 == "") x3 = undefined
+
+    var options = getOptions()
+    if(options.title == undefined)
+        options.title = fname
+
+    plot.plotCsvString(data, x1, x2, x3, options)
 
     // display the dataframes head
     if(plot.oldData.dataframe != undefined)
     {
-        let tableData = plot.oldData.dataframe.slice(0,19)
-        let table = "<table>"
+        var tableData = plot.oldData.dataframe.slice(0, 19)
+        var table = "<table>"
 
-        table += "<tr>"
+        table += "<tr><td>indices:</td></tr><tr>"
         var i
         for(i = 0;i < tableData[0].length; i++)
             table += "<td>"+i+"</td>"
-        table += "</tr>"
+        table += "</tr><tr><td>data:</td></tr>"
 
         for(i = 0;i < tableData.length; i++)
             tableData[i] = "<td>"+tableData[i].join("</td><td>")+"</td>"
@@ -171,7 +176,6 @@ function main()
         recentplote = e
         var formula = document.getElementById("formulaText").value
         var options = getOptions()
-        options.title = undefined
         plot.plotFormula(formula, options)
     }
 
@@ -185,8 +189,8 @@ function main()
         // read file only if it has changed (event on fileup "change")
         if(!cached)
         {
-            let reader = new FileReader()
-            let file = document.getElementById("fileup").files[0]
+            var reader = new FileReader()
+            var file = document.getElementById("fileup").files[0]
 
             if(!file) {
                 console.error("Something went wrong while processing your file using a JavaScript FileReader, because the file is undefined. Here is some debug information:")
@@ -199,7 +203,9 @@ function main()
             reader.onload = function(e)
             {
                 data = e.target.result
+
                 fname = file.name
+
                 cached = true
                 plotcsv()
             }
@@ -215,11 +221,11 @@ function main()
 
     // add those two functions to the event listeners
     // I'm doing this because i want to keep track of the recently used function using recentplot and recentplote
-    document.getElementById("formulaForm").addEventListener("submit",function(e){formulaFormSubmit(e)})
-    document.getElementById("csvform").addEventListener("submit",function(e){csvFormSubmit(e)})
+    document.getElementById("formulaForm").addEventListener("submit", function(e){formulaFormSubmit(e)})
+    document.getElementById("csvform").addEventListener("submit", function(e){csvFormSubmit(e)})
 
 
-    document.getElementById("setDimensions").addEventListener("submit",function(e)
+    document.getElementById("setDimensions").addEventListener("submit", function(e)
     {
         e.preventDefault()
         plot.setDimensions({
@@ -233,7 +239,7 @@ function main()
     })
 
 
-    document.getElementById("setBackgroundColor").addEventListener("submit",function(e)
+    document.getElementById("setBackgroundColor").addEventListener("submit", function(e)
     {
         e.preventDefault()
         plot.setBackgroundColor(getVal("backgroundColor"))
@@ -241,7 +247,7 @@ function main()
     })
     
     
-    document.getElementById("setAxesColor").addEventListener("submit",function(e)
+    document.getElementById("setAxesColor").addEventListener("submit", function(e)
     {
         e.preventDefault()
         plot.setAxesColor(getVal("axesColor"))
@@ -250,7 +256,7 @@ function main()
 
 
     // add the filename as string next to the button
-    document.getElementById("fileup").addEventListener("change",function(e)
+    document.getElementById("fileup").addEventListener("change", function(e)
     {
         cached = false
         data = ""
@@ -261,7 +267,7 @@ function main()
 
 
     // repeat the recent plot when hitting enter in the settings form
-    document.getElementById("settings").addEventListener("submit",function(e)
+    document.getElementById("settings").addEventListener("submit", function(e)
     {
         e.preventDefault()
         recentplot(recentplote)

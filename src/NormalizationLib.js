@@ -1,5 +1,8 @@
 /**
  * returns min/max for a given dataframe for one dimension
+ * 
+ * you need to define both the min and max paremeter at the moment if you want to set starting values
+ * 
  * @param {object} df dataframe
  * @param {number} col index of the datapoints value that should ne normalized
  * @param {object} oldData oldData object of Plot
@@ -11,7 +14,7 @@
 export function getMinMax(df, col, oldData, keepOldPlot, min, max)
 {
     // default values? If yes get startingvalues for min and max from the df
-    if(min === 0 && max === 0 || !min && !max)
+    if(min === 0 && max === 0 || !min || !max)
     {
         min = df[0][col]
         max = df[0][col]
@@ -28,7 +31,7 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
     if(keepOldPlot && oldData.dataframe.length !== 0)
     {
         // determine min and max for normalisation
-        for(let i = oldData.options.header?1:0; i < df.length; i++)
+        for(let i = oldData.options.header?1:0; i < oldData.dataframe.length; i++)
         {
             let check = oldData.dataframe[i][col]
             if(check > max) max = check

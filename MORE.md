@@ -42,10 +42,7 @@ see USAGE.md
 **performance and code quality:**
 
 - how is the performance for very large dataframes?
-- add a module that handles the creation of dataframes from other data formats, which would help to clean up src/JsPlot3D.js a little
 - move code out of JsPlot3D.js into modules
-- make a module that returns min and max values for standard cases
-- move normalization code into the modules in src/plotModes/*.js. (The x2 normalization in src/plotModes/Barchart.js is already there)
 
 **experimental:**
 
