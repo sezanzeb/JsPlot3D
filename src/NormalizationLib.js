@@ -14,7 +14,7 @@
 export function getMinMax(df, col, oldData, keepOldPlot, min, max)
 {
     // default values? If yes get startingvalues for min and max from the df
-    if(min === 0 && max === 0 || !min || !max)
+    if(min === 0 && max === 0 || min === undefined || max === undefined)
     {
         min = df[0][col]
         max = df[0][col]
@@ -27,8 +27,9 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
         if((df[i][col]) < min) min = df[i][col]
     }
     
+    // min and max from the parameters contain the old min and max values. so no need to iterate AGAIN
     // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
-    if(keepOldPlot && oldData.dataframe.length !== 0)
+    /*if(keepOldPlot && oldData.dataframe.length !== 0)
     {
         // determine min and max for normalisation
         for(let i = oldData.options.header?1:0; i < oldData.dataframe.length; i++)
@@ -37,7 +38,7 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
             if(check > max) max = check
             if(check < min) min = check
         }
-    }
+    }*/
 
     return {min, max}
 }

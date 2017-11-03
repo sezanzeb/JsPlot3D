@@ -50,6 +50,7 @@
         let randr = 255
         let randg = 255*Math.abs(Math.random()) | 0
         let randb = 0
+
         // make sure that the new datapoint matches the dimensions of the initial plotCsvString plot
         plot1.addDataPoint([-Math.abs(Math.random())*15,1-Math.abs(Math.random())/100,-Math.abs(Math.random())],{
             defaultColor: "rgb(" + randr + "," + randg + "," + randb + ")",

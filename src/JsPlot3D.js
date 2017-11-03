@@ -127,6 +127,9 @@ export class Plot
         let x2title = "y(x1,x3)"
         let x3title = "x3"
 
+        if(this.isAnimated())
+            options.fastForward = true // performance
+
         // overwrite if available
         if(options.mode != undefined) mode = options.mode
         if(options.x2frac != undefined) x2frac = options.x2frac
@@ -417,6 +420,22 @@ export class Plot
                 console.warn("the specified separator/delimiter was not found. Tried to detect it and came up with \""+separator+"\". Please set separator =\"...\" according to your file format: \""+data[0]+"\"")
             }
 
+            // header auto detection
+            if(options.header == undefined)
+            {
+                if(isNaN(parseFloat(data[0][x1col])) || isNaN(parseFloat(data[0][x2col])) || isNaN(parseFloat(data[0][x3col])))
+                {
+                    console.warn("detected headers")
+                    options.header = true
+                    header = true
+                }
+                else
+                {
+                    options.header = false
+                    header = false
+                }
+            }
+
             if(!csvIsInGoodShape)
             {
                 // check 5% of the columns to get the highest number of columns available (if not unlucky)
@@ -447,8 +466,12 @@ export class Plot
                         {
                             // remove quotation marks "bla";"1";"2"
                             if(data[line][col][0] === "\"")
+                            {
                                 if(data[line][col][data[line][col].length-1] === "\"")
+                                {
                                     data[line][col] = data[line][col].slice(1,-1)
+                                }
+                            }
 
                             // don't assume that all lines have the same format when looking at the same column
                             // that means every cell has to be parsed
@@ -557,7 +580,7 @@ export class Plot
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */      
-    plotDataFrame(df, x1col = 0, x2col = 1, x3col = 2, options ={})
+    plotDataFrame(df, x1col = 0, x2col = 1, x3col = 2, options={})
     {
         // to optimize for performance, use:
         // {
@@ -599,6 +622,8 @@ export class Plot
         let x3frac = 1
         let numberDensity = 3
 
+        let headerRow // for later
+
         // TODO probably deprecated won't implement
         // when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
         // it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
@@ -612,8 +637,9 @@ export class Plot
         // if(optoins.variable1) variable1 = options.variable1
         // if(optoins.variable2) variable2 = options.variable2
         // ...
+        
 
-        if(typeof(options) === "object")
+        if(!options.fastForward) // if not undefined or false
         {
             // seems like the user sent some parameters. check them
 
@@ -665,86 +691,102 @@ export class Plot
             if(options.x2title != undefined) x2title = options.x2title
             if(options.x3title != undefined) x3title = options.x3title
 
-        }
-
-        // those have to be always checked
-        if(!this.checkNumber("x1col", x1col)) x1col = Math.min(0, df[0].length-1)
-        if(!this.checkNumber("x2col", x2col)) x2col = Math.min(1, df[0].length-1)
-        if(!this.checkNumber("x3col", x3col)) x3col = Math.min(2, df[0].length-1)
-        
-        //>= because comparing indices with numbers
-        if(x1col >= df[0].length || x2col >= df[0].length || x3col >= df[0].length)
-        {
-            console.error("one of the colum indices is out of bounds. The maximum index in this dataframe is "+(df[0].length-1)+". x1col: "+x1col+" x2col:"+x2col+" x3col:"+x3col)
-            // detct the rightmost column index that contains numberes
-            let maximumColumn = 2 // to match the default settings of 0, 1 and 2, start at 2
-            let line = 0
-
-            if(df[1] != undefined) // if possible try to skip the first line, because it might contain a header
-                line = 1
-
-            for(;maximumColumn >= 0; maximumColumn--)
-                if(!isNaN((df[line][maximumColumn])))
-                    break
-
-            x1col = Math.min(x1col, maximumColumn)
-            x2col = Math.min(x2col, maximumColumn)
-            x3col = Math.min(x3col, maximumColumn)
-        }
-
-        // header auto detection
-        if(options.header == undefined)
-        {
-            if(typeof(df[0][x1col]) != "number" || typeof(df[0][x2col]) != "number" || typeof(df[0][x3col]) != "number")
+            if(!this.checkNumber("x1col", x1col)) x1col = Math.min(0, df[0].length-1)
+            if(!this.checkNumber("x2col", x2col)) x2col = Math.min(1, df[0].length-1)
+            if(!this.checkNumber("x3col", x3col)) x3col = Math.min(2, df[0].length-1)
+            
+            //>= because comparing indices with numbers
+            if(x1col >= df[0].length || x2col >= df[0].length || x3col >= df[0].length)
             {
-                console.warn("detected headers")
-                header = true
+                console.error("one of the colum indices is out of bounds. The maximum index in this dataframe is "+(df[0].length-1)+". x1col: "+x1col+" x2col:"+x2col+" x3col:"+x3col)
+                // detct the rightmost column index that contains numberes
+                let maximumColumn = 2 // to match the default settings of 0, 1 and 2, start at 2
+                let line = 0
+    
+                if(df[1] != undefined) // if possible try to skip the first line, because it might contain a header
+                    line = 1
+    
+                for(;maximumColumn >= 0; maximumColumn--)
+                    if(!isNaN((df[line][maximumColumn])))
+                        break
+    
+                x1col = Math.min(x1col, maximumColumn)
+                x2col = Math.min(x2col, maximumColumn)
+                x3col = Math.min(x3col, maximumColumn)
             }
-            else
+            
+            // header auto detection
+            if(options.header == undefined)
             {
-                header = false
+                if(typeof(df[0][x1col]) != "number" || typeof(df[0][x2col]) != "number" || typeof(df[0][x3col]) != "number")
+                {
+                    console.warn("detected headers")
+                    header = true
+                }
+                else
+                {
+                    header = false
+                }
             }
-        }
-
-        if(fraction < 1)
-        {
-            // at least 3 rows if possible to support headers and two distinct datapoints
-            df = df.slice(0, Math.max(Math.min(3,df.length),df.length*fraction))
-        }
-
-
-        // automatic header detection, if no option was provided and the dataframe has enough rows to support headers and data
-        if(options.header === undefined && df.length >= 2)
-        {
-            // find out automatically if they are headers or not
-            // take x1col, check first line type (string/NaN?) then second line type (number/!NaN?)
-            // if both are yes, it's probably header = true
-            if(isNaN(df[0][x1col]) && !isNaN(df[1][x1col]))
+            
+            if(fraction < 1)
             {
-                console.log("detected headers, first csv line is not going to be plotted therefore. To prevent this, set header = false")
-                header = true
+                // at least 3 rows if possible to support headers and two distinct datapoints
+                df = df.slice(0, Math.max(Math.min(3,df.length),df.length*fraction))
             }
+            
+            if(header)
+            {
+                if(df.length === 1)
+                    return console.error("dataframe is empty besides headers")
+    
+                headerRow = df[0]
+                // still set to default values?
+                if(x1title === "x1") x1title = ""+headerRow[x1col]
+                if(x2title === "x2") x2title = ""+headerRow[x2col]
+                if(x3title === "x3") x3title = ""+headerRow[x3col]
+                // remove the header from the dataframe. Usually you would just change the starting pointer for
+                // the array. don't know if something like that exists in javascript
+                df = df.slice(1, df.length)
+            }
+            
+            // after all the modifying, is the dataframe still present?
+            if(df.length === 0)
+                return console.error("dataframe is empty")
         }
-        
-        let headerRow
-        if(header)
+        else
         {
-            if(df.length === 1)
-                return console.error("dataframe is empty besides headers")
-
-            headerRow = df[0]
-            // still set to default values?
-            if(x1title === "x1") x1title = ""+headerRow[x1col]
-            if(x2title === "x2") x2title = ""+headerRow[x2col]
-            if(x3title === "x3") x3title = ""+headerRow[x3col]
-            // remove the header from the dataframe. Usually you would just change the starting pointer for
-            // the array. don't know if something like that exists in javascript
-            df = df.slice(1, df.length)
+            // options.fastForward is true, better performance
+            if(options.fraction != undefined) fraction = options.fraction
+            if(options.barchartPadding != undefined) barchartPadding = options.barchartPadding
+            if(options.hueOffset != undefined) hueOffset = options.hueOffset
+            if(options.numberDensity != undefined) numberDensity = options.numberDensity
+            if(options.x1frac != undefined) x1frac = options.x1frac
+            if(options.x2frac != undefined) x2frac = options.x2frac
+            if(options.x3frac != undefined) x3frac = options.x3frac
+            if(options.colorCol != undefined) colorCol = options.colorCol
+            if(options.dataPointSize != undefined) dataPointSize = options.dataPointSize
+            if(options.barSizeThreshold != undefined) barSizeThreshold = options.barSizeThreshold
+            if(options.labeled != undefined) labeled = options.labeled
+            if(options.normalizeX1 != undefined) normalizeX1 = options.normalizeX1
+            if(options.normalizeX2 != undefined) normalizeX2 = options.normalizeX2
+            if(options.normalizeX3 != undefined) normalizeX3 = options.normalizeX3
+            if(options.header != undefined) header = options.header
+            if(options.filterColor != undefined) filterColor = options.filterColor
+            if(options.keepOldPlot != undefined) keepOldPlot = options.keepOldPlot
+            if(options.updateOldData != undefined) updateOldData = options.updateOldData
+            if(options.title != undefined) title = options.title
+            if(options.defaultColor != undefined) defaultColor = options.defaultColor
+            if(options.mode != undefined) mode = options.mode
+            if(options.x1title != undefined) x1title = options.x1title
+            if(options.x2title != undefined) x2title = options.x2title
+            if(options.x3title != undefined) x3title = options.x3title 
+            
+            if(fraction < 1)
+            {
+                df = df.slice(0, df.length*fraction)
+            }          
         }
-
-        // after all the modifying, is the dataframe still present?
-        if(df.length === 0)
-            return console.error("dataframe is empty")
 
         this.benchmarkStamp("checked Parameters")
 
@@ -1003,7 +1045,6 @@ export class Plot
         }
 
         
-        this.oldData.options.mode = mode
 
         // plotDataFrame
         //-------------------------//
@@ -1014,6 +1055,8 @@ export class Plot
 
         // now that the script arrived here, store the options to make easy redraws possible
         // update cache
+        
+        this.oldData.options.mode = mode
 
         // those are always handy to remember and they are needed in some cases
         this.oldData.normalization.x1frac = x1frac
@@ -1091,6 +1134,9 @@ export class Plot
         // no header in newDataPoint and don't delete the original dataframe from cache
         options.header = false
         options.updateOldData = false
+
+        if(this.isAnimated())
+            options.fastForward = true // performance
 
 
         if(options.normalizeX1 === undefined) options.normalizeX1 = false
@@ -1397,6 +1443,18 @@ export class Plot
         this.SceneHelper.onChangeCamera = function() {}
         this.animationFunc = animationFunc
         this.callAnimation()
+    }
+
+    /**
+     * true if an animation is active, false if not
+     */
+    isAnimated()
+    {
+        if(this.animationFunc != null)
+        {
+            return true
+        }
+        return false
     }
 
     /**

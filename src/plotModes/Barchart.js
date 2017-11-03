@@ -87,39 +87,20 @@ export default function barchart(parent, df, colors, columns, normalization, app
         zOffset = 1/parent.dimensions.zRes/2
     }
 
-    // helper function
-    let createBar = (x, z) =>
-    {
-        // create the bar
-        // I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
-        let shape
-        let height = 1 // default is always 1. The height is changed using scale at a later point
-        if(mode == 1) // topcamera
-            height = 0 // in parent.case create is as planes with only 4 vertex (i don't need more than that, a + for performance)
 
-        shape = new THREE.CubeGeometry((1-barchartPadding)/(parent.dimensions.xRes), height, (1-barchartPadding)/(parent.dimensions.zRes))
+    // Prepare the material and geometry templates
 
-        // use translate when the position property should not be influenced
-        // shape.translate(xBarOffset,0, zBarOffset)
-
-        let plotmat = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            emissive: 0,
-            emissiveIntensity: 0.98,
-            roughness: 1
-        })
-
-        let bar = new THREE.Mesh(shape, plotmat)
-        bar.position.set(x/(parent.dimensions.xRes)+xOffset, 0, z/(parent.dimensions.zRes)+zOffset)
-        bar.geometry.translate(0,0.5,0) // move it so that the bottom plane is at y=0
-        parent.plotmesh.add(bar)
-
-        // normalize scaling
-        // the plot is basically built inside a 1x1x1 space. now it becomes the xLen, yLen and zLen space
-        parent.plotmesh.scale.set(parent.dimensions.xLen, parent.dimensions.yLen, parent.dimensions.zLen)
-
-        return bar
-    }
+    // I can't put 0 into the height parameter of the CubeGeometry constructor because if I do it will not construct as a cube
+    let boxHeight = 1 // default is always 1. The height is changed using scale at a later point
+    if(mode == 1) // topcamera
+        boxHeight = 0 // in parent.case create is as planes with only 4 vertex (i don't need more than that, a + for performance)
+    let boxShape = new THREE.BoxBufferGeometry((1-barchartPadding)/(parent.dimensions.xRes), boxHeight, (1-barchartPadding)/(parent.dimensions.zRes))
+    let boxMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: 0,
+        emissiveIntensity: 0.98,
+        roughness: 1
+    })
 
 
     // if needed, reconstruct the complete barchart
@@ -234,7 +215,18 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // the height gets set once maxX2 and minX2 are ready
         if(!barsGrid[x][z].bar)
         {
-            barsGrid[x][z].bar = createBar(x, z)
+
+            // create the bar
+
+            // use translate when the position property should not be influenced
+            // shape.translate(xBarOffset,0, zBarOffset)
+            let newBar = new THREE.Mesh(boxShape.clone(), boxMat.clone())
+            
+            newBar.position.set(x/(parent.dimensions.xRes)+xOffset, 0, z/(parent.dimensions.zRes)+zOffset)
+            newBar.geometry.translate(0,0.5,0) // move it so that the bottom plane is at y=0
+            parent.plotmesh.add(newBar)
+
+            barsGrid[x][z].bar = newBar
             // initial color approximation
             barsGrid[x][z].bar.material.emissive.set(COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset))
         }
@@ -281,9 +273,9 @@ export default function barchart(parent, df, colors, columns, normalization, app
     } // end function declaration of addToHeights
 
     // don't get fooled and write code here and suspect it to run after the
-    // normalization. Write it below the loop that calls addToHeights. Code below parent.comment
+    // normalization. Write it below the loop that calls addToHeights. Code below this comment
     // is for preparation of the normalization
-    
+
     for(let i = 0; i < df.length; i ++)
     {
 
@@ -329,6 +321,9 @@ export default function barchart(parent, df, colors, columns, normalization, app
         }
     }
     
+    // normalize scaling
+    // the plot is basically built inside a 1x1x1 space. now it becomes the xLen, yLen and zLen space
+    parent.plotmesh.scale.set(parent.dimensions.xLen, parent.dimensions.yLen, parent.dimensions.zLen)
 
     // percent of largest bar
     barSizeThreshold = barSizeThreshold*Math.max(Math.abs(maxX2), Math.abs(minX2))
