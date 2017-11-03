@@ -132,6 +132,7 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
 
     // don't add the vertex to the existing geometry. bufferedGeometrys (which is how geometries work internally)
     // can only be updated but not changed in size. Or they can be created from scratch and added to the overall group. Do that here
+    // https://threejs.org/docs/#manual/introduction/How-to-update-things
     let group = parent.plotmesh
     let geometry = new THREE.Geometry()
 

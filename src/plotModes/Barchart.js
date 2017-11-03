@@ -44,14 +44,16 @@ export default function barchart(parent, df, colors, columns, normalization, app
     let barSizeThreshold = appearance.barSizeThreshold
     let labeled = appearance.labeled
 
-    if(normalizeX1 && !(keepOldPlot && parent.oldData.options.mode === mode))
+    // if keepOldPlot is on and mode is the same as previously, don't noramlize but rather use the old normalization
+    if(normalizeX1 && !(keepOldPlot && parent.oldData.options.mode === "barchart"))
     {
         let newDataMax = NORMLIB.getMinMax(df, x1col, parent.oldData, keepOldPlot, minX1, maxX1)
         minX1 = newDataMax.min
         maxX1 = newDataMax.max
     }
 
-    if(normalizeX3 && !(keepOldPlot && parent.oldData.options.mode === mode))
+    // if keepOldPlot is on and mode is the same as previously, don't noramlize but rather use the old normalization
+    if(normalizeX3 && !(keepOldPlot && parent.oldData.options.mode === "barchart"))
     {
         let newDataMax = NORMLIB.getMinMax(df, x3col, parent.oldData, keepOldPlot, minX3, maxX3)
         minX3 = newDataMax.min
