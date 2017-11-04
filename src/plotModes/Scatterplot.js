@@ -83,6 +83,8 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
 
     let isItValid = parent.IsPlotmeshValid("scatterplot")
 
+    // TODO Buffer Overflow Checking and recreate if full
+
     // dispose the old mesh if it is not used/valid anymore
     if(!keepOldPlot || !isItValid)
     {
@@ -99,7 +101,7 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     let material = parent.oldData.material
     
     let geometry, position, color
-    let existingVertexCount = 0
+    let newBuffer = false
 
     // group is parent.plotmesh, which is of type group
     // it contains all the meshes that are being displayed using sprites
@@ -143,7 +145,7 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
                 map: datapointSprite,
                 transparent: true,
                 alphaTest: 0.5,
-                color: true,
+                vertexColors: THREE.VertexColors,
                 sizeAttenuation: true,
             })
 
@@ -156,10 +158,11 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         material = material.clone()
         
         // create a new geometry
-        let buffer = createBuffer(df.length * 3 + 1000)
+        let buffer = createBuffer(df.length + 1000)
         geometry = buffer.geometry
-        color = buffer.colors
+        color = buffer.color
         position = buffer.position
+        newBuffer = true
     }
     else
     {
@@ -177,16 +180,16 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         if(group.children.length != 0)
         {
             geometry = group.children[group.children.length-1].geometry
-            existingVertexCount = geometry.attributes.position.count
-            position = geometry.attributes.position
             color = geometry.attributes.color
+            position = geometry.attributes.position
         }
         else
         {
-            let buffer = createBuffer(df.length * 3 + 1000)
+            let buffer = createBuffer(df.length + 1000)
             geometry = buffer.geometry
             color = buffer.color
             position = buffer.position
+            newBuffer = true
         }
     }
 
@@ -202,24 +205,33 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         geometry.colors.push(dfColors[i])*/
 
         // todo what about invalid vertex in buffer geometries?
-        let j = i + existingVertexCount
+        let j = i + position.realCount
 
-        position[j] = df[i][x1col]
-        position[j+1] = df[i][x2col]
-        position[j+2] = df[i][x3col]
+        position.array[j*3] = df[i][x1col]
+        position.array[j*3+1] = df[i][x2col]
+        position.array[j*3+2] = df[i][x3col]
 
-        color[j] = dfColors[i].r
-        color[j+1] = dfColors[i].g
-        color[j+2] = dfColors[i].b
+        color.array[j*3] = dfColors[i].r
+        color.array[j*3+1] = dfColors[i].g
+        color.array[j*3+2] = dfColors[i].b
     }
 
+    position.realCount += df.length
+
     // the buffer is being initialized with a larger size than neccessary at this point. now set the actual number of vertices
-    //geometry.attributes.position.count = df.length + existingVertexCount
+    // geometry.attributes.position.count = df.length + existingVertexCount
 
-    let newDataPointSprites = new THREE.Points(geometry, material)
-
-    group.add(newDataPointSprites)
+    if(newBuffer)
+    {
+        group.add(new THREE.Points(geometry, material))
+        geometry.addAttribute("position", position)
+        geometry.addAttribute("color", color)
+    }
     
+    geometry.verticesNeedUpdate = true
+    geometry.attributes.position.needsUpdate = true
+    geometry.attributes.color.needsUpdate = true
+
     // normalize
     parent.plotmesh.scale.set(xLen/x1frac,yLen/x2frac,zLen/x3frac)
     parent.plotmesh.position.set(-minX1/x1frac*xLen,-minX2/x2frac*yLen,-minX3/x3frac*zLen)
@@ -243,12 +255,12 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
 
 function createBuffer(size)
 {
-    size = 1000*3
     let geometry = new THREE.BufferGeometry()
     // initialize with a larger size than neccessarry at this point so that i can add new vertices to the geometry
-    let position = new Float32Array(size)
-    let colors = new Float32Array(size)
-    geometry.addAttribute("position", new THREE.Float32BufferAttribute(position, 3))
-    geometry.addAttribute("color", new THREE.Float32BufferAttribute(colors, 3))
-    return {geometry, position, colors}
+    let position = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
+    position.realCount = 0
+    let color = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
+    position.dynamic = true
+    color.dynamic = true
+    return {geometry, color, position}
 }
