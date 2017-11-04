@@ -1,6 +1,11 @@
 import * as THREE from "three"
 import * as NORMLIB from "../NormalizationLib.js"
 
+function initScatterplotSprite()
+{
+
+}
+
 /**
  * called from within JsPlot3D.js class plot
  * @param {object} parent this
@@ -88,67 +93,128 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         parent.SceneHelper.scene.add(parent.plotmesh)
     }
     
-    // laod the recently used material from the cache
+    // laod the recently used material from the cache. Maybe that's already enough
+    // if not, make a copy and modify it
+    // might be from the barchart, might be from a scatterplot
     let material = parent.oldData.material
+    
+    let geometry, position, color
+    let existingVertexCount = 0
 
-    // the material is created here
+    // group is parent.plotmesh, which is of type group
+    // it contains all the meshes that are being displayed using sprites
+    let group = parent.plotmesh
+
+    // but if an attribute of the material has to be differnet for the new dataframe, it has to be recreated
+    // for this, copy a template, overwrite the parameter and use it
+    // at this point the material might be a scatterplot material or not. check that with that if term
     if(material === null || !isItValid || (material !== null && material.size != dataPointSize))
     {
+        // create from scratch would be an option
+        // or copy the material and modify it
 
-        // base64 created using tools/getBase64.html and tools/sprite.png
-        let circle = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABAAQMAAACQp+OdAAAABlBMVEUAAAD///+l2Z/"+
-        "dAAAAAXRSTlMAQObYZgAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfhChkUDA4mTwuUAAAAHWlUWHR"+
-        "Db21tZW50AAAAAABDcmVhdGVkIHdpdGggR0lNUGQuZQcAAACJSURBVCjPvZK7DcAgDESJUlAyAqMwGhktozACJUWEE+fQORJSlCp"+
-        "ueJI/wnd27hHpwLuK7DcEkYqMCHJyxShBkVcoqEV1VGhoQltW6KNb+xfAhjE6iOABxSAAqkEENIMEON4gA/of8OU/8xbzprMas2I"+
-        "Uk/Ka4LSAptAmGkcraa7ZzQPgSfBIECf/CnPyltYpaAAAAABJRU5ErkJggg=="
-        // advantages over canvas: alpha pixels are not black. no need to redraw the circle
+        // if not yet existant, create from scratch
+        if(material === null)
+        {
+            // base64 created using tools/getBase64.html and tools/sprite.png
+            let circle = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABAAQMAAACQp+OdAAAABlBMVEUAAAD///+l2Z/"+
+            "dAAAAAXRSTlMAQObYZgAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfhChkUDA4mTwuUAAAAHWlUWHR"+
+            "Db21tZW50AAAAAABDcmVhdGVkIHdpdGggR0lNUGQuZQcAAACJSURBVCjPvZK7DcAgDESJUlAyAqMwGhktozACJUWEE+fQORJSlCp"+
+            "ueJI/wnd27hHpwLuK7DcEkYqMCHJyxShBkVcoqEV1VGhoQltW6KNb+xfAhjE6iOABxSAAqkEENIMEON4gA/of8OU/8xbzprMas2I"+
+            "Uk/Ka4LSAptAmGkcraa7ZzQPgSfBIECf/CnPyltYpaAAAAABJRU5ErkJggg=="
+            // advantages over canvas: alpha pixels are not black. no need to redraw the circle
 
-        let datapointSprite = new THREE.TextureLoader().load(circle)
-        //let datapointSprite = new THREE.ImageUtils.loadTexture(circle)
-        datapointSprite.needsUpdate = true
-        // plot it using circle sprites
+            let datapointSprite = new THREE.TextureLoader().load(circle)
+            //let datapointSprite = new THREE.ImageUtils.loadTexture(circle)
+            datapointSprite.needsUpdate = true
+            // plot it using circle sprites
 
-        datapointSprite.magFilter = THREE.NearestFilter
-        datapointSprite.minFilter = THREE.NearestFilter
+            datapointSprite.magFilter = THREE.NearestFilter
+            datapointSprite.minFilter = THREE.NearestFilter
 
+            // https:// github.com/mrdoob/three.js/issues/1625
+            // alphaTest = 1 causes errors
+            // alphaTest = 0.9 edgy picture
+            // alphaTest = 0.1 black edges on the sprite
+            // alphaTest = 0 not transparent infront of other sprites anymore
+            // sizeAttenuation: false, sprites don't change size in distance and size is in px
+            material = new THREE.PointsMaterial({
+                size: dataPointSize,
+                map: datapointSprite,
+                transparent: true,
+                alphaTest: 0.5,
+                color: true,
+                sizeAttenuation: true,
+            })
 
-        // https:// github.com/mrdoob/three.js/issues/1625
-        // alphaTest = 1 causes errors
-        // alphaTest = 0.9 edgy picture
-        // alphaTest = 0.1 black edges on the sprite
-        // alphaTest = 0 not transparent infront of other sprites anymore
-        // sizeAttenuation: false, sprites don't change size in distance and size is in px
-        material = new THREE.PointsMaterial({
-            size: dataPointSize,
-            map: datapointSprite,
-            transparent: true,
-            alphaTest: 0.5,
-            vertexColors: true,
-            sizeAttenuation: true,
-        })
+            parent.oldData.material = material
+        }
 
-        parent.oldData.material = material
+        // updated the stored size so that next time the material in parent.oldData might be reused
+        material.size = dataPointSize
+        // now create a copy so that when the size in parent.oldData.material is changed the previously created sprites are not affected
+        material = material.clone()
+        
+        // create a new geometry
+        let buffer = createBuffer(df.length * 3 + 1000)
+        geometry = buffer.geometry
+        color = buffer.colors
+        position = buffer.position
     }
+    else
+    {
+        // everything matches in such a good way, that it would be a very
+        // good idea to just add the current new vertices (df) to the existing mesh's geometry
+        // but since one can'T add vertices to a geometry (buffer size can't be changed, buffer contents can be modified)
+        // a check needs to take place to find out if there is still space left in the buffer
 
-    // don't add the vertex to the existing geometry. bufferedGeometrys (which is how geometries work internally)
-    // can only be updated but not changed in size. Or they can be created from scratch and added to the overall group. Do that here
-    // https://threejs.org/docs/#manual/introduction/How-to-update-things
-    let group = parent.plotmesh
-    let geometry = new THREE.Geometry()
+        // bufferedGeometrys (which is how geometries work internally)
+        // can only be updated but not changed in size. Or they can be created from scratch and added to the overall group
+        // https://threejs.org/docs/#manual/introduction/How-to-update-things
+
+        // it's not clear to this point if there even is a mesh available
+        // the code might be at this place because the material seemed to be valid. but the meshes might have been disposed
+        if(group.children.length != 0)
+        {
+            geometry = group.children[group.children.length-1].geometry
+            existingVertexCount = geometry.attributes.position.count
+            position = geometry.attributes.position
+            color = geometry.attributes.color
+        }
+        else
+        {
+            let buffer = createBuffer(df.length * 3 + 1000)
+            geometry = buffer.geometry
+            color = buffer.color
+            position = buffer.position
+        }
+    }
 
     for(let i = 0; i < df.length; i ++)
     {
-        let vertex = new THREE.Vector3()
+        /*let vertex = new THREE.Vector3()
         vertex.x = df[i][x1col]
         vertex.y = df[i][x2col]
         vertex.z = df[i][x3col]
-
+ 
         // three.js handles invalid vertex already by skipping them
         geometry.vertices.push(vertex)
-        geometry.colors.push(dfColors[i])
+        geometry.colors.push(dfColors[i])*/
+
+        // todo what about invalid vertex in buffer geometries?
+        let j = i + existingVertexCount
+
+        position[j] = df[i][x1col]
+        position[j+1] = df[i][x2col]
+        position[j+2] = df[i][x3col]
+
+        color[j] = dfColors[i].r
+        color[j+1] = dfColors[i].g
+        color[j+2] = dfColors[i].b
     }
 
-    geometry.verticesNeedUpdate = true
+    // the buffer is being initialized with a larger size than neccessary at this point. now set the actual number of vertices
+    //geometry.attributes.position.count = df.length + existingVertexCount
 
     let newDataPointSprites = new THREE.Points(geometry, material)
 
@@ -173,4 +239,16 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     normalization.x1frac = x1frac
     normalization.x2frac = x2frac
     normalization.x3frac = x3frac
+}
+
+function createBuffer(size)
+{
+    size = 1000*3
+    let geometry = new THREE.BufferGeometry()
+    // initialize with a larger size than neccessarry at this point so that i can add new vertices to the geometry
+    let position = new Float32Array(size)
+    let colors = new Float32Array(size)
+    geometry.addAttribute("position", new THREE.Float32BufferAttribute(position, 3))
+    geometry.addAttribute("color", new THREE.Float32BufferAttribute(colors, 3))
+    return {geometry, position, colors}
 }
