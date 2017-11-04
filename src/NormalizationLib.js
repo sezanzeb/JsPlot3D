@@ -27,7 +27,8 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
         if((df[i][col]) < min) min = df[i][col]
     }
     
-    // min and max from the parameters contain the old min and max values. so no need to iterate AGAIN
+    // EDIT: min and max from the parameters contain the old min and max values. so no need to iterate AGAIN
+    // -------
     // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
     /*if(keepOldPlot && oldData.dataframe.length !== 0)
     {
