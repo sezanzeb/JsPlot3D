@@ -55,6 +55,10 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     //      Recycling     //
     //--------------------//
 
+    // bufferedGeometrys (which is how geometries work internally)
+    // can only be updated but not changed in size. Or they can be created from scratch and added to the overall group
+    // https://threejs.org/docs/#manual/introduction/How-to-update-things
+
     // dispose the old mesh if it is not used/valid anymore
     let isItValid = parent.IsPlotmeshValid("scatterplot")
     if(!keepOldPlot || !isItValid)
@@ -64,8 +68,6 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         parent.plotmesh.name = "scatterplot"
         parent.SceneHelper.scene.add(parent.plotmesh)
     }
-
-
 
     // laod the recently used material from the cache. Maybe that's already enough
     // if not, make a copy and modify it (happens later)
@@ -98,8 +100,6 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         parent.oldData.scatterMaterial = material
     }
 
-
-
     // group is parent.plotmesh, which is of type group
     // it contains all the meshes that are being displayed using sprites
     let group = parent.plotmesh
@@ -108,7 +108,8 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     // is the buffer of the most recently used object full?
     let isBufferFull = newestChildren && newestChildren.geometry.attributes.position.realCount >= newestChildren.geometry.attributes.position.count
 
-    // but if an attribute of the material has to be differnet for the new dataframe, it has to be recreated
+    // if an attribute of the material has to be differnet for the new dataframe, the material has to be (first) modified and (then) dereferenced
+    // note: newestChildren might be undefined because it has recently been disposed or no scatteprlot has ever been added to the plotmesh group
     if(isBufferFull || !newestChildren || material.size != dataPointSize)
     {
         // updated the size first (which modifies the material in parent.oldData.scatterMaterial),
@@ -129,13 +130,9 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     }
     else
     {
-
-        // bufferedGeometrys (which is how geometries work internally)
-        // can only be updated but not changed in size. Or they can be created from scratch and added to the overall group
-        // https://threejs.org/docs/#manual/introduction/How-to-update-things
-
-        // it's not clear to this point if there even is a mesh available
-        // the code might be at this place because the material seemed to be valid. but the meshes might have been disposed and an empty group was created
+        
+        // everything is valid and wonderful
+        // continue modifying the recently created mesh vertices
         if(group.children.length != 0)
         {
             // both material and plotmesh are valid, just use the recently created material
@@ -143,18 +140,6 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
             color = geometry.attributes.color
             position = geometry.attributes.position
         }
-        else
-        {
-            // created the plotmesh and the material is valid, but no children have been appended yet?
-            let buffer = createBuffer(df.length * 10)
-            geometry = buffer.geometry
-            color = buffer.color
-            position = buffer.position
-            geometry.addAttribute("position", position)
-            geometry.addAttribute("color", color)
-            group.add(new THREE.Points(geometry, material))
-        }
-
     }
 
 
@@ -220,7 +205,7 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
 
     x3frac = Math.abs(maxX3-minX3)
     if(x3frac === 0) x3frac = 1
-    
+
     parent.plotmesh.scale.set(xLen/x1frac,yLen/x2frac,zLen/x3frac)
     parent.plotmesh.position.set(-minX1/x1frac*xLen,-minX2/x2frac*yLen,-minX3/x3frac*zLen)
 
