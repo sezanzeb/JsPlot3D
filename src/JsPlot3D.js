@@ -70,7 +70,7 @@ export class Plot
         // they need to be updated once setDimensions is called or the mode of the plot changes
         // why on modechange? because barcharts need a different way of displaying them due to the different
         // normalization approach
-        this.axesNumbersNeedUpdate = false
+        this.axesNumbersNeedUpdate = true // true at first so that numbers are being displayed
 
         // initialize the legend variables
         this.initializeLegend()
@@ -1410,6 +1410,8 @@ export class Plot
         if(dimensions.zLen) this.dimensions.zLen = Math.abs(dimensions.zLen)
     
 
+        this.axesNumbersNeedUpdate = true
+
         // move
         this.SceneHelper.centerCamera(this.dimensions)
         this.SceneHelper.updateAxesSize(this.dimensions,this.oldData.normalization)
@@ -1472,18 +1474,18 @@ export class Plot
      */
     callAnimation()
     {
-        // 0 1 2 3  0 1 2 3  0 1 2 ...
-        // check for this.fps15 === 0 and do something if true
-        // this way a lower fps framerate for certain tasks can be achieved to improve performance
-        this.fps15 += 1
-        this.fps15 = this.fps15 % 4
-
         if(this.animationFunc !== null)
         {
             this.animationFunc()
             this.SceneHelper.render()
         }
         requestAnimationFrame(()=>this.callAnimation())
+
+        // 0 1 2 3  0 1 2 3  0 1 2 ...
+        // check for this.fps15 === 0 and do something if true
+        // this way a lower fps framerate for certain tasks can be achieved to improve performance
+        this.fps15 += 1
+        this.fps15 = this.fps15 % 4
     }
 
 
