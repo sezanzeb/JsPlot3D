@@ -3,11 +3,12 @@
 Plots functions and .csv files. Based on three.js. It is written in ES6 syntax and compiled using Webpack.
 
 <p align="center">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barchart.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/spatial2D.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatterplot.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/lineplot.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/formula.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/bar.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/line.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barchart2.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/polygon.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatter.png">
+    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/spatial.png">
 </p>
 
 **Download:** http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js
