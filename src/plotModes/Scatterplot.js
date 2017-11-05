@@ -67,10 +67,11 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         parent.plotmesh = new THREE.Group()
         parent.plotmesh.name = "scatterplot"
         parent.SceneHelper.scene.add(parent.plotmesh)
+
+        // console.log("dispose mesh")
     }
 
-    // laod the recently used material from the cache. Maybe that's already enough
-    // if not, make a copy and modify it (happens later)
+
     let material = parent.oldData.scatterMaterial
     // if the material is not yet existant, create from scratch
     // no need to check if it is the right material, because it was lodaded from oldData.scatterMaterial
@@ -98,48 +99,67 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         })
 
         parent.oldData.scatterMaterial = material
+
+        // console.log("new material")
     }
+    
 
     // group is parent.plotmesh, which is of type group
     // it contains all the meshes that are being displayed using sprites
     let group = parent.plotmesh
-    let newestChildren = group.children[parent.plotmesh.children.length-1]
     let geometry, position, color
+
+
     // is the buffer of the most recently used object full?
+    let newestChildren = group.children[parent.plotmesh.children.length-1]
     let isBufferFull = newestChildren && newestChildren.geometry.attributes.position.realCount >= newestChildren.geometry.attributes.position.count
+
 
     // if an attribute of the material has to be differnet for the new dataframe, the material has to be (first) modified and (then) dereferenced
     // note: newestChildren might be undefined because it has recently been disposed or no scatteprlot has ever been added to the plotmesh group
     if(isBufferFull || !newestChildren || material.size != dataPointSize)
     {
-        // updated the size first (which modifies the material in parent.oldData.scatterMaterial),
-        // so that next time the material in parent.oldData might be reused
+        // initialize with a larger size than neccessarry at this point so that new vertices can be added to the geometry
+        let size = df.length * 15 // 15, based on the benchmark in /test/visual_tests/h.html
+        position = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
+        color = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
+        for(let i = 0;i < position.array.length; i++)
+        {
+            // move it out of the viewport
+            position.array[i] = Number.MAX_SAFE_INTEGER
+        }
+
+        // no vertices have been added yet. count them using position.realCount
+        position.realCount = 0
+
+        // tells the gpu that this array changes a lot (due to scaling & translating for normalization and the adding of new vertices)
+        position.dynamic = true
+        color.dynamic = true
+
+        // finish the geometry
+        // update the size first (which modifies the material in parent.oldData.scatterMaterial)
+        // so that next time the material in parent.oldData might be reused because of the matching datapointsize
+        // then create a copy so that when parameters in parent.oldData.scatterMaterial are changed the previously created sprites are not affected
+        geometry = new THREE.BufferGeometry()
         material.size = dataPointSize
-        // now create a copy so that when the size in parent.oldData.scatterMaterial is changed the previously created sprites are not affected
         material = material.clone()
-        
-        // create a new geometry
-        let buffer = createBuffer(df.length * 10)
-        geometry = buffer.geometry
-        color = buffer.color
-        position = buffer.position
         geometry.addAttribute("position", position)
         geometry.addAttribute("color", color)
         group.add(new THREE.Points(geometry, material))
 
+        // console.log("new mesh")
     }
     else
     {
         
         // everything is valid and wonderful
         // continue modifying the recently created mesh vertices
-        if(group.children.length != 0)
-        {
-            // both material and plotmesh are valid, just use the recently created material
-            geometry = group.children[group.children.length-1].geometry
-            color = geometry.attributes.color
-            position = geometry.attributes.position
-        }
+        // both material and plotmesh are valid, just use the recently created material
+        geometry = group.children[group.children.length-1].geometry
+        color = geometry.attributes.color
+        position = geometry.attributes.position
+
+        // console.log("old mesh")
     }
 
 
@@ -230,27 +250,4 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
     normalization.x3frac = x3frac
     
     parent.benchmarkStamp("made a scatterplot")
-}
-
-
-
-/**
- * @param {number} size of the buffer
- * @return {object} {geometry, color, position}. color and position are both of type THREE.Float32BufferAttribute
- */
-function createBuffer(size)
-{
-    let geometry = new THREE.BufferGeometry()
-    // initialize with a larger size than neccessarry at this point so that i can add new vertices to the geometry
-    let position = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
-    for(let i = 0;i < position.array.length; i++)
-    {
-        // move it out of the viewport
-        position.array[i] = Number.MAX_SAFE_INTEGER
-    }
-    position.realCount = 0
-    let color = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
-    position.dynamic = true
-    color.dynamic = true
-    return {geometry, color, position}
 }
