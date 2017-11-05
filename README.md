@@ -3,13 +3,15 @@
 Plots functions and .csv files. Based on three.js. It is written in ES6 syntax and compiled using Webpack.
 
 <p align="center">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/bar.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/line.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barchart2.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/polygon.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatter.png">
-    <img width="19%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/spatial.png">
+    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/bar.png">
+    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/line.png">
+    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barchart2.png">
+    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/polygon.png">
+    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatter.png">
+    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/spatial.png">
 </p>
+
+<br/>
 
 **Download:** http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js
 
@@ -17,6 +19,7 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
 - You can find the **documentation** here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
 - A little HowTo is in USAGE.md
 
+<br/>
 
 ## Live Example
 
@@ -26,6 +29,7 @@ http://hip70890b.de/JsPlot3D/examples/playground/index.html
 
 You can uploade one of the csvs in /examples/csvFiles. Or get a .csv dataset (for example on kaggle.com). The live example also gives insight about the settings that can be handed over to plotCsvString, plotDataFrame, plotFormula and addDataPoints.
 
+<br/>
 
 ## Features
 
@@ -40,6 +44,7 @@ You can uploade one of the csvs in /examples/csvFiles. Or get a .csv dataset (fo
 - lineplots
 - 2D Mode
 
+<br/>
 
 ## Example
 
