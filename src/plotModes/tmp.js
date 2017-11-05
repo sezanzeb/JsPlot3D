@@ -1,9 +1,6 @@
 import * as THREE from "three"
 import * as NORMLIB from "../NormalizationLib.js"
 
-// difference to Scatterplot.js:
-// new THREE.
-
 
 /**
  * called from within JsPlot3D.js class plot
@@ -54,69 +51,6 @@ export default function lineplot(parent, df, colors, columns, normalization, app
 
 
 
-
-
-    //--------------------//
-    //     Normalizing    //
-    //--------------------//
-
-    // minX1 is usually 0 and it becomes something different when normalizeX1 is true
-    // boundingMinX1 is 0 when normalizeX1 is true
-
-    // minX1 is the needed offset for normalization
-    // boundingMinX1 is the minX1 in the 3D space, which is 0 after the offset of minX1 is applied
-
-    let boundingMaxX1, boundingMaxX2, boundingMaxX3
-    let boundingMinX1, boundingMinX2, boundingMinX3
-    let newDataMax
-
-    newDataMax = NORMLIB.getMinMax(df, x1col, parent.oldData, keepOldPlot, minX1, maxX1)
-    boundingMinX1 = newDataMax.min
-    boundingMaxX1 = newDataMax.max
-
-    newDataMax = NORMLIB.getMinMax(df, x2col, parent.oldData, keepOldPlot, minX2, maxX2)
-    boundingMinX2 = newDataMax.min
-    boundingMaxX2 = newDataMax.max
-
-    newDataMax = NORMLIB.getMinMax(df, x3col, parent.oldData, keepOldPlot, minX3, maxX3)
-    boundingMinX3 = newDataMax.min
-    boundingMaxX3 = newDataMax.max
-
-    if(normalizeX1)
-    {
-        minX1 = boundingMinX1
-        maxX1 = boundingMaxX1
-        boundingMinX1 = 0
-        boundingMaxX1 = xLen
-    }
-
-    if(normalizeX2)
-    {
-        minX2 = boundingMinX2
-        maxX2 = boundingMaxX2
-        boundingMinX2 = 0
-        boundingMaxX2 = yLen
-    }
-
-    if(normalizeX3)
-    {
-        minX3 = boundingMinX3
-        maxX3 = boundingMaxX3
-        boundingMinX3 = 0
-        boundingMaxX3 = zLen
-    }
-
-    x1frac = Math.abs(maxX1-minX1)
-    if(x1frac === 0) x1frac = 1 // prevent division by zero
-
-    x2frac = Math.abs(maxX2-minX2)
-    if(x2frac === 0) x2frac = 1
-
-    x3frac = Math.abs(maxX3-minX3)
-    if(x3frac === 0) x3frac = 1
-    
-
-
     //--------------------//
     //      Recycling     //
     //--------------------//
@@ -134,7 +68,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
         parent.plotmesh.name = "lineplot"
         parent.SceneHelper.scene.add(parent.plotmesh)
 
-        // console.log("dispose mesh")
+        console.log("dispose mesh")
     }
 
 
@@ -165,7 +99,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
 
         parent.oldData.lineMaterial = material
 
-        // console.log("new material")
+        console.log("new material")
     }
     
 
@@ -185,16 +119,13 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     if(isBufferFull || !newestChildren || material.linewidth != wireframeLinewidth)
     {
         // initialize with a larger size than neccessarry at this point so that new vertices can be added to the geometry
-        let size = df.length * 100 // large buffers, so that long lines can be drawn
+        let size = df.length * 100 // 15, based on the benchmark in /test/visual_tests/h.html
         position = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
         color = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
-
-        // no lines are going to be drawn to undefined vertices
-        for(let i = 0;i < position.array.length; i+=3)
+        for(let i = 0;i < position.array.length; i++)
         {
-            position.array[i] = undefined
-            position.array[i+1] = undefined
-            position.array[i+2] = undefined
+            // move it out of the viewport
+            position.array[i] = Number.MAX_SAFE_INTEGER
         }
 
         // no vertices have been added yet. count them using position.realCount
@@ -215,26 +146,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
         geometry.addAttribute("color", color)
         group.add(new THREE.Line(geometry, material))
 
-        // overwrite computeBoundingSphere because the geometry positions contain undefined values
-        // without the check for isNaN it would print errors and would fail to compute the boundingSphere
-        // THREE 0.87.1
-        // I can also make the whole process way simpler by using already computed min and max values
-        geometry.computeBoundingSphere = function ()
-        {
-            return function computeBoundingSphere()
-            {
-                if (this.boundingSphere === null)
-                {
-                    this.boundingSphere = new THREE.Sphere()
-                }
-
-                this.boundingSphere.radius = Math.max(boundingMaxX1-boundingMinX1, boundingMaxX2-boundingMinX2, boundingMaxX3-boundingMinX3)/2
-                this.boundingSphere.center = new THREE.Vector3((boundingMaxX1+boundingMinX1)/2, (boundingMaxX2+boundingMinX2)/2, (boundingMaxX3+boundingMinX3)/2)
-            }
-        }()
-        
-
-        // console.log("new mesh")
+        console.log("new mesh")
     }
     else
     {
@@ -246,7 +158,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
         color = geometry.attributes.color
         position = geometry.attributes.position
 
-        // console.log("old mesh")
+        console.log("old mesh")
     }
 
 
@@ -275,6 +187,43 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     // finish
     geometry.attributes.position.needsUpdate = true
     geometry.attributes.color.needsUpdate = true
+
+
+
+
+    //--------------------//
+    //     Normalizing    //
+    //--------------------//
+
+    if(normalizeX1)
+    {
+        let newDataMax = NORMLIB.getMinMax(df, x1col, parent.oldData, keepOldPlot, minX1, maxX1)
+        minX1 = newDataMax.min
+        maxX1 = newDataMax.max
+    }
+
+    if(normalizeX2)
+    {
+        let newDataMax = NORMLIB.getMinMax(df, x2col, parent.oldData, keepOldPlot, minX2, maxX2)
+        minX2 = newDataMax.min
+        maxX2 = newDataMax.max
+    }
+
+    if(normalizeX3)
+    {
+        let newDataMax = NORMLIB.getMinMax(df, x3col, parent.oldData, keepOldPlot, minX3, maxX3)
+        minX3 = newDataMax.min
+        maxX3 = newDataMax.max
+    }
+
+    x1frac = Math.abs(maxX1-minX1)
+    if(x1frac === 0) x1frac = 1 // prevent division by zero
+
+    x2frac = Math.abs(maxX2-minX2)
+    if(x2frac === 0) x2frac = 1
+
+    x3frac = Math.abs(maxX3-minX3)
+    if(x3frac === 0) x3frac = 1
 
     parent.plotmesh.scale.set(xLen/x1frac,yLen/x2frac,zLen/x3frac)
     parent.plotmesh.position.set(-minX1/x1frac*xLen,-minX2/x2frac*yLen,-minX3/x3frac*zLen)

@@ -26,20 +26,6 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
         if((df[i][col]) > max) max = df[i][col]
         if((df[i][col]) < min) min = df[i][col]   
     }
-    
-    // EDIT: min and max from the parameters contain the old min and max values. so no need to iterate AGAIN
-    // -------
-    // take care of normalizing it together with the in oldData stored dataframe in case keepOldPlot is true
-    /*if(keepOldPlot && oldData.dataframe.length !== 0)
-    {
-        // determine min and max for normalisation
-        for(let i = oldData.options.header?1:0; i < oldData.dataframe.length; i++)
-        {
-            let check = oldData.dataframe[i][col]
-            if(check > max) max = check
-            if(check < min) min = check
-        }
-    }*/
 
     return {min, max}
 }

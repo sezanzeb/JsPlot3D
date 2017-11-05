@@ -36,6 +36,7 @@
 <script src="https://threejs.org/build/three.js"></script>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
+    var mode = "scatterplot"
     var pointcounter = 0
 
     var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
@@ -47,7 +48,8 @@
 
     plot1.plotCsvString(data,0,1,2,{
         defaultColor: 0x00ffff,
-        dataPointSize: 0.3
+        dataPointSize: 0.3,
+        mode: mode
     })
 
     pointcounter += 9
@@ -85,7 +87,8 @@
             normalizeX1: false,
             normalizeX2: false,
             normalizeX3: false,
-            keepOldPlot: false
+            keepOldPlot: false,
+            mode: mode
         })
 
         pointcounter ++
@@ -109,6 +112,7 @@
             normalizeX1: false,
             normalizeX2: false,
             normalizeX3: false,
+            mode: mode
         })
 
         pointcounter ++
@@ -131,7 +135,8 @@
             normalizeX1: true,
             normalizeX2: true,
             normalizeX3: true,
-            keepOldPlot: true
+            keepOldPlot: true,
+            mode: mode
         })
 
         pointcounter ++
