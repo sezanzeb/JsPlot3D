@@ -24,7 +24,7 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
     for(let i = 0; i < df.length; i++)
     {
         if((df[i][col]) > max) max = df[i][col]
-        if((df[i][col]) < min) min = df[i][col]
+        if((df[i][col]) < min) min = df[i][col]   
     }
     
     // EDIT: min and max from the parameters contain the old min and max values. so no need to iterate AGAIN

@@ -20,6 +20,6 @@ module.exports = {
     },
 
     externals: {
-        "three": "THREE"
+    //    "three": "THREE"
     }
 }

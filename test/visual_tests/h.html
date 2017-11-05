@@ -29,11 +29,15 @@
             8;0.9968017063026194;0.07982976911113135
             9;0.9959527330119943;0.08975778474716013
         </div>
+
+        <div id="stats">points per ms: <span id="statsNumber"></span></div>
     </body>
 </html>
 <script src="https://threejs.org/build/three.js"></script>
 <script type="text/javascript" src="../../compiled/JsPlot3D.js"></script>
 <script>
+    var pointcounter = 0
+
     var plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
         backgroundColor: "#12365a",
         axesColor: 0x66ff00
@@ -45,6 +49,8 @@
         defaultColor: 0x00ffff,
         dataPointSize: 0.3
     })
+
+    pointcounter += 9
 
     plot1.animate(function() {
         let randr = 255
@@ -59,6 +65,8 @@
             normalizeX3: true,
             dataPointSize: 0.1
         })
+
+        pointcounter ++
     })
 
 
@@ -79,6 +87,8 @@
             normalizeX3: false,
             keepOldPlot: false
         })
+
+        pointcounter ++
     })
     plot2.removeAxes()
 
@@ -100,6 +110,8 @@
             normalizeX2: false,
             normalizeX3: false,
         })
+
+        pointcounter ++
     })
     plot3.removeAxes()
     
@@ -121,7 +133,20 @@
             normalizeX3: true,
             keepOldPlot: true
         })
+
+        pointcounter ++
     })
     plot4.removeAxes()
+
+
+    window.setInterval(updateStatistic, 100)
+
+    var statElem = document.getElementById("statsNumber")
+    var startTime = new Date().getTime()
+
+    function updateStatistic()
+    {
+        statElem.innerHTML = pointcounter / (new Date().getTime() - startTime)
+    }
 
 </script>
