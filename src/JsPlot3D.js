@@ -24,10 +24,7 @@ export const DEFAULTCAMERA = 0
 export const TOPCAMERA = 1
 export const LEFTCAMERA = 2
 export const FRONTCAMERA = 3
-
-// I need this for the jasmine tests so that colorLib can be
-// testet and not only accessed from within the Plot class-
-export const colorLib = COLORLIB
+export { COLORLIB }
 
 
 // Main Class for this Tool, exported as JSPLOT3D.Plot
@@ -1413,7 +1410,7 @@ export class Plot
         this.axesNumbersNeedUpdate = true
 
         // move
-        this.SceneHelper.centerCamera(this.dimensions)
+        this.SceneHelper.centerCamera(this.dimensions) // use this.dimensions and not dimensions
         this.SceneHelper.updateAxesSize(this.dimensions,this.oldData.normalization)
 
         // axes have to be updates aswellc

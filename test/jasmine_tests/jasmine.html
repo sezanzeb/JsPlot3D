@@ -34,15 +34,16 @@
     let container, plot, timeBench
 
     describe("Creating the Plot Object", function() {
-        // create a dummy invisible plot
-        container = document.createElement("div")
-        container.style = "width: 300px, height: 300px"
-        plot = new JSPLOT3D.Plot(container, {
-            backgroundColor: "#ff0000",
-            axesColor: "#00ff00"
-        })
-
         it("plot is defined", function() {
+                
+            // create a dummy invisible plot
+            container = document.createElement("div")
+            container.style = "width: 300px, height: 300px"
+            plot = new JSPLOT3D.Plot(container, {
+                backgroundColor: "#ff0000",
+                axesColor: "#00ff00"
+            })
+
             expect(plot).toBeDefined()
         })
     })
@@ -56,6 +57,7 @@
             expect(plot.oldData).toBeDefined()
             expect(plot.dimensions).toBeDefined()
             expect(plot.benchmark).toBeDefined()
+            expect(plot.animationFunc).toBeNull()
         })
     })
 
@@ -97,6 +99,120 @@
             expect(plot.MathParser.f(0,0)).toBe(1)
         })
 
+    })
+
+
+
+    describe("setDimensions", function() {
+
+        it("2D camera mode from Top", function() {
+
+            let dimensions = {xRes:-2, zRes:2, xLen: -0.5, yLen: 0, zLen: 0.5}
+            plot.setDimensions(dimensions)
+
+            expect(plot.dimensions.xRes).toBe(2)
+            expect(plot.dimensions.zRes).toBe(2)
+            expect(plot.dimensions.xLen).toBe(0.5)
+
+            // because otherwise there are going to be errors. Should not be 0. Orthographic camera will not see a difference between 0 and 0.001
+            expect(plot.dimensions.yLen).toBeGreaterThan(0)
+
+            expect(plot.dimensions.zLen).toBe(0.5)
+            expect(plot.SceneHelper.cameraMode).toBe(JSPLOT3D.TOPCAMERA)
+
+            expect(plot.SceneHelper.cameraControls.enableZoom).toBeTruthy()
+            expect(plot.SceneHelper.cameraControls.enableRotate).toBeFalsy()
+
+            // should be far enough away. Camera y-position is defined in SceneHelpper.centerCamera as Math.max(xLen,zLen)*2.
+            // this is not a strict test. Should be far enough away, but there is room for later adjustments
+            expect(plot.SceneHelper.camera.position.y).toBeGreaterThan(0.5)
+
+            // centered means xLen/2 and zLen/2
+            expect(plot.SceneHelper.camera.position.z).toBe(0.25)
+            expect(plot.SceneHelper.camera.position.x).toBe(0.25)
+            expect(plot.SceneHelper.cameraControls.target.z).toBe(0.25)
+            expect(plot.SceneHelper.cameraControls.target.x).toBe(0.25)
+
+            expect(plot.SceneHelper.camera.type).toBe("OrthographicCamera")
+
+        })
+
+        it("2D camera mode from Front", function() {
+
+            let dimensions = {xRes:-2, zRes:2, xLen: -0.5, yLen: -0.5, zLen: 0}
+            plot.setDimensions(dimensions)
+
+            expect(plot.dimensions.xRes).toBe(2)
+            expect(plot.dimensions.zRes).toBe(1)
+            expect(plot.dimensions.xLen).toBe(0.5)
+
+            // because otherwise there are going to be errors. Should not be 0. Orthographic camera will not see a difference between 0 and 0.001
+            expect(plot.dimensions.zLen).toBeGreaterThan(0)
+
+            expect(plot.dimensions.yLen).toBe(0.5)
+            expect(plot.SceneHelper.cameraMode).toBe(JSPLOT3D.FRONTCAMERA)
+
+            expect(plot.SceneHelper.cameraControls.enableZoom).toBeTruthy()
+            expect(plot.SceneHelper.cameraControls.enableRotate).toBeFalsy()
+
+            // should be far enough away. Camera y-position is defined in SceneHelpper.centerCamera as Math.max(xLen,zLen)*2.
+            // this is not a strict test. Should be far enough away, but there is room for later adjustments
+            expect(plot.SceneHelper.camera.position.z).toBeGreaterThan(0.5)
+
+            // centered means xLen/2 and zLen/2
+            expect(plot.SceneHelper.camera.position.y).toBe(0.25)
+            expect(plot.SceneHelper.camera.position.x).toBe(0.25)
+            expect(plot.SceneHelper.cameraControls.target.y).toBe(0.25)
+            expect(plot.SceneHelper.cameraControls.target.x).toBe(0.25)
+
+            expect(plot.SceneHelper.camera.type).toBe("OrthographicCamera")
+
+        })
+
+        it("2D camera mode from Left", function() {
+
+            let dimensions = {xRes:-2, zRes:2, xLen: 0, yLen: 0.5, zLen: -0.5}
+            plot.setDimensions(dimensions)
+
+            expect(plot.dimensions.xRes).toBe(1)
+            expect(plot.dimensions.zRes).toBe(2)
+            expect(plot.dimensions.yLen).toBe(0.5)
+
+            // because otherwise there are going to be errors. Should not be 0. Orthographic camera will not see a difference between 0 and 0.001
+            expect(plot.dimensions.xLen).toBeGreaterThan(0)
+
+            expect(plot.dimensions.zLen).toBe(0.5)
+            expect(plot.SceneHelper.cameraMode).toBe(JSPLOT3D.LEFTCAMERA)
+
+            expect(plot.SceneHelper.cameraControls.enableZoom).toBeTruthy()
+            expect(plot.SceneHelper.cameraControls.enableRotate).toBeFalsy()
+
+            // should be far enough away. Camera y-position is defined in SceneHelpper.centerCamera as Math.max(xLen,zLen)*2.
+            // this is not a strict test. Should be far enough away, but there is room for later adjustments
+            expect(plot.SceneHelper.camera.position.x).toBeLessThan(-0.5)
+
+            // centered means xLen/2 and zLen/2
+            expect(plot.SceneHelper.camera.position.z).toBe(0.25)
+            expect(plot.SceneHelper.camera.position.y).toBe(0.25)
+            expect(plot.SceneHelper.cameraControls.target.z).toBe(0.25)
+            expect(plot.SceneHelper.cameraControls.target.y).toBe(0.25)
+
+            expect(plot.SceneHelper.camera.type).toBe("OrthographicCamera")
+
+        })
+
+        it("default camera mode", function() {
+
+            plot.setDimensions({xRes:20, zRes:-20, xLen: -2, yLen: 2, zLen: 2})
+
+            expect(plot.dimensions.xRes).toBe(20)
+            expect(plot.dimensions.zRes).toBe(20)
+            expect(plot.dimensions.xLen).toBe(2)
+            expect(plot.dimensions.yLen).toBe(2)
+            expect(plot.dimensions.zLen).toBe(2)
+            expect(plot.SceneHelper.cameraMode).toBe(JSPLOT3D.DEFAULTCAMERA)
+
+        })
     })
 
     describe("Manipulating the appearance of a plot", function() {
@@ -181,7 +297,7 @@
         for(let key in tests)
         {
             it(key+" to "+tests[key], function() {
-                expect(JSPLOT3D.colorLib.getColorObjectFromAnyString(key).getHexString()).toBe(tests[key])
+                expect(JSPLOT3D.COLORLIB.getColorObjectFromAnyString(key).getHexString()).toBe(tests[key])
             })      
         }
     })
@@ -189,10 +305,11 @@
     describe("labeled data and min/max detection", function()
     {
         // iterate over the modes and make a few tests for each mode
-        let modes = [undefined,"scatterplot","lineplot"]
+        let modes = [undefined,JSPLOT3D.SCATTERPLOT_MODE,JSPLOT3D.LINEPLOT_MODE]
         for(let i = 0;i < modes.length; i++)
         {
             let mode = modes[i]
+            let expectedMode = mode != undefined ? mode : JSPLOT3D.SCATTERPLOT_MODE
 
             describe("mode: "+mode, function() {
                 describe("plot csv", function() {
@@ -246,7 +363,23 @@
                         expect(plot.legend.element.innerHTML).toContain("rock")
                         expect(plot.legend.element.innerHTML).toContain("water")
                     })     
-                })  
+                })
+                
+                describe("checking integrity of the mesh", function() {
+
+                    it("defined", function() {
+                        expect(plot.plotmesh).toBeDefined()
+                    })
+
+                    it("type correct", function() {
+                        expect(plot.plotmesh.name).toBe(expectedMode)
+                    })
+
+                    it("IsPlotmeshValid function", function() {
+                        expect(plot.IsPlotmeshValid(expectedMode)).toBeTruthy()
+                    })
+
+                })
             })
         }
     })
@@ -285,6 +418,33 @@
                 })
             })  
         }
+    })
+
+    describe("animation control", function() {
+    
+        let i = 0
+
+        it("starting the animation", function() {
+
+            plot.animate(function() {
+                i ++
+            })
+
+            expect(plot.animationFunc).not.toBeNull()
+
+            // should be called immediatelly upon animate
+            expect(i).toBeGreaterThan(0)
+
+        })
+
+        it("stopping the animation", function() {
+
+            plot.stopAnimation()
+
+            expect(plot.animationFunc).toBeNull()
+
+        })
+
     })
 
 </script>

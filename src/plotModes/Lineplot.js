@@ -138,24 +138,12 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     }
 
 
-    let wireframeLinewidth = dataPointSize*100
+    let wireframeLinewidth = dataPointSize*33
     let material = parent.oldData.lineMaterial
     // if the material is not yet existant, create from scratch
     // no need to check if it is the right material, because it was lodaded from oldData.lineMaterial
     if(!material)
     {
-        // base64 created using tools/getBase64.html and tools/sprite.png
-        let circle = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABAAQMAAACQp+OdAAAABlBMVEUAAAD///+l2Z/"+
-        "dAAAAAXRSTlMAQObYZgAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfhChkUDA4mTwuUAAAAHWlUWHR"+
-        "Db21tZW50AAAAAABDcmVhdGVkIHdpdGggR0lNUGQuZQcAAACJSURBVCjPvZK7DcAgDESJUlAyAqMwGhktozACJUWEE+fQORJSlCp"+
-        "ueJI/wnd27hHpwLuK7DcEkYqMCHJyxShBkVcoqEV1VGhoQltW6KNb+xfAhjE6iOABxSAAqkEENIMEON4gA/of8OU/8xbzprMas2I"+
-        "Uk/Ka4LSAptAmGkcraa7ZzQPgSfBIECf/CnPyltYpaAAAAABJRU5ErkJggg=="
-
-        let datapointSprite = new THREE.TextureLoader().load(circle)
-        datapointSprite.needsUpdate = true
-        datapointSprite.magFilter = THREE.NearestFilter
-        datapointSprite.minFilter = THREE.NearestFilter
-
         material = new THREE.LineBasicMaterial({
             vertexColors: THREE.VertexColors,
             linewidth: wireframeLinewidth,
@@ -185,7 +173,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     if(isBufferFull || !newestChildren || material.linewidth != wireframeLinewidth)
     {
         // initialize with a larger size than neccessarry at this point so that new vertices can be added to the geometry
-        let size = df.length * 100 // large buffers, so that long lines can be drawn
+        let size = Math.min(df.length * 15, 100) // large buffers, so that long lines can be drawn
         position = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
         color = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
 
