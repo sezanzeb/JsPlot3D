@@ -173,7 +173,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     if(isBufferFull || !newestChildren || material.linewidth != wireframeLinewidth)
     {
         // initialize with a larger size than neccessarry at this point so that new vertices can be added to the geometry
-        let size = Math.min(df.length * 15, 100) // large buffers, so that long lines can be drawn
+        let size = Math.max(df.length * 15, 100) // large buffers, so that long lines can be drawn
         position = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
         color = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
 

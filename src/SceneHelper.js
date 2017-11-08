@@ -91,7 +91,7 @@ export default class SceneHelper
         let x, y, z
         if(this.cameraMode === DEFAULTCAMERA)
         {
-            x = zoom*(xLen/2)
+            x = zoom*(zLen+xLen)/2
             y = zoom*(Math.max(zLen, yLen))
             z = zoom*(zLen+xLen)
         }
@@ -225,7 +225,7 @@ export default class SceneHelper
         // the cameras position is set in centerCamera, which is called on setDimensions and during the constructor in JsPlot3D.js
         let width = this.width
         let height = this.height
-        let viewAngle = 40
+        let viewAngle = 30
         let aspect = width / height
         let near = 0.05 // when objects start to disappear at zoom-in
         let far = 50 // when objects start to disappear at zoom-out
@@ -310,7 +310,7 @@ export default class SceneHelper
             // depthWrite: false,
             sizeAttenuation: false,
             size: canvasToTexture.image.width * this.textScale * scale,
-            transparent: true,
+            transparent: true
         }))
         textureToSprite.position.set(position.x, position.y, position.z)
 
@@ -441,6 +441,11 @@ export default class SceneHelper
      */
     updateNumbersAlongAxis(numberDensity, axisLen, axisNumber, min, max)
     {
+        // there are a few arrays with three elements that contain functions and strings
+        // those elements are selected according to "axisNumber". By doing that different positioning
+        // lambda functions can be selected for different axes within only one single function.
+        // to update all axes, this function is called 3 times, each time with a different number in axisNumber
+
         if(!this.axes)
             return
 
@@ -456,6 +461,7 @@ export default class SceneHelper
 
         // select the function for updating the number position
         let offset2 = -0.075
+        let offset3 = -0.05
         let position
         let align
 
@@ -506,18 +512,18 @@ export default class SceneHelper
         }
         else
         {
-            // unknown of DEFAULTCAMERA
+            // unknown or DEFAULTCAMERA
             position = ([
-                (value)=>{return new THREE.Vector3(value, -offset2, offset2)}, // x-Axis
-                (value)=>{return new THREE.Vector3(offset2, value, offset2/2)}, // y-Axis
-                (value)=>{return new THREE.Vector3(offset2, -offset2, value)}  // z-Axis
+                (value)=>{return new THREE.Vector3(value, 0, this.dimensions.zLen-offset2)}, // x-Axis
+                (value)=>{return new THREE.Vector3(offset3, value, this.dimensions.zLen-offset3)}, // y-Axis
+                (value)=>{return new THREE.Vector3(this.dimensions.xLen-offset2, 0, value)}  // z-Axis
             ])[axisNumber-1]
             
             // align of the text. the goal is to nicely align it with the axes
             align = ([
-                "center", // x-Axis
+                "right", // x-Axis
                 "right", // y-Axis
-                "right"  // z-Axis
+                "left"  // z-Axis
             ])[axisNumber-1]
         }
 
@@ -533,7 +539,7 @@ export default class SceneHelper
         // step indicates how far away the numbers are in terms of the actual 3D space
         let step = axisLen/numberCount
         
-        for(let x = step; x <= axisLen; x += step)
+        for(let x = 0; x <= axisLen; x += step)
         {
             // the higher the index the higher the number
 
@@ -645,7 +651,6 @@ export default class SceneHelper
         let showx3 = this.cameraMode != FRONTCAMERA && dimensions.zRes != 0
 
         let axes = new THREE.Group()
-        let percentage = 1.1 // how long the axes are to xLen, yLen and zLen
 
 
 
@@ -677,17 +682,27 @@ export default class SceneHelper
 
         // lines that point into the dimensions
         let axesWireGeom = new THREE.Geometry()
-        let cent = new THREE.Vector3(0,0,0)
-        let xend = new THREE.Vector3(xLen*percentage,0,0)
-        let yend = new THREE.Vector3(0, yLen*percentage,0)
-        let zend = new THREE.Vector3(0,0, zLen*percentage)
-        axesWireGeom.vertices.push(cent) // 0
-        axesWireGeom.vertices.push(xend) // 1
-        axesWireGeom.vertices.push(yend) //2
-        axesWireGeom.vertices.push(zend) //3
-        axesWireGeom.faces.push(new THREE.Face3(0,0,1))
-        axesWireGeom.faces.push(new THREE.Face3(0,0,2))
+
+        let xsta = new THREE.Vector3(0, 0, zLen)
+        let ysta = new THREE.Vector3(0, 0, zLen)
+        let zsta = new THREE.Vector3(xLen, 0, zLen)
+
+        let xend = new THREE.Vector3(xLen, 0, zLen)
+        let yend = new THREE.Vector3(0, yLen, zLen)
+        let zend = new THREE.Vector3(xLen, 0, 0)
+
+        axesWireGeom.vertices.push(xsta) // 0
+        axesWireGeom.vertices.push(ysta) // 1
+        axesWireGeom.vertices.push(zsta) // 2
+
+        axesWireGeom.vertices.push(xend) // 3
+        axesWireGeom.vertices.push(yend) // 4
+        axesWireGeom.vertices.push(zend) // 5
+
         axesWireGeom.faces.push(new THREE.Face3(0,0,3))
+        axesWireGeom.faces.push(new THREE.Face3(1,1,4))
+        axesWireGeom.faces.push(new THREE.Face3(2,2,5))
+
         // wireframe and color those paths
         let axesWireMat = new THREE.MeshBasicMaterial({
             color: color,
@@ -699,7 +714,7 @@ export default class SceneHelper
         axes.add(axesWire)
 
 
-        // arrows that sit at the end of the lines
+        /*// arrows that sit at the end of the lines
         let arrowMat = new THREE.MeshBasicMaterial({
             color: color
         })
@@ -726,26 +741,26 @@ export default class SceneHelper
             arrowMesh3.position.set(0,0, zLen*percentage)
             arrowMesh3.name = "zArrow"
             axes.add(arrowMesh3)
-        }
+        }*/
 
         // text indicating the dimension name
-        let offset = 0.1
+        let offset = 0.2
 
         if(showx1) {
             let xLetter
-            xLetter = this.placeLetter("x", new THREE.Vector3(xLen*percentage+offset, 0, 0), "center", 1.3)
+            xLetter = this.placeLetter("x", new THREE.Vector3(xLen/2, 0, zLen+offset), "center", 1.3)
             axes.add(xLetter)
         }
 
         if(showx2) {
             let yLetter
-            yLetter = this.placeLetter("y", new THREE.Vector3(0, yLen*percentage+offset, 0), "center", 1.3)
+            yLetter = this.placeLetter("y", new THREE.Vector3(-offset/2, yLen/2, zLen+offset/2), "center", 1.3)
             axes.add(yLetter)
         }
 
         if(showx3) {
             let zLetter
-            zLetter = this.placeLetter("z", new THREE.Vector3(0, 0, zLen*percentage+offset), "center", 1.3)
+            zLetter = this.placeLetter("z", new THREE.Vector3(xLen+offset, 0, zLen/2), "center", 1.3)
             axes.add(zLetter)
         }
 
