@@ -29,20 +29,11 @@ see USAGE.md
 
 ## Todo
 
-**Very Important:**
-
-- be vault tollerant for user input, but not for internal code. use === and !==, don't check everything for == undefined, if it has to be there, assume it is there, if not, fix the bug
-
 **user experience:**
 
 - support writing the colum header name as x1col x2col x3col and colorCol
 - arrange the live example settings in a more clean way
 - make a quick tutorial for the live example when v1.0 is about to be released
-
-**performance and code quality:**
-
-- how is the performance for very large dataframes?
-- move code out of JsPlot3D.js into modules
 
 **experimental:**
 

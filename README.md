@@ -42,7 +42,7 @@ You can uploade one of the csvs in /examples/csvFiles. Or get a .csv dataset (fo
 - optimized for adding/replacing datapoints quickly during runtime
 - reads .csv files
 - lineplots
-- 2D view for all plot modes
+- 2D view
 
 <br/>
 

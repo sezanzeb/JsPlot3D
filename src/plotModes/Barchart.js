@@ -184,7 +184,8 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // small rectangle => small area => small change for d
         // large rectangle => large area => change value at d by a lot
         
-        let oppositeSquareArea = Math.abs(1-Math.abs(x-x_float))*(1-Math.abs(z-z_float))
+        // take care that x_float-x and z_float-z are both positive
+        let oppositeSquareArea = (1-Math.abs(x_float-x))*(1-Math.abs(z_float-z))
 
         if(oppositeSquareArea === 0)
             return
@@ -274,9 +275,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         return
     } // end function declaration of addToHeights
 
-    // don't get fooled and write code here and suspect it to run after the
-    // normalization. Write it below the loop that calls addToHeights. Code below this comment
-    // is for preparation of the normalization
+    // don't get fooled and write code here and suspect it to run after addToHeights
 
     for(let i = 0; i < df.length; i ++)
     {
@@ -344,7 +343,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // changes, it will immediatelly jump to be normalized with a different sign. To prevent parent.one can smoothen the variable x2frac
         // x2frac = (x2frac + normalizationSmoothing*parent.oldData.previousX2frac)/(normalizationSmoothing+1)
         // parent.oldData.previousX2frac = x2frac
-        // parent.is a little bit too experimental at the moment. Once everything runs properly stable it's worth thinking about it
+        // this is a little bit too experimental at the moment. Once everything runs properly stable it's worth thinking about it
     }
 
 
