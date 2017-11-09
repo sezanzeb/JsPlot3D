@@ -1583,11 +1583,11 @@ export class Plot
      */
     errorParamType(varname, variable, expectedType)
     {
-        console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" ("+variable+")")
+        console.error("expected '"+expectedType+"' but found '"+typeof(variable)+"' for "+varname+" (",variable,")")
     }
     
     /**
-     * checks if the variable is boolean or not
+     * checks if the variable is boolean or not. Throws an error if not.
      * @param {string} varname 
      * @param {any} variable 
      * @return {boolean} true if valid, false if not
@@ -1603,7 +1603,7 @@ export class Plot
     }
 
     /**
-     * checks if the variable is a number or not
+     * checks if the variable is a number or not. Throws an error if not.
      * @param {string} varname 
      * @param {any} variable 
      * @return {boolean} true if valid, false if not

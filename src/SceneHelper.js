@@ -23,7 +23,7 @@ export default class SceneHelper
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
         this.recentlyUsedNormalization = null
         this.recentlyUsedDimensions = null
-        this.textScale = 1/7
+        this.textScale = 1/3.5
         this.cameraMode = 0 // default 0, which is the default orbitcontrolled perspective mode
 
         // inside those groups the various numbers that are displayed along the axes are stored as children
@@ -294,11 +294,12 @@ export default class SceneHelper
      * @param {Vector3} position Vector3 object {x, y, z}
      * @param {string} align "center", "left" or "right"
      * @param {number} scale scaling of the letter, default is 1
+     * @param {number} angle angle of the text in radians
      */
-    placeLetter(letter, position, align="center", scale=1)
+    placeLetter(letter, position, align="center", scale=1, angle)
     {
         letter = ""+letter
-        let canvasToTexture = this.createLetterTexture(letter, align)
+        let canvasToTexture = this.createLetterTexture(letter, align, angle)
         let geometry = new THREE.Geometry()
 
         // I'm using Points and PointsMaterial instead of SpriteMaterial so that sizeAttenuation: false can be used
@@ -333,10 +334,11 @@ export default class SceneHelper
      * returns a THREE.Material object that contains text as texture
      * @param {string} letter examples: "a", "lksdfj", 0.546, 91734917, "78n6"
      * @param {string} align "center", "right" or "left"
+     * @param {number} angle angle of the text in radians
      */
-    createLetterTexture(letter, align)
+    createLetterTexture(letter, align, angle=0)
     {
-        let fontSize = 80
+        let fontSize = 40
 
         letter = ""+letter
         // write text to a canvas
@@ -346,8 +348,8 @@ export default class SceneHelper
         // textCanvas.width = letter.length * 64
         // the texture size has to be a power of two for each dimension
         // letter.length -> width. 2 -> 2, 3 -> 4, 4 -> 4, 5 -> 8, 6 -> 8, 7 -> 8, etc.
-        textCanvas.width = Math.pow(2, (Math.log2(letter.length)|0)+2)*64
-        textCanvas.height = textCanvas.width // 128 // power of 2 and greater than 80 // will be scaled and distored if not quadratic
+        textCanvas.width = Math.pow(2, (Math.log2(letter.length)|0)+2)*32
+        textCanvas.height = textCanvas.width
 
         // prepare the textwriting
         let context2d = textCanvas.getContext("2d")
@@ -358,6 +360,8 @@ export default class SceneHelper
 
         // make sure the text is always readable
         let axL = this.axesColor.getHSL().l
+        context2d.translate(textCanvas.width/2, textCanvas.height/2) // center
+        context2d.rotate(angle)
         context2d.fillStyle = "#"+this.axesColor.getHexString() // text color is always the axesColor
 
         // now try to find the best outline color (in case of black text on white background don't draw one)
@@ -370,7 +374,7 @@ export default class SceneHelper
             // outline
             context2d.strokeStyle = "rgba(0,0,0,0.8)"
             context2d.miterLimit = 1 // curved outline edges
-            context2d.lineWidth = 10
+            context2d.lineWidth = 5
         }
         else
         {
@@ -383,7 +387,7 @@ export default class SceneHelper
                 // outline
                 context2d.strokeStyle = "rgba(255,255,255,0.8)"
                 context2d.miterLimit = 1 // curved outline edges
-                context2d.lineWidth = 10
+                context2d.lineWidth = 5
             }
             else
             {
@@ -391,11 +395,10 @@ export default class SceneHelper
             }
         }
         
-        // write it centered
         context2d.font = "Bold "+fontSize+"px sans-serif"
         context2d.textAlign = align
-        context2d.strokeText(letter, textCanvas.width/2, textCanvas.height/2 + fontSize/4) // write outline
-        context2d.fillText(letter, textCanvas.width/2, textCanvas.height/2 + fontSize/4) // write text
+        context2d.strokeText(letter, 0, fontSize/4) // write outline
+        context2d.fillText(letter, 0, fontSize/4) // write text
 
         // create a texture from the canvas
         let canvasToTexture = new THREE.CanvasTexture(textCanvas)
@@ -412,12 +415,13 @@ export default class SceneHelper
      * @param {object} sprite sprite object that contains the text as texture (THREE.Sprite)
      * @param {string} letter new text to be displayed on the sprite
      * @param {string} align "center", "right" or "left"
+     * @param {number} angle angle of the text in radians
      */
-    updateLetterTextureOnSprite(sprite, letter, align)
+    updateLetterTextureOnSprite(sprite, letter, align, angle)
     {
         letter = ""+letter
         sprite.material.map.dispose()
-        sprite.material.map = this.createLetterTexture(letter, align)
+        sprite.material.map = this.createLetterTexture(letter, align, angle)
         sprite.material.size = sprite.material.map.image.width * this.textScale
         sprite.material.needsUpdate = true
     }
@@ -459,12 +463,20 @@ export default class SceneHelper
         ])[axisNumber-1]
         let numbersGroup = this[numbersGroupName]
 
+
         // select the function for updating the number position
-        let offset2 = -0.075
-        let offset3 = -0.05
+        //let offset1 = 0.03 // for small shifts of the text so that they don't intersect each other
+        let offset1 = 0
+
+        let offset2 = -0.075 // used for x and z axis
+        let offset3 = -0.05 // used for the y axis because the offset gets applied to two dimensions hence the smaller offset
+
         let position
         let align
+        let angle = 0
+        let start = 0
 
+        
         if(this.cameraMode == TOPCAMERA)
         {
             position = ([
@@ -514,9 +526,9 @@ export default class SceneHelper
         {
             // unknown or DEFAULTCAMERA
             position = ([
-                (value)=>{return new THREE.Vector3(value, 0, this.dimensions.zLen-offset2)}, // x-Axis
+                (value)=>{return new THREE.Vector3(value, offset3, this.dimensions.zLen-offset3)}, // x-Axis
                 (value)=>{return new THREE.Vector3(offset3, value, this.dimensions.zLen-offset3)}, // y-Axis
-                (value)=>{return new THREE.Vector3(this.dimensions.xLen-offset2, 0, value)}  // z-Axis
+                (value)=>{return new THREE.Vector3(this.dimensions.xLen-offset3, offset3, value)}  // z-Axis
             ])[axisNumber-1]
             
             // align of the text. the goal is to nicely align it with the axes
@@ -524,6 +536,20 @@ export default class SceneHelper
                 "right", // x-Axis
                 "right", // y-Axis
                 "left"  // z-Axis
+            ])[axisNumber-1]
+            
+            /*// align of the text. the goal is to nicely align it with the axes
+            angle = ([
+                -0.5, // x-Axis
+                0, // y-Axis
+                0.5 // z-Axis
+            ])[axisNumber-1]*/
+            
+            // 0 or 1
+            start = ([
+                1, // x-Axis
+                0, // y-Axis
+                0 // z-Axis
             ])[axisNumber-1]
         }
 
@@ -539,7 +565,7 @@ export default class SceneHelper
         // step indicates how far away the numbers are in terms of the actual 3D space
         let step = axisLen/numberCount
         
-        for(let x = 0; x <= axisLen; x += step)
+        for(let x = start*step; x <= axisLen; x += step)
         {
             // the higher the index the higher the number
 
@@ -561,14 +587,14 @@ export default class SceneHelper
             if(children.length - 1 < index) // if children are not yet created
             {
                 // not yet defined: create from scratch
-                let textObject = this.placeLetter(text, pos, align)
+                let textObject = this.placeLetter(text, pos, align, 1, angle)
                 textObject.originalNumber = number
                 numbersGroup.add(textObject)
             }
             else
             {
                 // already defined: update texture and position
-                this.updateLetterTextureOnSprite(children[index], text, align)
+                this.updateLetterTextureOnSprite(children[index], text, align, angle)
                 children[index].originalNumber = number
                 children[index].position.set(pos.x, pos.y, pos.z)
             }
