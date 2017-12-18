@@ -1441,7 +1441,7 @@ export class Plot
      *      var i = 0;
      *      plot.animate(function() {
      *              i += 0.01;
-     *              plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)",BARCHART_MODE);
+     *              plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)", JSPLOT3D.BARCHART_MODE);
      *      }.bind(this))
      * @param {function} animationFunc
      */
