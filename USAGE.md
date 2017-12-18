@@ -34,7 +34,8 @@ You can use constants to change the mode
     })
 ```
 
-As you can see, the fifth parameter of plotCsvString is an object that can contain settings. For a list of all available settings, go to the documentation which is linked above.
+As you can see, the fifth parameter of plotCsvString is an object that can contain settings. For a list of all available settings, go to the api documentation here: https://doclets.io/sezanzeb/JsPlot3D/master and scroll down to "plotCsvString".
+
 The first parameter is a string that contains csv formatted data. The second, third and fourth parameter are the column indices which are used to plot 3D data.
 
 Here are the modes and their values:
