@@ -46,8 +46,6 @@ You can uploade one of the csvs in /examples/csvFiles. Or get a .csv dataset (fo
 
 ## Example
 
-Please also take a look at the source codes of https://github.com/sezanzeb/JsPlot3D/tree/master/test because there are quite a few examples that show what you can do with this tool, also when it comes to **animating**
-
 You can copy the following to a file.html and open it using your browser. It should work right away and show 6 datapoints in red, blue and green and a legend below it that explainins the colors and the axes
 
 ```html
