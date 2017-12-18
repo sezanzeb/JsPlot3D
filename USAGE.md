@@ -8,7 +8,7 @@ Also see the documentation, which you can find here: https://doclets.io/sezanzeb
 
 **The first steps for everything here are the following:**
 
-Link the scripts and create an element as container
+Link the scripts and create an element as container. Build instructions for JsPlot3D.js are available here: https://github.com/sezanzeb/JsPlot3D/tree/master/compiled and a precompiled file is available here: http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js 
 
 ```html
     <script src="https://threejs.org/build/three.js"></script>

@@ -24,7 +24,7 @@ export const DEFAULTCAMERA = 0
 export const TOPCAMERA = 1
 export const LEFTCAMERA = 2
 export const FRONTCAMERA = 3
-export { COLORLIB }
+export { COLORLIB } // so that the jasmine tests can have access to the imported colorlib
 
 
 // Main Class for this Tool, exported as JSPLOT3D.Plot
@@ -33,41 +33,45 @@ export class Plot
     /**
      * Creates a Plot instance, so that a single canvas can be rendered. After calling this constructor, rendering can
      * be done using plotFormula(s), plotCsvString(s) or plotDataFrame(df)
-     * @param {object} container html div DOM element which can then be selected using document.getElementById("foobar") with foobar being the html id of the container
+     * @param {object} container html/div/DOM element. Inside that container a canvas is created
+     *                           - Example: document.getElementById("foobar"); // with foobar being the html id of the container.
      * @param {json} sceneOptions optional. at least one of backgroundColor or axesColor in a Json Format {}. Colors can be hex values "#123abc" or 0x123abc, rgb and hsl (e.g. "rgb(0.3,0.7,0.1)")
+     *                            - Example: {backgroundColor: "#123abc", axesColor: 0x123abc}
      */
     constructor(container, sceneOptions ={})
     {
         
-        // parameter checking
+        // parameter typechecks
         if(typeof(container) != "object")
             return console.error("second param for the Plot constructor (container) should be a DOM-Object. This can be obtained using e.g. document.getElementById(\"foobar\")")
 
         // The order of the following tasks is important!
 
-        // initialize cache object
+        // initialize oldData object. The cache/oldData is used for faster rerendering of similar
+        // datasets and to remember some parameters, for example when addDataPoint is called.
         this.clearOldData()
 
-        // scene helper is needed for setContainer
+        // scene helper is needed for setContainer, because in setContainer the sceneHelper is told to set the size to the container. (could also be implemented in a different way ofc)
+        // the scene helper basically takes care of a lot of three.js stuff
         this.SceneHelper = new SceneHelper({width: container.offsetWidth, height: container.offsetHeight})
 
         // first set up the container and the dimensions
         this.setContainer(container)
         // don't use setDimensions for the following, as setDimensions is meant
-        // to be something to call during runtime and will therefore cause problems
+        // to be something to call during runtime and will cause problems in this case
         this.dimensions = {xRes:20, zRes:20, xLen:1, yLen:1, zLen:1}
         
-        // before MathParser, Dimensions have to be called to initialize some stuff (xRes and zRes)
+        // before MathParser, Dimensions have to be initialized (xRes and zRes). The reason for this is
+        // MathParser.resetCalculation(), which prepares some array stuff for calculations based on xRes and zRes
         this.MathParser = new MathParser(this)
 
         // then setup the children of the scene (camera, light, axes)
         this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
         this.SceneHelper.centerCamera(this.dimensions) // set camera position
 
-        // they need to be updated once setDimensions is called or the mode of the plot changes
-        // why on modechange? because barcharts need a different way of displaying them due to the different
-        // normalization approach
-        this.axesNumbersNeedUpdate = true // true at first so that numbers are being displayed
+        // true at first so that numbers are being displayed. If this variable is false, no numbers are being rerendered.
+        // They don't always need to be rerendered upon addDataPoint -> performance Increase
+        this.axesNumbersNeedUpdate = true
 
         // initialize the legend variables
         this.initializeLegend()
@@ -83,10 +87,10 @@ export class Plot
         // no animation by default
         this.animationFunc = null
 
-        // to trigger rendering every four frames. +1 % 4, do something if 0 or break if not null
+        // to trigger rendering every four frames. +1 % 4, do something if 0 or break if not null. At first needs to be 0, so that stuff renders.
         this.fps15 = 0
 
-        // now render the empty space (axes will be visible)
+        // now render the empty space (axes will be visible, because of SceneHelper.createScene)
         this.SceneHelper.render()
     }
 
@@ -125,7 +129,7 @@ export class Plot
         let x3title = "x3"
 
         if(this.isAnimated())
-            options.fastForward = true // performance
+            options.fastForward = true // performance increase by using fastForward (but it's only very small actually)
 
         // overwrite if available
         if(options.mode != undefined) mode = options.mode
@@ -150,7 +154,9 @@ export class Plot
         // force the following settings:
         options.header = false
 
-        // write the following settings back to options (because they are different from the default settings in plotDataFrame)
+        // the deafult titles here are different from plotDataFrame, which is being called later to actually show the formula. So the default titles
+        // need to be passed to plotDataFrame inside the options object. Or of course the user has set them in the options parameter. in That case those variables
+        // contain the user setting.
         options.title = title
         options.x1title = x1title
         options.x2title = x2title
@@ -190,7 +196,9 @@ export class Plot
                 }
             }
 
-            options.colorCol = 1 // y result of the evaluated formula
+            // colorCol is the index that is used to colorate the datapoints.
+            // The index of 1 means the y value contains the number that is converted to a color
+            options.colorCol = 1
 
             // continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
