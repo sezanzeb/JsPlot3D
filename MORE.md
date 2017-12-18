@@ -6,11 +6,14 @@ https://nodejs.org/en/download/
 
 afterwards:
 
+**Building JsPlot3D.js**
+
     npm install
     npm start
+    
+**for a non-minified version:**
 
-For an unminified file (to be able to use the browser debugger):
-
+    npm install
     npm test
 
 JsPlot3D.js is now created in compiled/JsPlot3D.js

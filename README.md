@@ -15,9 +15,7 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
 
 **Download:** http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js
 
-- For more information (**building**) please take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
-- You can find the **documentation** here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew
-- A little HowTo is in USAGE.md
+**How To:** If you want to start using JsPlot3D, take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/USAGE.md
 
 <br/>
 

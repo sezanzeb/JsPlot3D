@@ -2,13 +2,20 @@
 
 This is incomplete. Please also take a look at /test/visual_tests/ and open the files in your browser to see which one does roughly that what you are looking for and then inspect the sourcecode. Some of them contain settings that are not needed but only exist to test if the plot breaks or not.
 
-To learn how to navigate and also understand many of the available settings, please open http://hip70890b.de/JsPlot3D/examples/playground/index.html in your browser.
+1. A very basic example that runs when saved to a .html file can be found in the readme of the root directory: https://github.com/sezanzeb/JsPlot3D/
 
-Also see the documentation, which you can find here: https://doclets.io/sezanzeb/JsPlot3D/master/overwiew. Click on "API" on the left hand side of the website.
+2. To learn how to navigate and also understand many of the available settings, please open http://hip70890b.de/JsPlot3D/examples/playground/index.html in your browser.
+
+3. There are a few examples listed here: https://github.com/sezanzeb/JsPlot3D/tree/master/test/visual_tests, so you can see how the various ways to plot data work.
+
+4. Also see the documentation, which you can find here: https://doclets.io/sezanzeb/JsPlot3D/master ("API")
+
 
 **The first steps for everything here are the following:**
 
-Link the scripts and create an element as container. Build instructions for JsPlot3D.js are available here: https://github.com/sezanzeb/JsPlot3D/tree/master/compiled and a precompiled file is available here: http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js 
+Build instructions for JsPlot3D.js are available here: https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md and a precompiled file is available here: http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js.
+
+The following links the scripts and creates an element as container.
 
 ```html
     <script src="https://threejs.org/build/three.js"></script>
@@ -16,7 +23,7 @@ Link the scripts and create an element as container. Build instructions for JsPl
     <div style="width:300px; height:300px" id="foobar"></div>
 ```
 
-Create a new instance of Plot
+Create a new instance of Plot ("foobar" is the id of the container in the previous step)
 
 ```js
     var plot = new JSPLOT3D.Plot(document.getElementById("foobar"))
@@ -26,7 +33,9 @@ Create a new instance of Plot
 
 ## Modes
 
-You can use constants to change the mode
+You can use constants to change the mode. The variable "data" is a string that contains csv information, separated by linebreaks \n, like this: "a,b,c\n1,2,3".
+
+(plotDataFrame is also available, which uses an array of arrays of integers as first parameter, like this: [["a", "b", "c"],[1, 2, 3]])
 
 ```js
     plot.plotCsvString(data, 0, 1, 2, {
