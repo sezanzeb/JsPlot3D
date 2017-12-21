@@ -208,25 +208,9 @@ export default function scatterplot(parent, df, colors, columns, normalization, 
         material = material.clone()
         geometry.addAttribute("position", position)
         geometry.addAttribute("color", color)
-        group.add(new THREE.Points(geometry, material))
-
-        
-
-        // THREE 0.87.1
-        // make the whole process way simpler by using already computed min and max values
-        geometry.computeBoundingSphere = function ()
-        {
-            return function computeBoundingSphere()
-            {
-                if (this.boundingSphere === null)
-                {
-                    this.boundingSphere = new THREE.Sphere()
-                }
-
-                this.boundingSphere.radius = Math.max(boundingMaxX1-boundingMinX1, boundingMaxX2-boundingMinX2, boundingMaxX3-boundingMinX3)/2
-                this.boundingSphere.center = new THREE.Vector3((boundingMaxX1+boundingMinX1)/2, (boundingMaxX2+boundingMinX2)/2, (boundingMaxX3+boundingMinX3)/2)
-            }
-        }()
+        let points = new THREE.Points(geometry, material)
+        points.frustumCulled = false // that is not needed, because there is only the centered plot object (no need for three.js to check and compute boundingSpheres -> more performance)
+        group.add(points)
 
         // console.log("new mesh")
     }

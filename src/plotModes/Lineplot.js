@@ -173,7 +173,7 @@ export default function lineplot(parent, df, colors, columns, normalization, app
     if(isBufferFull || !newestChildren || material.linewidth != wireframeLinewidth)
     {
         // initialize with a larger size than neccessarry at this point so that new vertices can be added to the geometry
-        let size = Math.min(df.length * 15, 100) // large buffers, so that long lines can be drawn
+        let size = Math.max(df.length * 15, 100) // large buffers, so that long lines can be drawn. The 15 is taken from Scatterplot.js assuming that the performance would be good for 15 here aswell
         position = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
         color = new THREE.Float32BufferAttribute(new Float32Array(size * 3), 3)
 
@@ -201,25 +201,9 @@ export default function lineplot(parent, df, colors, columns, normalization, app
         material = material.clone()
         geometry.addAttribute("position", position)
         geometry.addAttribute("color", color)
-        group.add(new THREE.Line(geometry, material))
-
-        // overwrite computeBoundingSphere because the geometry positions contain undefined values
-        // without the check for isNaN it would print errors and would fail to compute the boundingSphere
-        // THREE 0.87.1
-        // I can also make the whole process way simpler by using already computed min and max values
-        geometry.computeBoundingSphere = function ()
-        {
-            return function computeBoundingSphere()
-            {
-                if (this.boundingSphere === null)
-                {
-                    this.boundingSphere = new THREE.Sphere()
-                }
-
-                this.boundingSphere.radius = Math.max(boundingMaxX1-boundingMinX1, boundingMaxX2-boundingMinX2, boundingMaxX3-boundingMinX3)/2
-                this.boundingSphere.center = new THREE.Vector3((boundingMaxX1+boundingMinX1)/2, (boundingMaxX2+boundingMinX2)/2, (boundingMaxX3+boundingMinX3)/2)
-            }
-        }()
+        let line = new THREE.Line(geometry, material)
+        line.frustumCulled = false // that is not needed, because there is only the centered plot object (no need for three.js to check and compute boundingSpheres -> more performance)
+        group.add(line)
         
 
         // console.log("new mesh")
