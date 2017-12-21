@@ -7,6 +7,7 @@
         <h1>Calculated Animated Polygon</h1>
         <div class="inlineBlock" id="JsPlot3DContainer" style="width:500px; height:500px;"></div>
         <p>a shape (a polygon) moves like a flag on a blue background. The higher the vertex the warmer the color. The axes are yellow. The x-axis is longer than the z-axis.</p>
+        <p>It moves a bit weird because normalization is on. The numbers on the y-axis should be updated during the animation.</p>
     </body>
 </html>
 
@@ -26,7 +27,7 @@
     var i = 1;
     plot.animate(function() {
         plot.plotFormula("sin(2*x1+i)*sin(2*x3-i)", {
-            normalizeX2: false
+            normalizeX2: true
         })
         i += 0.01
     }.bind(this))

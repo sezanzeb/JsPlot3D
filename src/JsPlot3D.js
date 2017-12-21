@@ -69,10 +69,6 @@ export class Plot
         this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
         this.SceneHelper.centerCamera(this.dimensions) // set camera position
 
-        // true at first so that numbers are being displayed. If this variable is false, no numbers are being rerendered.
-        // They don't always need to be rerendered upon addDataPoint -> performance Increase
-        this.axesNumbersNeedUpdate = true
-
         // initialize the legend variables
         this.initializeLegend()
 
@@ -188,9 +184,9 @@ export class Plot
                     y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes)
 
                     df[i] = new Float32Array(3)
-                    df[i][0] = x // store the datapoint
+                    df[i][0] = x/this.dimensions.xRes // store the datapoint
                     df[i][1] = y // store the datapoint
-                    df[i][2] = z // store the datapoint
+                    df[i][2] = z/this.dimensions.zRes // store the datapoint
 
                     i++
                 }
@@ -229,9 +225,9 @@ export class Plot
                     y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes)
 
                     df[i] = new Float32Array(3)
-                    df[i][0] = x // store the datapoint
+                    df[i][0] = x/this.dimensions.xRes // store the datapoint
                     df[i][1] = y // store the datapoint
-                    df[i][2] = z // store the datapoint
+                    df[i][2] = z/this.dimensions.zRes // store the datapoint
 
                     i++
                 }
@@ -252,6 +248,9 @@ export class Plot
             //         Polygon         //
             //-------------------------//
     
+            // indicates, that a polygon is currently being plotted, which also indicates that a formula is being plotted
+            this.oldData.options.mode = POLYGON_MODE
+
             let hueOffset = 0
             let numberDensity = 3
 
@@ -266,6 +265,8 @@ export class Plot
             // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
             this.populateLegend({x1title, x2title, x3title, title})
 
+            // the y-values are calculated inside the call to polygon, so no df is passed over to this function
+            // note that updating the numbers along the axes is handled in the call to polygon
             polygon(this, colors, normalization, appearance, dimensions)
 
         }
@@ -868,12 +869,41 @@ export class Plot
             this.oldData.normalization.minX3 = 0
             this.oldData.normalization.maxX3 = 0
         }
-        minX1 = this.oldData.normalization.minX1
-        maxX1 = this.oldData.normalization.maxX1
-        minX2 = this.oldData.normalization.minX2
-        maxX2 = this.oldData.normalization.maxX2
-        minX3 = this.oldData.normalization.minX3
-        maxX3 = this.oldData.normalization.maxX3
+
+        // store this.dimensions._Len data when normalization is off, because for the numbers the maximum displayed number has to be indicated somewhere
+
+        if(normalizeX1 || keepOldPlot)
+        {
+            minX1 = this.oldData.normalization.minX1
+            maxX1 = this.oldData.normalization.maxX1
+        }
+        else
+        {
+            minX1 = 0
+            maxX1 = this.dimensions.xLen
+        }
+
+        if(normalizeX2 || keepOldPlot)
+        {
+            minX2 = this.oldData.normalization.minX2
+            maxX2 = this.oldData.normalization.maxX2
+        }
+        else
+        {
+            minX2 = 0
+            maxX2 = this.dimensions.yLen
+        }
+
+        if(normalizeX3 || keepOldPlot)
+        {
+            minX3 = this.oldData.normalization.minX3
+            maxX3 = this.oldData.normalization.maxX3
+        }
+        else
+        {
+            minX3 = 0
+            maxX3 = this.dimensions.zLen
+        }
         
         let colors = {dfColors, hueOffset}
         let columns = {x1col, x2col, x3col}
@@ -950,32 +980,34 @@ export class Plot
             this.benchmarkStamp("made a scatterplot")
         }
 
-        // those values got overwritten
-        minX1 = normalization.minX1
-        maxX1 = normalization.maxX1
+        // those values can be overwritten by the various plotMode functions
+        if(normalizeX1)
+        {
+            minX1 = normalization.minX1
+            maxX1 = normalization.maxX1
+            x1frac = normalization.x1frac
+        }
 
-        minX2 = normalization.minX2
-        maxX2 = normalization.maxX2
+        if(normalizeX2)
+        {
+            minX2 = normalization.minX2
+            maxX2 = normalization.maxX2
+            x2frac = normalization.x2frac
+        }
 
-        minX3 = normalization.minX3
-        maxX3 = normalization.maxX3
+        if(normalizeX3)
+        {
+            minX3 = normalization.minX3
+            maxX3 = normalization.maxX3
+            x3frac = normalization.x3frac
+        }
         
-        x1frac = normalization.x1frac
-        x2frac = normalization.x2frac
-        x3frac = normalization.x3frac
 
         
         // plotDataFrame
         //-------------------------//
         //       Axes Numbers      //
         //-------------------------//
-
-        // if the mode changed, recreate the numbers because the normalization might have changed
-        if(this.oldData.options.mode !== mode)
-        {
-            this.SceneHelper.disposeAllAxesNumbers()
-            this.axesNumbersNeedUpdate = true
-        }
 
         if(this.SceneHelper.axes)
         {
@@ -987,13 +1019,14 @@ export class Plot
             let yLen = this.dimensions.yLen
             let zLen = this.dimensions.zLen
 
+            this.SceneHelper.render()
 
-            // decide about the visibility
-            let updatex1 = this.axesNumbersNeedUpdate || normalizeX1 && this.oldData.normalization.maxX1 !== maxX1 && this.oldData.normalization.minX1 !== minX1
-            let updatex2 = this.axesNumbersNeedUpdate || normalizeX2 && this.oldData.normalization.maxX2 !== maxX2 && this.oldData.normalization.minX2 !== minX2
-            let updatex3 = this.axesNumbersNeedUpdate || normalizeX3 && this.oldData.normalization.maxX3 !== maxX3 && this.oldData.normalization.minX3 !== minX3
-
-            this.axesNumbersNeedUpdate = false
+            // decide about whether or not the numbers need to be updated
+            // min and max numbers will contain either normalization data or 0 and the axis-Length
+            // check for children.length because if there are no children in _Numbers, that means there haven't been numbers printed yet
+            let updatex1 = this.SceneHelper.xNumbers.children.length == 0 || this.oldData.normalization.maxX1 !== maxX1 || this.oldData.normalization.minX1 !== minX1
+            let updatex2 = this.SceneHelper.yNumbers.children.length == 0 || this.oldData.normalization.maxX2 !== maxX2 || this.oldData.normalization.minX2 !== minX2
+            let updatex3 = this.SceneHelper.zNumbers.children.length == 0 || this.oldData.normalization.maxX3 !== maxX3 || this.oldData.normalization.minX3 !== minX3
 
             this.oldData.normalization = {}
             this.oldData.normalization.minX1 = minX1
@@ -1012,12 +1045,12 @@ export class Plot
                     this.SceneHelper.updateNumbersAlongAxis(numberDensity, xLen, XAXIS, minX1, maxX1, this.animationFunc !== null)
                 }
                 
-                // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
-                // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
-                // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
-                // to the top by minX1. axesNumbersNeedUpdateNumbers basically recreates the height of the highest bar/datapoint in the 3D space.
                 if(updatex2)
                 {
+                    // because barcharts are not normalized in the way, that the highest bar is as high as yLen and that the lowest is flat (0) (like scatterplots)
+                    // they have negative bars. So they are normalized a little bit differently. So the axes have to be numbered in a slightly different way
+                    // minX2 is important for the positioning of the axis number. But in the case of barcharts, it needs to be 0, because the whole plot is not moved
+                    // to the top by minX1.
                     let minX2_2 = minX2
                     let yLen_2 = yLen
                     if(mode === BARCHART_MODE)
@@ -1049,6 +1082,7 @@ export class Plot
             this.oldData.normalization.maxX3 = maxX3
         }
 
+        this.SceneHelper.render()
         
 
         // plotDataFrame
@@ -1093,6 +1127,7 @@ export class Plot
     /**
      * repeats the drawing using the dataframe memorized in oldData, but adds a new datapoint to it
      * @param {any} newDatapoint Array that contains the attributes of the datapoints in terms of x1, x2, x3, x4, x5 etc.
+     * - for example [100,100,100,100,"rock"]
      * @param {object} options json object with one or more of the following parameters:
      * - mode {string}: "barchart", "scatterplot" or "lineplot"
      * - colorCol {number}: leave undefined or set to -1, if defaultColor should be applied. Otherwise the index of the csv column that contains color information.
@@ -1125,6 +1160,12 @@ export class Plot
      */
     addDataPoint(newDatapoint, options={})
     {            
+        // is the plot a formula?
+        if(this.oldData.options.mode == POLYGON_MODE)
+        {
+            // to avoid destroying the plot, return here
+            return console.error("the current plot is a",POLYGON_MODE,"which is only the case for formulas. You can't add datapoints to formulas")
+        }
 
         // add the old options to the current options
         for(let key in this.oldData.options)
@@ -1151,7 +1192,8 @@ export class Plot
 
         // true by default, so that the old plot gets extended with the new datapoint.
         // Set to false to replace the old plot with this new single datapoint
-        if(options.keepOldPlot === undefined) options.keepOldPlot = true // check for undefined, it is a boolean value! don't if(!foobar)
+        // check for undefined, it is a boolean value! don't if(!foobar)
+        if(options.keepOldPlot === undefined) options.keepOldPlot = true
 
 
         // create the datapoint data structure (an array) from this
@@ -1183,12 +1225,6 @@ export class Plot
         // do this, because otherwise when plotting the same (initial) dataframe again it might not realize that the in oldData stored dataframe has
         // been extended by addDataPoint, so plotCsvString might use the in oldData stored (longer) dataframe than the one passed as parameter
         this.oldData.checkstring += "_addDP"
-
-        // numbers might change
-        if(options.normalizeX1 || options.normalizeX2 || options.normalizeX3)
-        {
-            this.axesNumbersNeedUpdate = true
-        }
     }
 
 
@@ -1413,9 +1449,6 @@ export class Plot
         if(dimensions.xLen) this.dimensions.xLen = Math.abs(dimensions.xLen)
         if(dimensions.yLen) this.dimensions.yLen = Math.abs(dimensions.yLen)
         if(dimensions.zLen) this.dimensions.zLen = Math.abs(dimensions.zLen)
-    
-
-        this.axesNumbersNeedUpdate = true
 
         // move
         this.SceneHelper.centerCamera(this.dimensions) // use this.dimensions and not dimensions

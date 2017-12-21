@@ -454,6 +454,7 @@ export default class SceneHelper
         ])[axisNumber-1]
         let numbersGroup = this[numbersGroupName]
 
+
         // select the function for updating the number position
         let offset2 = -0.075
         let position
@@ -506,7 +507,7 @@ export default class SceneHelper
         }
         else
         {
-            // unknown of DEFAULTCAMERA
+            // unknown or DEFAULTCAMERA
             position = ([
                 (value)=>{return new THREE.Vector3(value, -offset2, offset2)}, // x-Axis
                 (value)=>{return new THREE.Vector3(offset2, value, offset2/2)}, // y-Axis
@@ -521,7 +522,18 @@ export default class SceneHelper
             ])[axisNumber-1]
         }
 
+
         let numberCount = (numberDensity*axisLen)|0
+
+        if(numbersGroup.children.length != numberCount)
+        {
+            // until now there have been more or less numbers than numberCount apparently
+            // so dispose the numbers and recreate them
+            this.disposeMesh(numbersGroup)
+            this[numbersGroupName] = new THREE.Group()
+            this[numbersGroupName].name = numbersGroupName
+            numbersGroup = this[numbersGroupName]
+        }
 
 
         // load the numbers that have already been created at some point:
@@ -597,7 +609,7 @@ export default class SceneHelper
 
 
     /**
-     * removes all the numbers from all three axes
+     * removes all the numbers from all three axes and also initializes the numbers groups
      */
     disposeAllAxesNumbers()
     {

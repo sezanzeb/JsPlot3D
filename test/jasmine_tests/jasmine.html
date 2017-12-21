@@ -10,9 +10,19 @@
 
     </head>
     <body>
-
     </body>
 </html>
+<style>
+    #plot
+    {
+        position: fixed;
+        top: 0px;
+        right: 0px;
+        border: 10px solid #eeeeee;
+        border-width: 0px 0px 15px 15px;
+        outline: 1px solid #dddddd;
+    }
+</style>
 
 <div style="display:none" id="csv1">
 
@@ -34,22 +44,24 @@
     let container, plot, timeBench
 
     describe("Creating the Plot Object", function() {
-        it("plot is defined", function() {
+        it("| plot is defined", function() {
                 
             // create a dummy invisible plot
             container = document.createElement("div")
-            container.style = "width: 300px, height: 300px"
+            container.style = "width:300px; height:300px"
+            document.body.appendChild(container)
             plot = new JSPLOT3D.Plot(container, {
                 backgroundColor: "#ff0000",
                 axesColor: "#00ff00"
             })
+            container.id = "plot"
 
             expect(plot).toBeDefined()
         })
     })
 
     describe("Plot Initializations", function() {
-        it("nothing undefined", function() {
+        it("| nothing undefined", function() {
             expect(plot.legend).toBeDefined()
             expect(plot.SceneHelper).toBeDefined()
             expect(plot.MathParser).toBeDefined()
@@ -62,13 +74,13 @@
     })
 
     describe("SceneHelper Initializations", function() {
-        it("backgroundColor integrity", function() {
+        it("| backgroundColor integrity", function() {
             expect(plot.SceneHelper.backgroundColor.r).toBe(1)
             expect(plot.SceneHelper.backgroundColor.g).toBe(0)
             expect(plot.SceneHelper.backgroundColor.b).toBe(0)
         })
 
-        it("axesColor integrity", function() {
+        it("| axesColor integrity", function() {
             expect(plot.SceneHelper.axesColor.r).toBe(0)
             expect(plot.SceneHelper.axesColor.g).toBe(1)
             expect(plot.SceneHelper.axesColor.b).toBe(0)
@@ -77,16 +89,16 @@
 
     describe("MathParser", function() {
 
-        it("parent is plot", function() {
+        it("| parent is plot", function() {
             expect(plot.MathParser.parent).toBe(plot)
         })
 
-        it("integrity of various variables", function() {
+        it("| integrity of various variables", function() {
             expect(plot.MathParser.calculatedPoints.length).toBe(plot.dimensions.xRes)
             expect(plot.MathParser.calculatedPoints[0].length).toBe(plot.dimensions.zRes)
         })
 
-        it("parsing various formulas", function() {
+        it("| parsing various formulas", function() {
             expect(plot.MathParser.parse("sin(x1)+e")).toBe("Math.sin(this.x1)+Math.E")
             expect(plot.MathParser.parse("Cos(x1)")).toBe("Math.cos(this.x1)")
             expect(plot.MathParser.parse("ln(x1*pi)")).toBe("Math.log(this.x1*Math.PI)")
@@ -94,7 +106,7 @@
             expect(plot.MathParser.parse("x1+E^x3")).toBe("this.x1+Math.E**this.x3")
         })
 
-        it("doing a calculation", function() {
+        it("| doing a calculation", function() {
             expect(plot.MathParser.parse("cos(x1)")).toBe("Math.cos(this.x1)")
             expect(plot.MathParser.f(0,0)).toBe(1)
         })
@@ -105,7 +117,7 @@
 
     describe("setDimensions", function() {
 
-        it("2D camera mode from Top", function() {
+        it("| 2D camera mode from Top", function() {
 
             let dimensions = {xRes:-2, zRes:2, xLen: -0.5, yLen: 0, zLen: 0.5}
             plot.setDimensions(dimensions)
@@ -137,7 +149,7 @@
 
         })
 
-        it("2D camera mode from Front", function() {
+        it("| 2D camera mode from Front", function() {
 
             let dimensions = {xRes:-2, zRes:2, xLen: -0.5, yLen: -0.5, zLen: 0}
             plot.setDimensions(dimensions)
@@ -169,7 +181,7 @@
 
         })
 
-        it("2D camera mode from Left", function() {
+        it("| 2D camera mode from Left", function() {
 
             let dimensions = {xRes:-2, zRes:2, xLen: 0, yLen: 0.5, zLen: -0.5}
             plot.setDimensions(dimensions)
@@ -201,7 +213,7 @@
 
         })
 
-        it("default camera mode", function() {
+        it("| default camera mode", function() {
 
             plot.setDimensions({xRes:20, zRes:-20, xLen: -2, yLen: 2, zLen: 2})
 
@@ -217,26 +229,26 @@
 
     describe("Manipulating the appearance of a plot", function() {
 
-        it("manipulating the backgroundColor", function() {
+        it("| manipulating the backgroundColor", function() {
             plot.setBackgroundColor("rgba(255,255,128,1)")
             expect(plot.SceneHelper.backgroundColor.r).toBe(1)
             expect(plot.SceneHelper.backgroundColor.g).toBe(1)
             expect(plot.SceneHelper.backgroundColor.b).toBeCloseTo(0.5,0.1)
         })
         
-        it("manipulating the axesColor", function() {
+        it("| manipulating the axesColor", function() {
             plot.setAxesColor(0x0000ff)
             expect(plot.SceneHelper.axesColor.r).toBe(0)
             expect(plot.SceneHelper.axesColor.g).toBe(0)
             expect(plot.SceneHelper.axesColor.b).toBe(1)
         })
         
-        it("removing the axes", function() {
+        it("| removing the axes", function() {
             plot.removeAxes()
             expect(plot.SceneHelper.axes).toBeNull()
         })
         
-        it("adding new axes", function() {
+        it("| adding new axes", function() {
             plot.setAxesColor("#0f0")
             expect(plot.SceneHelper.axes).toBeDefined()
             expect(plot.SceneHelper.axesColor.r).toBe(0)
@@ -248,34 +260,34 @@
 
     describe("benchmarking functionality", function() {
 
-        it("default status", function() {
+        it("| default status", function() {
             expect(plot.benchmark.enabled).toBeFalsy()
         })
         
-        it("messages during default configuration", function() {
+        it("| messages during default configuration", function() {
             plot.benchmarkStamp("test0")
             expect(plot.benchmark.recentTime).toBe(0) // a time was never recorded
         })
 
-        it("enabling", function() {
+        it("| enabling", function() {
             plot.enableBenchmarking()
             expect(plot.benchmark.enabled).toBeTruthy()
             expect(plot.benchmark.recentTime).toBeDefined()
             timeBench = plot.benchmark.recentTime
         })
         
-        it("messages when benchmarks are enabled", function() {
+        it("| messages when benchmarks are enabled", function() {
             plot.benchmarkStamp("test1")
             expect(plot.benchmark.recentTime).toBeGreaterThan(timeBench) // time progressed, therefore greater
             timeBench = plot.benchmark.recentTime
         })
 
-        it("disabling", function() {
+        it("| disabling", function() {
             plot.disableBenchmarking()
             expect(plot.benchmark.enabled).toBeFalsy()
         })
         
-        it("messages after benchmarks got disabled", function() {
+        it("| messages after benchmarks got disabled", function() {
             plot.benchmarkStamp("test2")
             expect(plot.benchmark.recentTime).toBe(timeBench) // no change in time
         })
@@ -311,10 +323,10 @@
             let mode = modes[i]
             let expectedMode = mode != undefined ? mode : JSPLOT3D.SCATTERPLOT_MODE
 
-            describe("mode: "+mode, function() {
-                describe("plot csv", function() {
+            describe("| mode: "+mode, function() {
+                describe("| plot csv", function() {
 
-                    it("detecting min and max", function() {
+                    it("| detecting min and max", function() {
 
                         console.log("\n\nmode:",mode)
                         plot.plotCsvString(document.getElementById("csv1").innerHTML,0,1,2,{
@@ -333,7 +345,7 @@
                         expect(plot.oldData.normalization.maxX3).toBe(1)
                     })
 
-                    it("detecting labels and legend integrity", function() {
+                    it("| detecting labels and legend integrity", function() {
 
                         expect(plot.legend.element.innerHTML).toContain("tree")
                         expect(plot.legend.element.innerHTML).toContain("flower")
@@ -341,9 +353,9 @@
                     })     
                 })
 
-                describe("add datapoint", function() {
+                describe("| add datapoint", function() {
 
-                    it("detecting min and max, they should not change by default", function() {
+                    it("| detecting min and max, they should not change by default from the previous values (because addDataPoint has keepOldPlot true by default)", function() {
 
                         plot.addDataPoint([100,100,100,100,"rock"])
                         plot.addDataPoint([-100,-100,-100,-100,"water"])
@@ -358,24 +370,24 @@
                         expect(plot.oldData.normalization.maxX3).toBe(1)
                     })
 
-                    it("checking if new label is added to the legend", function() {
+                    it("| checking if new label is added to the legend", function() {
 
                         expect(plot.legend.element.innerHTML).toContain("rock")
                         expect(plot.legend.element.innerHTML).toContain("water")
                     })     
                 })
                 
-                describe("checking integrity of the mesh", function() {
+                describe("| checking integrity of the mesh", function() {
 
-                    it("defined", function() {
+                    it("| defined", function() {
                         expect(plot.plotmesh).toBeDefined()
                     })
 
-                    it("type correct", function() {
+                    it("| type correct", function() {
                         expect(plot.plotmesh.name).toBe(expectedMode)
                     })
 
-                    it("IsPlotmeshValid function", function() {
+                    it("| IsPlotmeshValid function", function() {
                         expect(plot.IsPlotmeshValid(expectedMode)).toBeTruthy()
                     })
 
@@ -392,9 +404,9 @@
         {
             let mode = modes[i]
 
-            describe("mode:"+mode+" add datapoint", function() {
+            describe("| mode:"+mode+" add datapoint", function() {
 
-                it("min and max should increase", function() {
+                it("| min and max should increase", function() {
 
                     console.log("\n\nmode:",mode)
                     plot.plotCsvString(document.getElementById("csv1").innerHTML,0,1,2,{
@@ -424,7 +436,7 @@
     
         let i = 0
 
-        it("starting the animation", function() {
+        it("| starting the animation", function() {
 
             plot.animate(function() {
                 i ++
@@ -437,7 +449,7 @@
 
         })
 
-        it("stopping the animation", function() {
+        it("| stopping the animation", function() {
 
             plot.stopAnimation()
 

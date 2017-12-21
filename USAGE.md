@@ -1,12 +1,10 @@
 # Usage
 
-This is incomplete. Please also take a look at /test/visual_tests/ and open the files in your browser to see which one does roughly that what you are looking for and then inspect the sourcecode. Some of them contain settings that are not needed but only exist to test if the plot breaks or not.
-
 1. A very basic example that runs when saved to a .html file can be found in the readme of the root directory: https://github.com/sezanzeb/JsPlot3D/
 
 2. To learn how to navigate and also understand many of the available settings, please open http://hip70890b.de/JsPlot3D/examples/playground/index.html in your browser.
 
-3. There are a few examples listed here: https://github.com/sezanzeb/JsPlot3D/tree/master/test/visual_tests, so you can see how the various ways to plot data work.
+3. There are a few examples listed here: https://github.com/sezanzeb/JsPlot3D/tree/master/test/visual_tests, so you can see how the various ways to plot data work. Note, that some of them contain settings that are not needed but only exist to test if the plot breaks or not.
 
 4. Also see the documentation, which you can find here: https://doclets.io/sezanzeb/JsPlot3D/master ("API")
 
@@ -35,7 +33,7 @@ Create a new instance of Plot ("foobar" is the id of the container in the previo
 
 You can use constants to change the mode. The variable "data" is a string that contains csv information, separated by linebreaks \n, like this: "a,b,c\n1,2,3".
 
-(plotDataFrame is also available, which uses an array of arrays of integers as first parameter, like this: [["a", "b", "c"],[1, 2, 3]])
+(**plotDataFrame** is also available, which uses an array of arrays of values as first parameter, like this: [["a", "b", "c"],[1, 2, 3]])
 
 ```js
     plot.plotCsvString(data, 0, 1, 2, {

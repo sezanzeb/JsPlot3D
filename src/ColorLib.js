@@ -265,7 +265,7 @@ export function getColorObjectFromAnyString(color)
 
 
     if(typeof(color) != "number" && typeof(color) != "string")
-        return console.error("getColorObjectFromAnyString expected String or Number as parameter but got "+typeof(color))
+        return console.error("getColorObjectFromAnyString expected String or Number as parameter but got " + typeof(color))
 
     // if the code reaches this point, color is a string probably
     // lowercase it to make checking for rgb and hsl simpler
