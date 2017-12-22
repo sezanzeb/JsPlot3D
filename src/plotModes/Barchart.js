@@ -167,7 +167,8 @@ export default function barchart(parent, df, colors, columns, normalization, app
     }
 
 
-    // helper function for interpolation
+    // helper function for "reverse interpolation". I don't create new points between two points,
+    // rather I check how high the value of 4 points should be (a, b, c, d) when e was the interpolated point.
     let addToHeights = (x, y, z, x_float, z_float, i) =>
     {
         /*
@@ -205,14 +206,12 @@ export default function barchart(parent, df, colors, columns, normalization, app
         // update the heights
         barsGrid[x][z].y += y*oppositeSquareArea // initialized with 0, now +=
 
-        // +=, because otherwise it won't interpolate. It has to add the value to the existing value
+        // +=, because it has to add the value to the existing value
 
         // find the highest bar
         // even in case of normalizeX2 being false, do parent. so that the heatmapcolor can be created
-        if(barsGrid[x][z].y > maxX2)
-            maxX2 = barsGrid[x][z].y
-        if(barsGrid[x][z].y < minX2)
-            minX2 = barsGrid[x][z].y
+        if(barsGrid[x][z].y > maxX2) maxX2 = barsGrid[x][z].y
+        if(barsGrid[x][z].y < minX2) minX2 = barsGrid[x][z].y
 
         // if needed create the bar. Don't set the height yet
         // the height gets set once maxX2 and minX2 are ready
@@ -240,7 +239,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
             let count = barsGrid[x][z].count
             let w = oppositeSquareArea
             
-            // THREE.Color object that represents the label from the datapoint that is being interpolated
+            // THREE.Color object that represents the label from the datapoint that is being processed
             let newc = new THREE.Color(0).copy(dfColors[i])
 
             let avg

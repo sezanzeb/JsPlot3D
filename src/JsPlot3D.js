@@ -931,23 +931,16 @@ export class Plot
             //       3D-Mesh Plot      //
             //-------------------------//
 
-            // I unfortunatelly think this can't work
-
+            // I unfortunatelly think this can't work in an easy way
             //(as long as the datapoint coordinates are not grid like.)
-            // if they are, the code would have to detect the resolution and then an easy algorithm can be run over the
-            // datapoints to connect triangles with the nearest vertices and leave those out that are not existant
 
-            // I could try to align the datapoints to a grid and maybe even interpolating it, but when there are only few datapoints
-            // in some parts of the "landscape", there won't be a polygon created, because there would still be spaces in the grid
+            // Method 1:
+            // I could try to align the datapoints to a grid and interpolate it, but when there is supposed to be a hole in the "landscape",
+            // I would interpolate over that hole and close it. But maybe that is acceptable.
 
-            // the only way i can think of would be a "density based clustering like with a dynamic radius" kind of approach that checks for intersections
-            // because edges should not cross each other. It would be ridiculously complex and I really don't have the time for that during my studies
-
-            // one could also:
-            // 1. align the scattered datapoints to a grid (interpolated, that means add the datapoints y-value to nearby grid positions mulitplied with (1-distance))
-            //2. connect triangles when datapoints are directly next to each other (go clockwise around the grid positions that are one step away)
-            //3. datapoints that are still don't connected to anything receive a circle sprite OR connect themself to the 2 nearest vertices
-            // the grid resolution would determine how well the polygon can connect
+            // Method 2:
+            // Self Organizing Maps
+            // They would close holes aswell though.
 
 
         }*/
