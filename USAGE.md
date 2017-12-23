@@ -92,13 +92,20 @@ Note, that if you are planning to call setDimensions and plot something afterwar
 
 ## Plotting Formulas
 
-There can also be a second parameter that contains some options, as seen in the documentation, which is linked at the top of this document. (Similar to the 5th parameter of e.g. plotDataFrame)
-
 ```js
-    plot.plotFormula("sin(5*x1) * cos(5*x3) + a", {"a": 2})
+    plot.plotFormula("sin(5*x1) * cos(5*x3) + a", {"a": 2}, {hueOffset: 0.3})
 ```
 
-The functions listed here can be used (without the math. suffix): http://mathjs.org/docs/reference/functions.html
+it will assign the number 2 to the variable a inside the formula. This way the formula itself doesn't change and therefore doesn't have to be recompiled.
+
+```js
+    // bad performance!!, it has to be recompiled everytime 'a' changes (but it will work aswell):
+    plot.plotFormula("sin(5*x1) * cos(5*x3) + " + a)
+```
+
+The functions listed here can be used (without the math. suffix): http://mathjs.org/docs/reference/functions.html#arithmetic-functions
+
+The third parameter that contains some options, as seen in the documentation (which is linked at the top of this document) is similar to the options parameter of e.g. plotDataFrame)
 
 If you want to use javascript code inside the formula, use plotFormula
 
