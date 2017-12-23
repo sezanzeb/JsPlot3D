@@ -176,7 +176,7 @@ function main()
         recentplote = e
         var formula = document.getElementById("formulaText").value
         var options = getOptions()
-        plot.plotFormula(formula, options)
+        plot.plotFormula(formula, {}, options)
     }
 
 

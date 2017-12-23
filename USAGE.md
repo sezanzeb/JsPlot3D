@@ -95,19 +95,12 @@ Note, that if you are planning to call setDimensions and plot something afterwar
 There can also be a second parameter that contains some options, as seen in the documentation, which is linked at the top of this document. (Similar to the 5th parameter of e.g. plotDataFrame)
 
 ```js
-    plot.plotFormula("sin(5*x1)*cos(5*x3)")
+    plot.plotFormula("sin(5*x1) * cos(5*x3) + a", {"a": 2})
 ```
 
-supported keywords/operators (case sensitive):
+The functions listed here can be used (without the math. suffix): http://mathjs.org/docs/reference/functions.html
 
-- sin, cos, tan
-- sinh, cosh, tanh
-- asin, acos, atan
-- log, ln
-- e, pi, π
-- min, max, abs
-- ^, exp, sqrt
-- !
+If you want to use javascript code inside the formula, use plotFormula
 
 <br/>
 

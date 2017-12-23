@@ -96,7 +96,10 @@ export class Plot
 
     /**
      * plots a formula into the container as 3D Plot
-     * @param {string} originalFormula string of formula. example: sin(x1) + x3
+     * @param {string} formula string of formula. example: sin(x1) + x3
+     * @param {object} variables when formula is something like "x1 + i", use {"i": 2} for example as variables parameter
+     * - default: {}
+     * - null and undefined will be interpreted as "use default"
      * @param {object} options json object with one or more of the following parameters:
      * - mode {string}: "barchart", "scatterplot" or "polygon"
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
@@ -114,16 +117,19 @@ export class Plot
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0  
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
-    plotFormula(originalFormula, options ={})
+    plotFormula(formula, variables={}, options={})
     {
         // default options
         let mode = POLYGON_MODE
         let x2frac = 1
         let normalizeX2 = true
-        let title = originalFormula
+        let title = formula
         let x1title = "x1"
         let x2title = "y(x1,x3)"
         let x3title = "x3"
+
+        if(typeof(variables) != "object" || variables == null)
+            variables = {}
 
         if(this.isAnimated())
             options.fastForward = true // performance increase by using fastForward (but it's only very small actually)
@@ -137,14 +143,11 @@ export class Plot
         if(options.x2title != undefined) x2title = options.x2title
         if(options.x3title != undefined) x3title = options.x3title
 
-        if(originalFormula == undefined || originalFormula === "")
-            return console.error("first param of plotFormula (originalFormula) is undefined or empty")
-        if(typeof(originalFormula) != "string")
-            return console.error("first param of plotFormula (originalFormula) should be string")
+        if(formula == undefined || formula === "")
+            return console.error("first param of plotFormula (formula) is undefined or empty")
+        if(typeof(formula) != "string")
+            return console.error("first param of plotFormula (formula) should be string")
         
-        // don't fool plotCsvString into believing the oldData-object contains old csv data. overwrite checkstring therefore
-        this.clearCheckString()
-
         // force the following settings:
         options.header = false
 
@@ -156,8 +159,13 @@ export class Plot
         options.x2title = x2title
         options.x3title = x3title
 
+        // only recompile when the function changed. Save cpu time
         // compile to javascript syntax using mathjs and store it for later
-        let compiledFormula = math.compile(originalFormula)
+        if(formula != this.checkString)
+        {
+            this.compiledFormula = math.compile(formula)
+            this.checkString = formula
+        }
 
         if(mode === SCATTERPLOT_MODE)    
         {
@@ -182,7 +190,9 @@ export class Plot
                 for(let z = 0; z < this.dimensions.zRes; z++)
                 {
                     // calculate y. y = f(x1, x2)
-                    y = compiledFormula.eval({x1: x/this.dimensions.xRes, x3: z/this.dimensions.zRes})
+                    variables.x1 = x/this.dimensions.xRes
+                    variables.x3 = z/this.dimensions.zRes
+                    y = this.compiledFormula.eval(variables)
 
                     df[i] = new Float32Array(3)
                     df[i][0] = x/this.dimensions.xRes // store the datapoint
@@ -223,7 +233,9 @@ export class Plot
                 for(let z = 0; z < this.dimensions.zRes; z++)
                 {
                     // calculate y. y = f(x1, x2)
-                    y = compiledFormula.eval({x1: x/this.dimensions.xRes, x3: z/this.dimensions.zRes})
+                    variables.x1 = x/this.dimensions.xRes
+                    variables.x3 = z/this.dimensions.zRes
+                    y = this.compiledFormula.eval(variables)
 
                     df[i] = new Float32Array(3)
                     df[i][0] = x/this.dimensions.xRes // store the datapoint
@@ -268,7 +280,11 @@ export class Plot
 
             // the y-values are calculated inside the call to polygon, so no df is passed over to this function
             // note that updating the numbers along the axes is handled in the call to polygon
-            polygon((x1, x3) => compiledFormula.eval({x1, x3}), this, colors, normalization, appearance, dimensions)
+            polygon((x1, x3) => {
+                variables.x1 = x1
+                variables.x3 = x3
+                return this.compiledFormula.eval(variables)
+            }, this, colors, normalization, appearance, dimensions)
 
         }
     }
@@ -1655,7 +1671,7 @@ export class Plot
      *      var i = 0;
      *      plot.animate(function() {
      *              i += 0.01;
-     *              plot.plotFormula("sin(2*x1+" + i + ")*sin(2*x2-" + i + ")", JSPLOT3D.BARCHART_MODE);
+     *              plot.plotFormula("sin(2*x1+" + i + ")*sin(2*x2-" + i + ")", null, JSPLOT3D.BARCHART_MODE);
      *      }
      * @param {function} animationFunc
      */
