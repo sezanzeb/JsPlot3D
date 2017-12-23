@@ -97,7 +97,7 @@ export class Plot
      * plots a formula into the container as 3D Plot
      * @param {string} originalFormula string of formula. example: sin(x1) + x3
      * @param {object} options json object with one or more of the following parameters:
-     * - mode {string}: "barchart", "scatterplot", "polygon" or "lineplot"
+     * - mode {string}: "barchart", "scatterplot" or "polygon"
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
@@ -276,7 +276,7 @@ export class Plot
      * plots a function into the container as 3D Plot. It will execute the function with varying parameters a few times
      * @param {function} foo function. For example: function(x, z) { return x+z }
      * @param {object} options json object with one or more of the following parameters:
-     * - mode {string}: "barchart", "scatterplot", "polygon" or "lineplot"
+     * - mode {string}: "barchart", "scatterplot" or "polygon"
      * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
      * - title {string}: title of the data
      * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
