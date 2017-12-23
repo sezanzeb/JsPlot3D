@@ -107,7 +107,7 @@ The functions listed here can be used (without the math. suffix): http://mathjs.
 
 The third parameter that contains some options, as seen in the documentation (which is linked at the top of this document) is similar to the options parameter of e.g. plotDataFrame)
 
-If you want to use javascript code inside the formula, use plotFormula
+If you want to use javascript code inside the formula, use plotFunction
 
 <br/>
 
