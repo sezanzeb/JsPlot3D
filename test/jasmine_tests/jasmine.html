@@ -88,23 +88,13 @@
 
     describe("Math", function() {
 
-        it("| parsing various formulas", function() {
-            expect(JSPLOT3D.MATH.transform("sin(x1)+e")).toBe("Math.sin(x1)+Math.E")
-            expect(JSPLOT3D.MATH.transform("cos(x1)")).toBe("Math.cos(x1)")
-            expect(JSPLOT3D.MATH.transform("ln(x1*pi)")).toBe("Math.log(x1*Math.PI)")
-            expect(JSPLOT3D.MATH.transform("PI^5+x1!*3")).toBe("Math.PI**5+factorial(x1)*3")
-            expect(JSPLOT3D.MATH.transform("x1+E^x3")).toBe("x1+Math.E**x3")
-        })
-
         it("| doing a calculation", function() {
-            expect(JSPLOT3D.MATH.transform("cos(x1)")).toBe("Math.cos(x1)")
             
-            plot.plotFormula("Math.cos(x1)")
+            plot.plotFormula("cos(x1)")
 
             expect(plot.plotmesh.geometry.vertices[0].y).toBe(1)
 
         })
-
     })
 
 

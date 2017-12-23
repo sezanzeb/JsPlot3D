@@ -3,18 +3,19 @@
  * @module JsPlot3D
  */
 
-// IMPORTS. Note how three.js is not needed in this file
+// IMPORTS
 
 // classes
+// three.js is not yet needed in this file
 import SceneHelper from "./SceneHelper.js"
 import scatterplot from "./plotModes/Scatterplot.js"
 import lineplot from "./plotModes/Lineplot.js"
 import barchart from "./plotModes/Barchart.js"
 import polygon from "./plotModes/Polygon.js"
+import math from "mathjs"
 
 // functions
 import * as COLORLIB from "./ColorLib.js"
-import * as MATH from "./Math.js"
 
 // CONSTANTS
 export const XAXIS = 1
@@ -28,7 +29,7 @@ export const DEFAULTCAMERA = 0
 export const TOPCAMERA = 1
 export const LEFTCAMERA = 2
 export const FRONTCAMERA = 3
-export { COLORLIB, MATH } // so that the jasmine tests can have access to the imported libs as JSPLOT3D.COLORLIB
+export { COLORLIB } // so that the jasmine tests can have access to the imported libs as JSPLOT3D.COLORLIB
 
 
 // Main Class for this Tool, exported as JSPLOT3D.Plot
@@ -140,8 +141,7 @@ export class Plot
             return console.error("first param of plotFormula (originalFormula) is undefined or empty")
         if(typeof(originalFormula) != "string")
             return console.error("first param of plotFormula (originalFormula) should be string")
-
-        this.validFormula = MATH.transform(originalFormula)
+        
         // don't fool plotCsvString into believing the oldData-object contains old csv data. overwrite checkstring therefore
         this.clearCheckString()
 
@@ -155,6 +155,9 @@ export class Plot
         options.x1title = x1title
         options.x2title = x2title
         options.x3title = x3title
+
+        // compile to javascript syntax using mathjs and store it for later
+        let compiledFormula = math.compile(originalFormula)
 
         if(mode === SCATTERPLOT_MODE)    
         {
@@ -179,7 +182,7 @@ export class Plot
                 for(let z = 0; z < this.dimensions.zRes; z++)
                 {
                     // calculate y. y = f(x1, x2)
-                    y = MATH.f.bind(this)(x/this.dimensions.xRes, z/this.dimensions.zRes, this.validFormula)
+                    y = compiledFormula.eval({x1: x/this.dimensions.xRes, x3: z/this.dimensions.zRes})
 
                     df[i] = new Float32Array(3)
                     df[i][0] = x/this.dimensions.xRes // store the datapoint
@@ -220,7 +223,7 @@ export class Plot
                 for(let z = 0; z < this.dimensions.zRes; z++)
                 {
                     // calculate y. y = f(x1, x2)
-                    y = MATH.f.bind(this)(x/this.dimensions.xRes, z/this.dimensions.zRes, this.validFormula)
+                    y = compiledFormula.eval({x1: x/this.dimensions.xRes, x3: z/this.dimensions.zRes})
 
                     df[i] = new Float32Array(3)
                     df[i][0] = x/this.dimensions.xRes // store the datapoint
@@ -265,7 +268,7 @@ export class Plot
 
             // the y-values are calculated inside the call to polygon, so no df is passed over to this function
             // note that updating the numbers along the axes is handled in the call to polygon
-            polygon(MATH.f.bind(this), this, colors, normalization, appearance, dimensions)
+            polygon((x1, x3) => compiledFormula.eval({x1, x3}), this, colors, normalization, appearance, dimensions)
 
         }
     }
@@ -1652,8 +1655,8 @@ export class Plot
      *      var i = 0;
      *      plot.animate(function() {
      *              i += 0.01;
-     *              plot.plotFormula("sin(2*x1+i)*sin(2*x2-i)", JSPLOT3D.BARCHART_MODE);
-     *      }.bind(this))
+     *              plot.plotFormula("sin(2*x1+" + i + ")*sin(2*x2-" + i + ")", JSPLOT3D.BARCHART_MODE);
+     *      }
      * @param {function} animationFunc
      */
     animate(animationFunc)

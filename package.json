@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/sezanzeb/3D-Plot-Js#readme",
   "dependencies": {
+    "mathjs": "^3.18.0",
     "three": "^0.87.1",
     "three-orbit-controls": "^82.1.0"
   },

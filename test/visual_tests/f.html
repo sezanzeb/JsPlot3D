@@ -38,14 +38,14 @@
     plot1.setDimensions({xRes: 5, zRes: 5})
     var i1 = 1;
     plot1.animate(function() {
-        plot1.plotFormula("(sin(2*x1+i1)+sin(2*x3+i1))*0.001",{
+        plot1.plotFormula("(sin(2*x1+"+i1+")+sin(2*x3+"+i1+"))*0.001",{
             mode: "barchart",
             normalizeX2: true,
             barchartPadding: 0,
             keepOldPlot: true,
         },0)
         i1 += speed
-    }.bind(this))
+    })
 
 
 
@@ -61,14 +61,14 @@
     //make sure to either set normalizeX2: true or multiply the formula with something very small in case of barchart.
     //the bars are the sum of alle previously calculated results
     plot2.animate(function() {
-        plot2.plotFormula("(sin(2*x1+i2)+sin(2*x3+i2))*0.005",{
+        plot2.plotFormula("(sin(2*x1+"+i2+")+sin(2*x3+"+i2+"))*0.005",{
             mode: "barchart",
             normalizeX2: false,
             barchartPadding: 0,
             keepOldPlot: true
         },0)
         i2 += speed
-    }.bind(this))
+    })
     
 
 
@@ -85,14 +85,14 @@
     //make sure to either set normalizeX2: true or multiply the formula with something very small in case of barchart.
     //the bars are the sum of alle previously calculated results
     plot3.animate(function() {
-        plot3.plotFormula("(sin(2*x1+i3)+sin(2*x3+i3))",{
+        plot3.plotFormula("(sin(2*x1+"+i3+")+sin(2*x3+"+i3+"))",{
             mode: "barchart",
             normalizeX2: true,
             barchartPadding: 0,
             keepOldPlot: false
         },0)
         i3 += speed
-    }.bind(this))
+    })
     
 
 
@@ -109,14 +109,14 @@
     //make sure to either set normalizeX2: true or multiply the formula with something very small in case of barchart.
     //the bars are the sum of alle previously calculated results
     plot4.animate(function() {
-        plot4.plotFormula("(sin(2*x1+i4)+sin(2*x3+i4))*0.03",{
+        plot4.plotFormula("(sin(2*x1+"+i4+")+sin(2*x3+"+i4+"))*0.03",{
             mode: "barchart",
             normalizeX2: false,
             barchartPadding: 0,
             keepOldPlot: false
         },0)
         i4 += speed
-    }.bind(this))
+    })
 
 
 </script>
