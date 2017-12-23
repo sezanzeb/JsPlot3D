@@ -64,7 +64,6 @@
         it("| nothing undefined", function() {
             expect(plot.legend).toBeDefined()
             expect(plot.SceneHelper).toBeDefined()
-            expect(plot.MathParser).toBeDefined()
             expect(plot.container).toBeDefined()
             expect(plot.oldData).toBeDefined()
             expect(plot.dimensions).toBeDefined()
@@ -87,28 +86,23 @@
         })
     })
 
-    describe("MathParser", function() {
-
-        it("| parent is plot", function() {
-            expect(plot.MathParser.parent).toBe(plot)
-        })
-
-        it("| integrity of various variables", function() {
-            expect(plot.MathParser.calculatedPoints.length).toBe(plot.dimensions.xRes)
-            expect(plot.MathParser.calculatedPoints[0].length).toBe(plot.dimensions.zRes)
-        })
+    describe("Math", function() {
 
         it("| parsing various formulas", function() {
-            expect(plot.MathParser.parse("sin(x1)+e")).toBe("Math.sin(this.x1)+Math.E")
-            expect(plot.MathParser.parse("Cos(x1)")).toBe("Math.cos(this.x1)")
-            expect(plot.MathParser.parse("ln(x1*pi)")).toBe("Math.log(this.x1*Math.PI)")
-            expect(plot.MathParser.parse("PI^5+x1!*3")).toBe("Math.PI**5+this.factorial(this.x1)*3")
-            expect(plot.MathParser.parse("x1+E^x3")).toBe("this.x1+Math.E**this.x3")
+            expect(JSPLOT3D.MATH.transform("sin(x1)+e")).toBe("Math.sin(x1)+Math.E")
+            expect(JSPLOT3D.MATH.transform("cos(x1)")).toBe("Math.cos(x1)")
+            expect(JSPLOT3D.MATH.transform("ln(x1*pi)")).toBe("Math.log(x1*Math.PI)")
+            expect(JSPLOT3D.MATH.transform("PI^5+x1!*3")).toBe("Math.PI**5+factorial(x1)*3")
+            expect(JSPLOT3D.MATH.transform("x1+E^x3")).toBe("x1+Math.E**x3")
         })
 
         it("| doing a calculation", function() {
-            expect(plot.MathParser.parse("cos(x1)")).toBe("Math.cos(this.x1)")
-            expect(plot.MathParser.f(0,0)).toBe(1)
+            expect(JSPLOT3D.MATH.transform("cos(x1)")).toBe("Math.cos(x1)")
+            
+            plot.plotFormula("Math.cos(x1)")
+
+            expect(plot.plotmesh.geometry.vertices[0].y).toBe(1)
+
         })
 
     })
@@ -454,6 +448,27 @@
             plot.stopAnimation()
 
             expect(plot.animationFunc).toBeNull()
+
+        })
+
+    })
+
+    describe("plotFunction", function() {
+
+        let i = 0
+
+        it("| plotFunction geometry check", function() {
+
+            let a = function(a, b) { 
+                if(a > 0.5)
+                    return 3
+                return 2;
+            }
+
+            plot.plotFunction(a)
+
+            expect(plot.plotmesh.geometry.vertices[0].y).toBe(2)
+            expect(plot.plotmesh.geometry.vertices[plot.plotmesh.geometry.vertices.length - 1].y).toBe(3)
 
         })
 

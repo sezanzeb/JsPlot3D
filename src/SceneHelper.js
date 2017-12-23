@@ -259,18 +259,19 @@ export default class SceneHelper
     createLight()
     {
         // set a directional light
-        let color1 = 0xff9933
-        let color2 = 0x0033ff
 
-        let directionalLight1 = new THREE.DirectionalLight(color1, 0.4)
+        let directionalLight1 = new THREE.DirectionalLight(0xff9933, 1)
         directionalLight1.position.y = 1
         directionalLight1.name = "lightFromTop"
         this.scene.add(directionalLight1)
 
-        let directionalLight2 = new THREE.DirectionalLight(color2, 0.4)
+        let directionalLight2 = new THREE.DirectionalLight(0x003366, 1.5)
         directionalLight2.position.y = -1
         directionalLight2.name = "lightFromBottom"
         this.scene.add(directionalLight2)
+
+        let hemi = new THREE.HemisphereLight(0xffffff, 0x505560, 1.2)
+        this.scene.add(hemi)
     }
 
 

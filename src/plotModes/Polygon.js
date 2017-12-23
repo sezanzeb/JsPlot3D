@@ -3,6 +3,7 @@ import * as COLORLIB from "../ColorLib.js"
 
 /**
  * called from within JsPlot3D.js class plot
+ * @param {function} foo example: function() { return 1 } or MathParser.f
  * @param {object} parent this
  * @param {object} colors {hueOffset}
  * @param {object} normalization {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
@@ -10,7 +11,7 @@ import * as COLORLIB from "../ColorLib.js"
  * @param {object} dimensions {xLen, yLen, zLen}
  * @private
  */
-export default function polygon(parent, colors, normalization, appearance, dimensions)
+export default function polygon(foo, parent, colors, normalization, appearance, dimensions)
 {   
     const XAXIS = 1
     const YAXIS = 2
@@ -50,9 +51,10 @@ export default function polygon(parent, colors, normalization, appearance, dimen
 
         // color the plane
         let plotmat = [
-            new THREE.MeshBasicMaterial({
+            new THREE.MeshStandardMaterial({
                 side: THREE.DoubleSide,
-                vertexColors: THREE.VertexColors
+                vertexColors: THREE.VertexColors,
+                roughness: 0.85
             }),
             new THREE.MeshBasicMaterial({
                 transparent: true,
@@ -82,9 +84,20 @@ export default function polygon(parent, colors, normalization, appearance, dimen
     // https://github.com/mrdoob/three.js/issues/972
     let y = 0
 
-    // the parsed formula is stored in the MathParser object. There is only the need to call f(...) now
-    let minX2 = parent.MathParser.f(0, 0)
-    let maxX2 = parent.MathParser.f(0, 0)
+    // find out the first point that creates a finite value
+    let undefinedVal
+    for(let vIndex = 0; vIndex < mesh.geometry.vertices.length; vIndex ++)
+    {
+        let vertex = mesh.geometry.vertices[vIndex]
+        undefinedVal = foo(vertex.x, vertex.z)
+        if(isFinite(undefinedVal))
+        {
+            break
+        }
+    }
+
+    let minX2 = Infinity
+    let maxX2 = -Infinity
 
     /*let faceIndex1 = 0
     let faceIndex2 = 0*/
@@ -93,7 +106,11 @@ export default function polygon(parent, colors, normalization, appearance, dimen
     for(let vIndex = 0; vIndex < mesh.geometry.vertices.length; vIndex ++)
     {
         let vertex = mesh.geometry.vertices[vIndex]
-        y = parent.MathParser.f(vertex.x, vertex.z)
+        y = foo(vertex.x, vertex.z)
+
+        // taking care of 1/0 Infinite NaN stuff
+        if(!isFinite(y))
+            y = undefinedVal
 
         /*// in each face there are 3 attributes, which stand for the vertex Indices (Which are vIndex basically)
         // faces are ordered so that the vIndex in .c is in increasing order. If faceIndex.c has an unmatching value, increase
@@ -142,8 +159,8 @@ export default function polygon(parent, colors, normalization, appearance, dimen
     // minX2 and maxX2 are now available
 
     // increase/decrease min and max to lower the hue contrast and make it appear more friendly
-    let maxClrX2 = maxX2 + (maxX2-minX2)*0.2
-    let minClrX2 = minX2 - (maxX2-minX2)*0.2
+    let maxClrX2 = maxX2 + (maxX2-minX2)*0.15
+    let minClrX2 = minX2 - (maxX2-minX2)*0.15
 
     if(normalizeX2)
     {

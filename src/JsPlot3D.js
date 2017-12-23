@@ -4,13 +4,17 @@
  */
 
 // IMPORTS. Note how three.js is not needed in this file
-import MathParser from "./MathParser.js"
+
+// classes
 import SceneHelper from "./SceneHelper.js"
 import scatterplot from "./plotModes/Scatterplot.js"
 import lineplot from "./plotModes/Lineplot.js"
 import barchart from "./plotModes/Barchart.js"
 import polygon from "./plotModes/Polygon.js"
+
+// functions
 import * as COLORLIB from "./ColorLib.js"
+import * as MATH from "./Math.js"
 
 // CONSTANTS
 export const XAXIS = 1
@@ -24,7 +28,7 @@ export const DEFAULTCAMERA = 0
 export const TOPCAMERA = 1
 export const LEFTCAMERA = 2
 export const FRONTCAMERA = 3
-export { COLORLIB } // so that the jasmine tests can have access to the imported colorlib
+export { COLORLIB, MATH } // so that the jasmine tests can have access to the imported libs as JSPLOT3D.COLORLIB
 
 
 // Main Class for this Tool, exported as JSPLOT3D.Plot
@@ -60,10 +64,6 @@ export class Plot
         // don't use setDimensions for the following, as setDimensions is meant
         // to be something to call during runtime and will cause problems in this case
         this.dimensions = {xRes:20, zRes:20, xLen:1, yLen:1, zLen:1}
-        
-        // before MathParser, Dimensions have to be initialized (xRes and zRes). The reason for this is
-        // MathParser.resetCalculation(), which prepares some array stuff for calculations based on xRes and zRes
-        this.MathParser = new MathParser(this)
 
         // then setup the children of the scene (camera, light, axes)
         this.SceneHelper.createScene(this.dimensions, sceneOptions, {width: container.offsetWidth, height: container.offsetHeight})
@@ -141,11 +141,9 @@ export class Plot
         if(typeof(originalFormula) != "string")
             return console.error("first param of plotFormula (originalFormula) should be string")
 
-        this.MathParser.resetCalculation()
-        //tell the MathParser to prepare so that f can be executed
-        this.MathParser.parse(originalFormula)
+        this.validFormula = MATH.transform(originalFormula)
         // don't fool plotCsvString into believing the oldData-object contains old csv data. overwrite checkstring therefore
-        this.oldData.checkstring = originalFormula
+        this.clearCheckString()
 
         // force the following settings:
         options.header = false
@@ -181,7 +179,7 @@ export class Plot
                 for(let z = 0; z < this.dimensions.zRes; z++)
                 {
                     // calculate y. y = f(x1, x2)
-                    y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes)
+                    y = MATH.f.bind(this)(x/this.dimensions.xRes, z/this.dimensions.zRes, this.validFormula)
 
                     df[i] = new Float32Array(3)
                     df[i][0] = x/this.dimensions.xRes // store the datapoint
@@ -222,7 +220,7 @@ export class Plot
                 for(let z = 0; z < this.dimensions.zRes; z++)
                 {
                     // calculate y. y = f(x1, x2)
-                    y = this.MathParser.f(x/this.dimensions.xRes, z/this.dimensions.zRes)
+                    y = MATH.f.bind(this)(x/this.dimensions.xRes, z/this.dimensions.zRes, this.validFormula)
 
                     df[i] = new Float32Array(3)
                     df[i][0] = x/this.dimensions.xRes // store the datapoint
@@ -267,7 +265,183 @@ export class Plot
 
             // the y-values are calculated inside the call to polygon, so no df is passed over to this function
             // note that updating the numbers along the axes is handled in the call to polygon
-            polygon(this, colors, normalization, appearance, dimensions)
+            polygon(MATH.f.bind(this), this, colors, normalization, appearance, dimensions)
+
+        }
+    }
+
+
+
+    /**
+     * plots a function into the container as 3D Plot. It will execute the function with varying parameters a few times
+     * @param {function} foo function. For example: function(x, z) { return x+z }
+     * @param {object} options json object with one or more of the following parameters:
+     * - mode {string}: "barchart", "scatterplot", "polygon" or "lineplot"
+     * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
+     * - title {string}: title of the data
+     * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
+     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]. will be overwritten if normalization is on
+     * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
+     * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
+     * - x1title {string}: title of the x1 axis
+     * - x2title {string}: title of the x2 axis
+     * - x3title {string}: title of the x3 axis
+     * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
+     * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
+     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the oldData-object
+     * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0  
+     * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
+     */
+    plotFunction(foo, options ={})
+    {
+        // default options
+        let mode = POLYGON_MODE
+        let x2frac = 1
+        let normalizeX2 = true
+        let title = "function"
+        let x1title = "1. param"
+        let x2title = "return value"
+        let x3title = "2. param"
+
+        if(this.isAnimated())
+            options.fastForward = true // performance increase by using fastForward (but it's only very small actually)
+
+        // overwrite if available
+        if(options.mode != undefined) mode = options.mode
+        if(options.x2frac != undefined) x2frac = options.x2frac
+        if(options.normalizeX2 != undefined) normalizeX2 = options.normalizeX2
+        if(options.title != undefined) title = options.title
+        if(options.x1title != undefined) x1title = options.x1title
+        if(options.x2title != undefined) x2title = options.x2title
+        if(options.x3title != undefined) x3title = options.x3title
+
+        if(!foo)
+            return console.error("first param of plotFormula (foo) is undefined or empty")
+
+        // so that plotCsvString knows that the dataFrame did not originate from plotCsvString
+        this.clearCheckString()
+
+        // force the following settings:
+        options.header = false
+
+        // the deafult titles here are different from plotDataFrame, which is being called later to actually show the formula. So the default titles
+        // need to be passed to plotDataFrame inside the options object. Or of course the user has set them in the options parameter. in That case those variables
+        // contain the user setting.
+        options.title = title
+        options.x1title = x1title
+        options.x2title = x2title
+        options.x3title = x3title
+
+        if(mode === SCATTERPLOT_MODE)    
+        {
+            
+            //plotFunction
+            //-------------------------//
+            //       scatterplot       //
+            //-------------------------//
+
+            // if scatterplot, create a dataframe and send it to plotDataFrame
+            // multiply those two values for the ArraySize because plotFormula will create that many datapoints
+            let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
+
+            // three values (x, y and z) that are going to be stored in the dataframe
+
+            // line number in the new dataframe
+            let i = 0
+            let y = 0
+
+            for(let x = 0; x < this.dimensions.xRes; x++)
+            {
+                for(let z = 0; z < this.dimensions.zRes; z++)
+                {
+                    // calculate y. y = f(x1, x2)
+                    y = foo(x/this.dimensions.xRes, z/this.dimensions.zRes)
+
+                    df[i] = new Float32Array(3)
+                    df[i][0] = x/this.dimensions.xRes // store the datapoint
+                    df[i][1] = y // store the datapoint
+                    df[i][2] = z/this.dimensions.zRes // store the datapoint
+
+                    i++
+                }
+            }
+
+            // colorCol is the index that is used to colorate the datapoints.
+            // The index of 1 means the y value contains the number that is converted to a color
+            options.colorCol = 1
+
+            // continue plotting this DataFrame
+            this.plotDataFrame(df, 0, 1, 2, options)
+        }
+        else if(mode === BARCHART_MODE)
+        {
+
+            //plotFunction
+            //-------------------------//
+            //        Bar Chart        //
+            //-------------------------//
+
+
+            // if barchart, create a dataframe and send it to plotDataFrame
+            let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
+
+            // three values (x, y and z) that are going to be stored in the dataframe
+
+            // line number in the new dataframe
+            let i = 0
+            let y = 0
+
+            for(let x = 0; x < this.dimensions.xRes; x++)
+            {
+                for(let z = 0; z < this.dimensions.zRes; z++)
+                {
+                    // calculate y. y = f(x1, x2)
+                    y = foo(x/this.dimensions.xRes, z/this.dimensions.zRes)
+
+                    df[i] = new Float32Array(3)
+                    df[i][0] = x/this.dimensions.xRes // store the datapoint
+                    df[i][1] = y // store the datapoint
+                    df[i][2] = z/this.dimensions.zRes // store the datapoint
+
+                    i++
+                }
+            }
+
+            options.colorCol = 1 // y result of the evaluated formula
+
+            // continue plotting this DataFrame
+            this.plotDataFrame(df, 0, 1, 2, options)
+        }
+        else
+        {
+            if(mode != POLYGON_MODE)
+                console.warn("mode \""+mode+"\" unrecognized. Assuming \""+POLYGON_MODE+"\"")
+
+            //plotFunction
+            //-------------------------//
+            //         Polygon         //
+            //-------------------------//
+    
+            // indicates, that a polygon is currently being plotted, which also indicates that a formula is being plotted
+            this.oldData.options.mode = POLYGON_MODE
+
+            let hueOffset = 0
+            let numberDensity = 3
+
+            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = options.hueOffset
+            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = options.numberDensity
+
+            let colors = {hueOffset}
+            let normalization = {normalizeX2, x2frac}
+            let appearance = {numberDensity}
+            let dimensions = this.dimensions
+
+            // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
+            this.populateLegend({x1title, x2title, x3title, title})
+
+            // the y-values are calculated inside the call to polygon, so no df is passed over to this function
+            // note that updating the numbers along the axes is handled in the call to polygon
+            polygon(foo, this, colors, normalization, appearance, dimensions)
 
         }
     }
@@ -1363,11 +1537,22 @@ export class Plot
         this.oldData.x1col = 0
         this.oldData.x2col = 1
         this.oldData.x3col = 2
-        this.oldData.checkstring = ""
+        this.clearCheckString()
         this.oldData.barsGrid = null
         
         this.oldData.options = {}
         this.oldData.options.mode = SCATTERPLOT_MODE
+    }
+
+
+
+    /**
+     * clears the checkstring, so that plotCsvString knows that the stored dataframe does not originate from it.
+     * The point of the checkstring is to prevent parsing the same dataframe twice in a row, to increase performance.
+     */
+    clearCheckString()
+    {
+        this.oldData.checkstring = ""
     }
 
 

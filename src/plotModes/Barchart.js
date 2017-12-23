@@ -98,10 +98,11 @@ export default function barchart(parent, df, colors, columns, normalization, app
         boxHeight = 0 // in parent.case create is as planes with only 4 vertex (i don't need more than that, a + for performance)
     let boxShape = new THREE.BoxBufferGeometry((1-barchartPadding)/(parent.dimensions.xRes), boxHeight, (1-barchartPadding)/(parent.dimensions.zRes))
     let boxMat = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
+        color: 0,
         emissive: 0,
-        emissiveIntensity: 0.98,
-        roughness: 1
+        emissiveIntensity: 0.95,
+        roughness: 1,
+        metalness: 1
     })
 
 
@@ -230,7 +231,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
             barsGrid[x][z].bar = newBar
             // initial color approximation
-            barsGrid[x][z].bar.material.emissive.set(COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset))
+            setBarColor(barsGrid[x][z].bar, COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset))
         }
         
         // LABELS:
@@ -266,7 +267,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
                 // for count=1 and weight=0.5 it turns to avg = (new*0.5 + old*1.5)/2
             }
 
-            barsGrid[x][z].bar.material.emissive.set(avg)
+            setBarColor(barsGrid[x][z].bar, avg)
 
             barsGrid[x][z].count ++
         }
@@ -367,7 +368,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
                     // HEATMAP:
                     let color = COLORLIB.convertToHeat(y, minX2, maxX2, hueOffset)
                     // bar.material.color.set(color) // .color property should stay the way it is defined (0xffffff), it's important for proper lighting
-                    bar.material.emissive.set(color)
+                    setBarColor(bar, color)
                 }
                 
                 y = y * factor
@@ -410,4 +411,16 @@ export default function barchart(parent, df, colors, columns, normalization, app
     normalization.x1frac = x1frac
     normalization.x2frac = x2frac
     normalization.x3frac = x3frac
+}
+
+
+/**
+ * sets the color of a bar
+ * @param {object} bar bar mesh 
+ * @param {object} color THREE.color
+ */
+function setBarColor(bar, color)
+{
+    bar.material.emissive.set(color)
+    bar.material.color.set(color)
 }

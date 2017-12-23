@@ -79,7 +79,9 @@ it works with all modes (Except polygon, which is not available outside of plotF
 
 ## Activating the 2D Mode
 
-Set one of xLen, yLen or zLen to zero
+Set one of xLen, yLen or zLen to zero.
+
+Note, that if you are planning to call setDimensions and plot something afterwards again, set xRes, yRes and zRes again, because the 2D Mode will force the one on the flat axis to be 1. So don't be suprised when nothing shows up.
 
 ```js
     plot.setDimensions({xLen:0}) // or yLen:0 or zLen: 0
@@ -94,7 +96,7 @@ Set one of xLen, yLen or zLen to zero
     plot.plotFormula("sin(5*x1)*cos(5*x3)")
 ```
 
-supported keywords/operators:
+supported keywords/operators (case sensitive):
 
 - sin, cos, tan
 - sinh, cosh, tanh
@@ -104,6 +106,22 @@ supported keywords/operators:
 - min, max, abs
 - ^, exp, sqrt
 - !
+
+<br/>
+
+## Plotting Functions
+
+it is very similar to plotFormula, but in this case you can hand a function over.
+
+```js
+    var a = function(a, b) { 
+        if(a > 0.5)
+            return 1
+        return Math.sin(a*5) + Math.sin(b*5);
+    }
+
+    plot.plotFunction(a)
+```
 
 <br/>
 
