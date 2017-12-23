@@ -28,18 +28,23 @@
 
 <script>
 
-    let data1 = document.getElementById("csv1").innerHTML
+    // read csv
+    let dataString = document.getElementById("csv1").innerHTML
+    
 
+    // prepare first plot
     let plot1 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer1"), {
         backgroundColor: "#eee",
     })
     plot1.createLegend(document.getElementById("JsPlot3DContainer1Legend1"))
-    plot1.plotCsvString(data1,0,2,1,{
+    plot1.plotCsvString(dataString,0,2,1,{
         header: true,
         dataPointSize: 0.3,
         labeled: true,
         colorCol: 3
     })
+
+    // adds all the datapoints at once
     plot1.addDataPoint([1,1,4,"tree"])
     plot1.addDataPoint([2,2,5,"flower"])
     plot1.addDataPoint([3,3,6,"lemon"])
@@ -49,19 +54,19 @@
     plot1.addDataPoint([7,7,10,"flower"])
 
 
-
-
+    // prepare second plot
     let plot2 = new JSPLOT3D.Plot(document.getElementById("JsPlot3DContainer2"), {
         backgroundColor: "#eee",
     })
     plot2.createLegend(document.getElementById("JsPlot3DContainer1Legend2"))
-    plot2.plotCsvString(data1,0,2,1,{
+    plot2.plotCsvString(dataString,0,2,1,{
         header: true,
         dataPointSize: 0.3,
         labeled: true,
         colorCol: 3
     })
 
+    // add a new datapoint every 200ms from the list newDatapoints
     let newDatapoints = [
         [1,1,4,"tree"],
         [2,2,5,"flower"],

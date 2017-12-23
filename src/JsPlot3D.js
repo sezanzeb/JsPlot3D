@@ -84,7 +84,8 @@ export class Plot
         // no animation by default
         this.animationFunc = null
 
-        // to trigger rendering every four frames. +1 % 4, do something if 0 or break if not null. At first needs to be 0, so that stuff renders.
+        // to trigger rendering every four frames. +1 % 4, do something if it equals 0. At first needs to be 0, so that stuff renders.
+        // it is incremented in this.callAnimation
         this.fps15 = 0
 
         // now render the empty space (axes will be visible, because of SceneHelper.createScene)
@@ -497,8 +498,8 @@ export class Plot
      * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
-     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     * as if it was a color. (converted to hexadecimal then). Default false
+     * - filterColor {boolean}: false: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
+     * as if it was a color. (converted to hexadecimal then and not filtered to a heatmap). Default true, which filters it to a heatmap
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -768,8 +769,8 @@ export class Plot
      * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
-     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     * as if it was a color. (converted to hexadecimal then). Default false
+     * - filterColor {boolean}: false: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
+     * as if it was a color. (converted to hexadecimal then and not filtered to a heatmap). Default true, which filters it to a heatmap
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -1334,8 +1335,8 @@ export class Plot
      * - x3frac {number}: by how much to divide the datapoints x3 value to fit into [-1;1]. will be overwritten if normalization is on
      * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
      * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
-     * - filterColor {boolean}: true: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
-     * as if it was a color. (converted to hexadecimal then). Default false
+     * - filterColor {boolean}: false: if the column with the index of the parameter "colorCol" contains numbers they are going to be treated
+     * as if it was a color. (converted to hexadecimal then and not filtered to a heatmap). Default true, which filters it to a heatmap
      * - x1title {string}: title of the x1 axis
      * - x2title {string}: title of the x2 axis
      * - x3title {string}: title of the x3 axis
@@ -1599,8 +1600,8 @@ export class Plot
      * not used for initialization, but rather for changing dimensions during runtime. will trigger axes recreation
      * Note that this has to be done before creating a plot
      * @param {object} dimensions json object can contain the following:
-     * - xRes number of vertices for the x-axis
-     * - zRes number of vertices for the z-axis
+     * - xRes number of datapoints/vertices for the x-axis and plotFunction/plotFormula.
+     * - zRes number of datapoints/vertices for the z-axis and plotFunction/plotFormula.
      * - xLen length of the x-axis. This is for the frame for data normalisation and formula plotting
      * - yLen length of the y-axis. This is for the frame for data normalisation and formula plotting
      * - zLen length of the z-axis. This is for the frame for data normalisation and formula plotting

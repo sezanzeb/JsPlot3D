@@ -546,7 +546,7 @@
     })
     plot1.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
     plot1.plotCsvString(data,0,1,2,{
-        defaultColor: "#18ff50",
+        defaultColor: "#18ff50", // if colorCol is not set or invalid, use this color for each datapoint
         mode: "barchart",
         barSizeThreshold: 0.1,
         csvIsInGoodShape: true
@@ -565,7 +565,7 @@
         separator: ";",
         header: true,
         mode: "barchart",
-        barSizeThreshold: 0.1,
+        barSizeThreshold: 0.1, // will hide every bar that is smaller than that
         csvIsInGoodShape: true
     })
 
@@ -577,14 +577,13 @@
         axesColor: "hsl(0.1667,1,0.5)"
     })
     plot3.setDimensions({xLen:1.1,zLen:1.1,yLen:1.1})
-    plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20})
+    plot3.setDimensions({xLen:1,yLen:1,zLen:1,xRes:20,zRes:20}) // makes no sense of course. This is just for testing if the tool fails or not
     plot3.plotCsvString(data,0,1,2,{
         defaultColor: "#18ff50",
-        fraction: 0.001,
+        fraction: 0.001, // only few datapoints
         mode: "barchart",
         normalize: false,
         colorCol: -1,
-        maxX2: 0.19991472060830104,
         barSizeThreshold: 0.1
     })
 

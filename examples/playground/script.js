@@ -90,6 +90,7 @@ function getOptions()
     var header = getVal("header")
     var separator = getVal("separator")
     var labeled = getVal("labeled")
+    var filterColor = getVal("filterColor")
     
     return {
         mode: mode,
@@ -112,7 +113,8 @@ function getOptions()
         dataPointSize: dataPointSize,
         header: header,
         separator: separator,
-        labeled: labeled,        
+        labeled: labeled,
+        filterColor: filterColor,    
     }
 }
 

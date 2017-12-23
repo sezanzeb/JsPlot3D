@@ -486,12 +486,12 @@
     plot1.plotCsvString(data,0,1,2,{
         defaultColor: "#18ff50",
         dataPointSize:0.1,
-        csvIsInGoodShape: true,
-        normalizeX1: true,
+        csvIsInGoodShape: true, // it will transform the data string to a dataframe datastructure more quickly without checking the integrity
+        normalizeX1: true, // will cause the plot to exceed the boundary of xLen x zLen x yLen eventually
         normalizeX2: true,
         normalizeX3: true,
         fraction:0.6,
-        hueOffset:0.01
+        hueOffset:0.01 // shift the color
     })
 
     console.log()
@@ -506,9 +506,9 @@
     plot2.plotDataFrame(data2,0,1,2,{
         defaultColor: "#18ff50",
         separator: ",",
-        header: true,
+        header: true, // will treat the first line in data2 as labels for the legend and will not plot them as datapoints
         dataPointSize:0.1,
-        labeled: true,
+        labeled: true, // will force to treat the values in the column with the index of colorCol as labels (changes the legend and the colors), when colorCol is set aswell
         csvIsInGoodShape: true,
         fraction:1,
         hueOffset:-0.01
@@ -527,7 +527,6 @@
         mode: "scatterplot",
         normalizeX2: true,
         colorCol: -1,
-        x2scale: 0.4,
         dataPointSize:0.1,
         fraction:0.6
     })
@@ -554,7 +553,7 @@
     plot5.setBackgroundColor("#2659b2")
     plot5.setAxesColor("hsl(0.1667,1,0.5)")
     plot5.plotDataFrame(data2,0,1,2,{
-        header: "tomato",
+        header: "tomato", // changes the header in the legend
         colorCol:1,
         dataPointSize:0.1,
         csvIsInGoodShape: true,
@@ -569,7 +568,7 @@
     plot6.setBackgroundColor("#2659b2")
     plot6.setAxesColor("hsl(0.1667,1,0.5)")
     plot6.plotCsvString(data,0,1,30,{
-        mode: "maple sirup",
+        mode: "maple sirup", // this is invalid. this is here to test if it reacts correctly (should use scatterplot mode by default)
         colorCol:1,
         dataPointSize:0.1,
         csvIsInGoodShape: true,

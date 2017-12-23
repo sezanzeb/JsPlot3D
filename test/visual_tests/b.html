@@ -22,10 +22,13 @@
         axesColor: 0xffff00
     })
 
+    // changes the length of the resulting polygon and the number of vertices
     plot.setDimensions({xLen:1.5,zLen:0.75,zRes:10,xRes:20})
     
     var i = 1;
     plot.animate(function() {
+
+        // will increment i in the first parameter by 0.01 each call, which will move the trigonometric functions around
         plot.plotFormula("sin(2*x1+i)*sin(2*x3-i)", {"i": i}, {
             normalizeX2: true
         })

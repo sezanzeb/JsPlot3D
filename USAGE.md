@@ -81,12 +81,14 @@ it works with all modes (Except polygon, which is not available outside of plotF
 
 Set one of xLen, yLen or zLen to zero.
 
-Note, that if you are planning to call setDimensions and plot something afterwards again, set xRes, yRes and zRes again, because the 2D Mode will force the one on the flat axis to be 1. So don't be suprised when nothing shows up.
-
 ```js
     plot.setDimensions({xLen:0}) // or yLen:0 or zLen: 0
     plot.plotCsvString(data, 0, 1, 2)
 ```
+
+Note, that after the above code if you are planning to call setDimensions and plot something afterwards again, set xRes, yRes and zRes again, because the 2D Mode will force the one on the flat axis to be 1. So don't be suprised when nothing shows up.
+
+The variables xRes and zRes control the amount of bars and the amount of vertices/points for plotFormula and plotFunction by the way.
 
 <br/>
 
@@ -107,7 +109,9 @@ The functions listed here can be used (without the math. suffix): http://mathjs.
 
 The third parameter that contains some options, as seen in the documentation (which is linked at the top of this document) is similar to the options parameter of e.g. plotDataFrame)
 
-If you want to use javascript code inside the formula, use plotFunction
+If you want to use javascript code inside the formula, use plotFunction.
+
+The resolution of the resulting polygon can be controlled by using plot.setDimensions({xRes: 15, zRes:20}) before your call to plotFormula
 
 <br/>
 

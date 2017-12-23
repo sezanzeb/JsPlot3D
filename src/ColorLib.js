@@ -39,7 +39,7 @@ export function convertToHeat(value,min=-1,max=1,hueOffset=0)
  * @param {boolean} labeled if true, treat the column indicated in colorCol as labels.
  * Example: when df[line][colorCol] is "tree" it will be red, flower will be a different color and so on
  * @param {boolean} header true if there are headers in the dataframe ("street","number",...)
- * @param {boolean} filterColor wether or not numbers should be filtered to a headmap
+ * @param {boolean} filterColor wether or not numbers should be filtered to a heatmap
  * @param {number} hueOffset color offset. 0.5 inverts the hue (red goes turqoise)
  * @param {object} labelColorMap .labelColorMap attribute of the return value of this function from the past
  * @param {number} numberOfLabels the number of labels that is stored inside (the old) labelColorMap.
@@ -58,25 +58,11 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
     // check for labeled == false, because getColorObjctFromAnyString is only important for unlabeled data.
     if(labeled == false && colorCol != -1 && getColorObjectFromAnyString(df[firstDataPointLine][colorCol]) == undefined)
     {
-
-        // didn't work. try some stuff
-        if(header == false && df.length >= 2)
-        {
-            console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
-                "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" "+
-                "Now trying with header = true.")
-            header = true
-            firstDataPointLine = 1
-        }
-        
-        if(getColorObjectFromAnyString(df[firstDataPointLine][colorCol]) == undefined)
-        {
-            // assume labels
-            console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
-                "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" "+
-                "Now assuming labeled = true.")
-            labeled = true
-        }
+        // assume labels
+        console.warn("the column that is supposed to hold the color information (index "+colorCol+") contained an unrecognized "+
+            "string (\""+df[0][colorCol]+"\"). \"labeled\" is set to "+labeled+", \"header\" is set to "+header+" "+
+            "Now assuming labeled = true.")
+        labeled = true
     }
 
     // if it is not supposed to be rendered as labeled data, avoid
@@ -94,7 +80,7 @@ export function getColorMap(df, colorCol, defaultColor, labeled, header, filterC
         // the following function just updates clrMax and clrMin
         let findHighestAndLowest = (value) =>
         {
-            if(filterColor && colorCol != -1)
+            if(colorCol != -1)
             {
                 if(value > clrMax)
                     clrMax = value
