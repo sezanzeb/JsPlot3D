@@ -92,6 +92,8 @@ Note, that if you are planning to call setDimensions and plot something afterwar
 
 ## Plotting Formulas
 
+There can also be a second parameter that contains some options, as seen in the documentation, which is linked at the top of this document. (Similar to the 5th parameter of e.g. plotDataFrame)
+
 ```js
     plot.plotFormula("sin(5*x1)*cos(5*x3)")
 ```
@@ -120,7 +122,9 @@ it is very similar to plotFormula, but in this case you can hand a function over
         return Math.sin(a*5) + Math.sin(b*5);
     }
 
-    plot.plotFunction(a)
+    plot.plotFunction(a, {
+        hueOffset: 0.3
+    })
 ```
 
 <br/>
