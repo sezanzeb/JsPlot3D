@@ -5,6 +5,7 @@
         <link rel="stylesheet" type="text/css" href="style.css">
         <link rel="shortcut icon" href="icon.png">
         <script src="https://threejs.org/build/three.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.18.0/math.min.js"></script>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
@@ -94,7 +95,7 @@
                                 <option value=""></option>
                                 <option value="scatterplot">scatterplot</option>
                                 <option value="barchart">barchart</option>
-                                <option value="lineplot">lineplot (csvs)</option>
+                                <option value="lineplot">lineplot</option>
                                 <option value="polygon">polygon (calculations)</option>
                             </select>
                             <small>"polygon" is only available for plotting Formulas</small>
@@ -111,7 +112,7 @@
                                 <option value="true">true</option>
                                 <option value="false">false</option>
                             </select>
-                            <small>false means convert datapoint values directly to hexadecimal colors</small>
+                            <small>false means convert datapoint values directly to hex colors</small>
                         </p>
                         <p>
                             <label>normalize:</label>

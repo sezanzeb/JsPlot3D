@@ -94,6 +94,12 @@ The variables xRes and zRes control the amount of bars and the amount of vertice
 
 ## Plotting Formulas
 
+It is a prerequisite to import mathjs first by using the following line:
+
+```html
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.18.0/math.min.js"></script>
+```
+
 ```js
     plot.plotFormula("sin(5*x1) * cos(5*x3) + a", {"a": 2}, {hueOffset: 0.3})
 ```

@@ -39,6 +39,8 @@ export default function polygon(foo, parent, colors, normalization, appearance, 
     // is there a plotmesh already? Or maybe a plotmesh that is not created from a 3D Plane (could be a scatterplot or something else)
     // no need to check keepOldPlot because it is allowed to use the old mesh every time (if IsPlotmeshValid says it's valid)
     let mesh = parent.plotmesh // assume parents plotmesh, it might be still valid. then check it
+    // no need to check for xRes, zRes, xLen, yLen and zLen because opon setDimension the plotmesh gets disposed. So if plotmesh
+    // is still there and has the name "polygonFormula", it is guaranteed to have the same dimensions and vertices counts
     if(!parent.IsPlotmeshValid("polygonFormula"))
     {
         parent.disposePlotMesh()
@@ -71,6 +73,7 @@ export default function polygon(foo, parent, colors, normalization, appearance, 
         }
 
         mesh = new THREE.Mesh(planegeometry, plotmat)
+        mesh.frustumCulled = false // that is not needed, because there is only the centered plot object (no need for three.js to check and compute boundingSpheres -> more performance)
         parent.plotmesh = mesh
         parent.plotmesh.name = "polygonFormula"
     }

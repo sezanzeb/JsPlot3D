@@ -5,17 +5,14 @@
 
 // IMPORTS
 
-// classes
 // three.js is not yet needed in this file
 import SceneHelper from "./SceneHelper.js"
 import scatterplot from "./plotModes/Scatterplot.js"
 import lineplot from "./plotModes/Lineplot.js"
 import barchart from "./plotModes/Barchart.js"
 import polygon from "./plotModes/Polygon.js"
-import math from "mathjs"
-
-// functions
 import * as COLORLIB from "./ColorLib.js"
+
 
 // CONSTANTS
 export const XAXIS = 1
@@ -96,198 +93,34 @@ export class Plot
 
 
     /**
-     * plots a formula into the container as 3D Plot
+     * plots a formula into the container as 3D Plot. **Please make sure to link mathjs in your html head** or do it by using plotFunction
      * @param {string} formula string of formula. example: sin(x1) + x3
      * @param {object} variables when formula is something like "x1 + i", use {"i": 2} for example as variables parameter
      * - default: {}
      * - null and undefined will be interpreted as "use default"
-     * @param {object} options json object with one or more of the following parameters:
-     * - mode {string}: "barchart", "scatterplot" or "polygon"
-     * - normalizeX2 {boolean}: if false, data will not be normalized. Datapoints with high values will be very far away then on the X2 Axis (y)
-     * - title {string}: title of the data
-     * - fraction {number}: between 0 and 1, how much of the dataset should be plotted.
-     * - x2frac {number}: by how much to divide the datapoints x2 value (y) to fit into [-1;1]. will be overwritten if normalization is on
-     * - barchartPadding {number}: how much space should there be between the bars? Example: 0.025
-     * - dataPointSize {number}: how large the datapoint should be. Default: 0.04
-     * - x1title {string}: title of the x1 axis
-     * - x2title {string}: title of the x2 axis
-     * - x3title {string}: title of the x3 axis
-     * - hueOffset {number}: how much to rotate the hue of the labels. between 0 and 1. Default: 0
-     * - keepOldPlot {boolean}: don't remove the old datapoints/bars/etc. when this is true
-     * - updateOldData {boolean}: if false, don't overwrite the dataframe that is stored in the oldData-object
-     * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0  
-     * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
+     * @param {object} options this is the same as in plotFunction
      */
     plotFormula(formula, variables={}, options={})
     {
-        // default options
-        let mode = POLYGON_MODE
-        let x2frac = 1
-        let normalizeX2 = true
-        let title = formula
-        let x1title = "x1"
-        let x2title = "y(x1,x3)"
-        let x3title = "x3"
+        if(typeof(math) == "undefined") // eslint-disable-line no-undef
+        {
+            console.error("mathjs was not found. Link the script in your html file http://mathjs.org/download.html")
+            console.error("or use plotFunction(function(x1, x3) { return x1+x3; }) for example")
+            return
+        }
 
-        if(typeof(variables) != "object" || variables == null)
+        if(variables == null)
+        {
             variables = {}
-
-        if(this.isAnimated())
-            options.fastForward = true // performance increase by using fastForward (but it's only very small actually)
-
-        // overwrite if available
-        if(options.mode != undefined) mode = options.mode
-        if(options.x2frac != undefined) x2frac = options.x2frac
-        if(options.normalizeX2 != undefined) normalizeX2 = options.normalizeX2
-        if(options.title != undefined) title = options.title
-        if(options.x1title != undefined) x1title = options.x1title
-        if(options.x2title != undefined) x2title = options.x2title
-        if(options.x3title != undefined) x3title = options.x3title
-
-        if(formula == undefined || formula === "")
-            return console.error("first param of plotFormula (formula) is undefined or empty")
-        if(typeof(formula) != "string")
-            return console.error("first param of plotFormula (formula) should be string")
-        
-        // force the following settings:
-        options.header = false
-
-        // the deafult titles here are different from plotDataFrame, which is being called later to actually show the formula. So the default titles
-        // need to be passed to plotDataFrame inside the options object. Or of course the user has set them in the options parameter. in That case those variables
-        // contain the user setting.
-        options.title = title
-        options.x1title = x1title
-        options.x2title = x2title
-        options.x3title = x3title
-
-        // only recompile when the function changed. Save cpu time
-        // compile to javascript syntax using mathjs and store it for later
-        if(formula != this.checkString)
-        {
-            this.compiledFormula = math.compile(formula)
-            this.checkString = formula
         }
 
-        if(mode === SCATTERPLOT_MODE)    
+        let compiled = math.compile(formula) // eslint-disable-line no-undef
+        this.plotFunction(function(x1, x3)
         {
-            
-            //plotFormula
-            //-------------------------//
-            //       scatterplot       //
-            //-------------------------//
-
-            // if scatterplot, create a dataframe and send it to plotDataFrame
-            // multiply those two values for the ArraySize because plotFormula will create that many datapoints
-            let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
-
-            // three values (x, y and z) that are going to be stored in the dataframe
-
-            // line number in the new dataframe
-            let i = 0
-            let y = 0
-
-            for(let x = 0; x < this.dimensions.xRes; x++)
-            {
-                for(let z = 0; z < this.dimensions.zRes; z++)
-                {
-                    // calculate y. y = f(x1, x2)
-                    variables.x1 = x/this.dimensions.xRes
-                    variables.x3 = z/this.dimensions.zRes
-                    y = this.compiledFormula.eval(variables)
-
-                    df[i] = new Float32Array(3)
-                    df[i][0] = x/this.dimensions.xRes // store the datapoint
-                    df[i][1] = y // store the datapoint
-                    df[i][2] = z/this.dimensions.zRes // store the datapoint
-
-                    i++
-                }
-            }
-
-            // colorCol is the index that is used to colorate the datapoints.
-            // The index of 1 means the y value contains the number that is converted to a color
-            options.colorCol = 1
-
-            // continue plotting this DataFrame
-            this.plotDataFrame(df, 0, 1, 2, options)
-        }
-        else if(mode === BARCHART_MODE)
-        {
-
-            //plotFormula
-            //-------------------------//
-            //        Bar Chart        //
-            //-------------------------//
-
-
-            // if barchart, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
-
-            // three values (x, y and z) that are going to be stored in the dataframe
-
-            // line number in the new dataframe
-            let i = 0
-            let y = 0
-
-            for(let x = 0; x < this.dimensions.xRes; x++)
-            {
-                for(let z = 0; z < this.dimensions.zRes; z++)
-                {
-                    // calculate y. y = f(x1, x2)
-                    variables.x1 = x/this.dimensions.xRes
-                    variables.x3 = z/this.dimensions.zRes
-                    y = this.compiledFormula.eval(variables)
-
-                    df[i] = new Float32Array(3)
-                    df[i][0] = x/this.dimensions.xRes // store the datapoint
-                    df[i][1] = y // store the datapoint
-                    df[i][2] = z/this.dimensions.zRes // store the datapoint
-
-                    i++
-                }
-            }
-
-            options.colorCol = 1 // y result of the evaluated formula
-
-            // continue plotting this DataFrame
-            this.plotDataFrame(df, 0, 1, 2, options)
-        }
-        else
-        {
-            if(mode != POLYGON_MODE)
-                console.warn("mode \""+mode+"\" unrecognized. Assuming \""+POLYGON_MODE+"\"")
-
-            //plotFormula
-            //-------------------------//
-            //         Polygon         //
-            //-------------------------//
-    
-            // indicates, that a polygon is currently being plotted, which also indicates that a formula is being plotted
-            this.oldData.options.mode = POLYGON_MODE
-
-            let hueOffset = 0
-            let numberDensity = 3
-
-            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = options.hueOffset
-            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = options.numberDensity
-
-            let colors = {hueOffset}
-            let normalization = {normalizeX2, x2frac}
-            let appearance = {numberDensity}
-            let dimensions = this.dimensions
-
-            // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
-            this.populateLegend({x1title, x2title, x3title, title})
-
-            // the y-values are calculated inside the call to polygon, so no df is passed over to this function
-            // note that updating the numbers along the axes is handled in the call to polygon
-            polygon((x1, x3) => {
-                variables.x1 = x1
-                variables.x3 = x3
-                return this.compiledFormula.eval(variables)
-            }, this, colors, normalization, appearance, dimensions)
-
-        }
+            variables.x1 = x1
+            variables.x3 = x3
+            return compiled.eval(variables)
+        }, options)
     }
 
 
@@ -352,7 +185,7 @@ export class Plot
         options.x2title = x2title
         options.x3title = x3title
 
-        if(mode === SCATTERPLOT_MODE)    
+        if(mode === SCATTERPLOT_MODE || mode === LINEPLOT_MODE)    
         {
             
             //plotFunction
@@ -1611,7 +1444,7 @@ export class Plot
         if(typeof(dimensions) != "object")
             return console.error("param of setDimensions (dimensions) should be a json object containing at least one of xRes, zRes, xLen, yLen or zLen")
 
-        // vertices counts changed, so the mesh has to be recreated
+        // vertices counts and plot shape/dimensions changed, so the mesh has to be recreated
         this.disposePlotMesh()
         this.clearOldData()
         
