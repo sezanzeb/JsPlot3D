@@ -100,16 +100,13 @@ It is a prerequisite to import mathjs first by using the following line:
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.18.0/math.min.js"></script>
 ```
 
+then do:
+
 ```js
     plot.plotFormula("sin(5*x1) * cos(5*x3) + a", {"a": 2}, {hueOffset: 0.3})
 ```
 
 it will assign the number 2 to the variable a inside the formula. This way the formula itself doesn't change and therefore doesn't have to be recompiled.
-
-```js
-    // bad performance!!, it has to be recompiled everytime 'a' changes (but it will work aswell):
-    plot.plotFormula("sin(5*x1) * cos(5*x3) + " + a)
-```
 
 The functions listed here can be used (without the math. suffix): http://mathjs.org/docs/reference/functions.html#arithmetic-functions
 
@@ -119,11 +116,18 @@ If you want to use javascript code inside the formula, use plotFunction.
 
 The resolution of the resulting polygon can be controlled by using plot.setDimensions({xRes: 15, zRes:20}) before your call to plotFormula
 
+Here is how not to do it, but if you are only going to plot it once (that means static/unanimated), you can actually go ahead and do it like this:
+
+```js
+    // bad performance!!, it has to be recompiled everytime 'a' changes (but it will work aswell):
+    plot.plotFormula("sin(5*x1) * cos(5*x3) + " + a)
+```
+
 <br/>
 
 ## Plotting Functions
 
-it is very similar to plotFormula, but in this case you can hand a function over.
+it is very similar to plotFormula, but in this case you can hand a function over. plotFormula actually calls plotFunction under the hood
 
 ```js
     var a = function(a, b) { 
@@ -134,6 +138,15 @@ it is very similar to plotFormula, but in this case you can hand a function over
 
     plot.plotFunction(a, {
         hueOffset: 0.3
+    })
+```
+
+this is the equivalent to plotFormula, when mathjs is linked:
+
+```js
+    var compiled = math.compile("sin(x1*5) + sin(x3*5)")
+    plot.plotFunction(function(x1, x3) {
+        return compiled.eval({"x1": x1, "x3": x3})
     })
 ```
 
