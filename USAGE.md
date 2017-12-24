@@ -50,7 +50,7 @@ Here are the modes and their values:
 ```js
     SCATTERPLOT_MODE = "scatterplot"
     BARCHART_MODE = "barchart"
-    LINEPLOT_MODE = "lineplot" // works only for data frames or csv data
+    LINEPLOT_MODE = "lineplot"
     POLYGON_MODE = "polygon" // works only for formulas
 ```
 
