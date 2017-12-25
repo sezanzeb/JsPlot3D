@@ -66,6 +66,8 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
 
     // create plane, divided into segments
     let planegeometry = new THREE.PlaneGeometry(xLen, zLen, xRes, zRes)
+    /*let xVerticesCount = (2+(xRes-1))
+    let zVerticesCount = (2+(zRes-1))*/
     // move it
     planegeometry.rotateX(Math.PI/2)
     planegeometry.translate(xLen/2,0, zLen/2)
@@ -110,69 +112,107 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     // now geometry contains the normalized datapoints
     
     // SOM Algorithm starts here
+    let datapoints = datapointgeometry.vertices
+    let vertices = planegeometry.vertices
+
+    /*// store all the vertex in a 2D array
+    let vertices = new Array(xVerticesCount)
+    for(let i = 0;i < vertices.length;i++)
+    {
+        vertices[i] = new Array(zVerticesCount)
+    }
     for(let i = 0;i < planegeometry.vertices.length;i++)
     {
         let vertex = planegeometry.vertices[i]
-        vertex.xOriginal = vertex.x
-        vertex.yOriginal = vertex.y
-        vertex.zOriginal = vertex.z
+        let a = Math.round(vertex.x*xRes)
+        let b = Math.round(vertex.z*zRes)
+        vertices[a][b] = vertex
+    }*/
+
+
+    // learning rate. starts at 1 and slowly decreases
+    // decreasing learning rates make the plot smoother
+    let a = (t) => {
+        return 4/(t+4)
     }
 
-    for(let t = 1;t < 1000;t++)
+    // neighborhood function
+    let O = (distance, t) => {
+        let c = 2/(t+4) // decrease the radius of the gaussian function over time
+        // a high numinator of c makes the plot more smooth
+
+        let gauss = Math.pow(Math.E, - distance / c) // distance is already squared
+        return gauss
+    }
+
+    // T iterations over all the datapoints
+    let datapoint, guess, checkvertex, oldDist, xdist, zdist, distance, bestMatchingUnit, weight
+    for(let t = 0;t < 80;t++)
     {
-        // 1. select random datapoint from the datapointgeometry, because it is normalized and stuff
-        let index = Math.random() * datapointgeometry.vertices.length | 0
-        let datapoint = datapointgeometry.vertices[index]
-
-        // 2. find nearest vertex from SOM (which is planegeometry)
-        let bestMatchingUnit = planegeometry.vertices[0]
-        let oldDist = Infinity
-        for(let i = 0;i < planegeometry.vertices.length; i++)
+        // iterate once over all datapoints
+        for(let index = 0;index < datapoints.length; index++)
         {
-            let checkvertex = planegeometry.vertices[i]
-            let dist = checkvertex.distanceTo(datapoint)
+            // 1. select datapoint
+            datapoint = datapoints[Math.random()*datapoints.length|0]
 
-            if(dist < oldDist)
+            // the first vertex is at x:0 and z:1
+            // first x counts up, then z counts down and x resets to 0, when x reaches the maximum x
+            // make a guess where the nearest vertex might be. use xRes and zRes isntead of the verticesCount to avoid making a too large index guess
+            // the iterations below will quickly find the bestMatchingUnit because only a few iterations are needed because of the already good guess
+            guess = Math.round((xLen - datapoint.z) * xRes * zRes + datapoint.x * xRes)
+    
+            // 2. find nearest vertex from SOM (which is planegeometry)
+            checkvertex = vertices[guess]
+            oldDist = Infinity
+            xdist, zdist, distance, bestMatchingUnit
+            for(let i = guess;i < vertices.length; i++)
             {
-                bestMatchingUnit = checkvertex
-                oldDist = dist
+                xdist = checkvertex.x - datapoint.x
+                zdist = checkvertex.z - datapoint.z
+                
+                // closest possible vertex already found? (this will quickly be true because of the guess)
+                if(Math.abs(xdist) < xLen/xRes && Math.abs(zdist) < zLen/zRes)
+                {
+                    break
+                }
+
+                checkvertex = vertices[i]
+                // squared euclidian distance, don't check y
+                distance = Math.pow(xdist, 2) + Math.pow(zdist, 2)
+
+                // is it closer?
+                if(distance < oldDist)
+                {
+                    bestMatchingUnit = checkvertex
+                    oldDist = distance
+                }
+            }
+    
+            // 3. loop over neighborhood
+            for(let v = 0;v < vertices.length; v++)
+            {
+                // get current weights
+                weight = vertices[v]
+                
+                // squared euclidian distance, don't check y
+                xdist = weight.x - bestMatchingUnit.x
+                zdist = weight.z - bestMatchingUnit.z
+                distance = Math.pow(xdist, 2) + Math.pow(zdist, 2)
+                // let distance = weight.distanceTo(bestMatchingUnit)
+    
+                // weight update
+                // restrict it to updating the y-value
+                // weight.x = weight.x + O(distance, t) * a(t) * (datapoint.x - weight.x)
+                weight.y = weight.y + O(distance, t) * a(t) * (datapoint.y - weight.y)
+                // weight.z = weight.z + O(distance, t) * a(t) * (datapoint.z - weight.z)
             }
         }
 
-        // 3. loop over neighborhood
-        for(let v = 0;v < planegeometry.vertices.length; v++)
-        {
-            // get current weights
-            let weight = planegeometry.vertices[v]
-            
-            // euclidian distance
-            let xdist = weight.x - bestMatchingUnit.x
-            let zdist = weight.z - bestMatchingUnit.z
-            let distance = Math.sqrt(Math.pow(xdist, 2) + Math.pow(zdist, 2))
-
-            // learning rate depends on progress
-            let a = (t) => {
-                return 1/(t+1)
-            }
-
-            // neighborhood function
-            let O = (distance) => {
-                let c = 0.1
-                let gauss = Math.pow(Math.E, - Math.pow(distance, 2) / c)
-                return gauss
-            }
-
-            // weight update
-            weight.x = weight.x + O(distance) * a(t) * (datapoint.x - weight.x)
-            weight.y = weight.y + O(distance) * a(t) * (datapoint.y - weight.y)
-            weight.z = weight.z + O(distance) * a(t) * (datapoint.z - weight.z)
-        }
-
-        mesh.geometry.computeFaceNormals()
+        // uncomment this to watch the SOM work during debugging
+        /*mesh.geometry.computeFaceNormals()
         mesh.geometry.computeVertexNormals()
         mesh.geometry.verticesNeedUpdate = true
-        parent.SceneHelper.render()
-
+        parent.SceneHelper.render()*/
     }
 
 
