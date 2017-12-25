@@ -11,6 +11,7 @@ import scatterplot from "./plotModes/Scatterplot.js"
 import lineplot from "./plotModes/Lineplot.js"
 import barchart from "./plotModes/Barchart.js"
 import polygon from "./plotModes/Polygon.js"
+import selforganizingmap from "./plotModes/selforganizingmap.js"
 import * as COLORLIB from "./ColorLib.js"
 
 
@@ -22,6 +23,7 @@ export const SCATTERPLOT_MODE = "scatterplot"
 export const BARCHART_MODE = "barchart"
 export const LINEPLOT_MODE = "lineplot"
 export const POLYGON_MODE = "polygon"
+export const SOM_MODE = "selforganizingmap"
 export const DEFAULTCAMERA = 0
 export const TOPCAMERA = 1
 export const LEFTCAMERA = 2
@@ -971,6 +973,17 @@ export class Plot
 
 
         }*/
+        else if(mode == SOM_MODE)
+        {
+
+            // plotDataFrame
+            //-------------------------//
+            //   self organizing map   //
+            //-------------------------//
+            
+            selforganizingmap(this, df, colors, columns, normalization, appearance, dimensions)
+            
+        }
         else if(mode === LINEPLOT_MODE)
         {
 
