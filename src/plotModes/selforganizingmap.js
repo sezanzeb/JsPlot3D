@@ -16,6 +16,9 @@ import * as NORMLIB from "../NormalizationLib.js"
  */
 export default function selforganizingmap(parent, df, colors, columns, normalization, appearance, dimensions)
 {    
+    //---------------------//
+    //      parameters     //
+    //---------------------//
     
     let x1col = columns.x1col
     let x2col = columns.x2col
@@ -40,19 +43,21 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     let xRes = dimensions.xRes
     let zRes = dimensions.zRes
 
-    let keepOldPlot = appearance.keepOldPlot
 
-    let datapointgeometry = new THREE.Geometry()
+
+    //--------------------//
+    //     Normalizing    //
+    //--------------------//
 
     // finding min and max
     let minmax
-    minmax = NORMLIB.getMinMax(df, x1col, parent.oldData, keepOldPlot, minX1, maxX1)
+    minmax = NORMLIB.getMinMax(df, x1col, parent.oldData, false, minX1, maxX1)
     minX1 = minmax.min
     maxX1 = minmax.max
-    minmax = NORMLIB.getMinMax(df, x2col, parent.oldData, keepOldPlot, minX2, maxX2)
+    minmax = NORMLIB.getMinMax(df, x2col, parent.oldData, false, minX2, maxX2)
     minX2 = minmax.min
     maxX2 = minmax.max
-    minmax = NORMLIB.getMinMax(df, x3col, parent.oldData, keepOldPlot, minX3, maxX3)
+    minmax = NORMLIB.getMinMax(df, x3col, parent.oldData, false, minX3, maxX3)
     minX3 = minmax.min
     maxX3 = minmax.max
     x1frac = Math.abs(maxX1-minX1)
@@ -62,40 +67,46 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     x3frac = Math.abs(maxX3-minX3)
     if(x3frac === 0) x3frac = 1
 
+
+
+    //--------------------//
+    //    Initial Mesh    //
+    //--------------------//
+
+    // start from scratch every time
     parent.disposePlotMesh()
 
     // create plane, divided into segments
     let planegeometry = new THREE.PlaneGeometry(xLen, zLen, xRes, zRes)
     /*let xVerticesCount = (2+(xRes-1))
     let zVerticesCount = (2+(zRes-1))*/
+
     // move it
     planegeometry.rotateX(Math.PI/2)
     planegeometry.translate(xLen/2,0, zLen/2)
-    //
-    // color the plane
+    
+    // material
     let plotmat = new THREE.MeshNormalMaterial({
         side: THREE.DoubleSide,
         // vertexColors: THREE.VertexColors,
         // roughness: 0.85
     })
-    //
-    /*for(let i = 0;i < planegeometry.faces.length; i++)
-    {
-        let faceColors = planegeometry.faces[i].vertexColors
-        faceColors[0] = new THREE.Color(0)
-        faceColors[1] = new THREE.Color(0)
-        faceColors[2] = new THREE.Color(0)
-    }*/
-    //
+
+    // finish the mesh
     let mesh = new THREE.Mesh(planegeometry, plotmat)
     mesh.frustumCulled = false // that is not needed, because there is only the centered plot object (no need for three.js to check and compute boundingSpheres -> more performance)
     parent.plotmesh = mesh
     parent.plotmesh.name = "selforganizingmap"
     parent.SceneHelper.scene.add(parent.plotmesh)
     
+
+
+    //--------------------//
+    //        SOM         //
+    //--------------------//
+
     // SOM Algorithm starts here
     let vertices = planegeometry.vertices
-
 
     // learning rate. starts at 1 and slowly decreases
     // decreasing learning rates make the plot smoother
@@ -127,6 +138,8 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
             datapointy = (df[index][x2col]-minX2) * yLen / x2frac
             datapointz = (df[index][x3col]-minX3) * zLen / x3frac
 
+            // the following only works because i'm looking for the nearest SOM Vertex in terms of x and z and because I'm not modifying x and z in the map:
+            
             // the first vertex is at x:0 and z:1
             // first x counts up, then z counts down and x resets to 0, when x reaches the maximum x
             // make a guess where the nearest vertex might be. use xRes and zRes isntead of the verticesCount to avoid making a too large index guess
@@ -188,6 +201,11 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     }
 
 
+
+    //--------------------//
+    //      Rendering     //
+    //--------------------//
+
     // normals need to be recomputed so that the lighting works after the transformation
     mesh.geometry.computeFaceNormals()
     mesh.geometry.computeVertexNormals()
@@ -204,5 +222,5 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     normalization.minX2 = minX2
     normalization.maxX2 = maxX2
 
-    parent.benchmarkStamp("made a scatterplot")
+    parent.benchmarkStamp("calculated a self organizing map")
 }
