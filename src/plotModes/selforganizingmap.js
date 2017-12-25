@@ -75,59 +75,26 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     // color the plane
     let plotmat = new THREE.MeshNormalMaterial({
         side: THREE.DoubleSide,
-        vertexColors: THREE.VertexColors,
-        roughness: 0.85
+        // vertexColors: THREE.VertexColors,
+        // roughness: 0.85
     })
     //
-    for(let i = 0;i < planegeometry.faces.length; i++)
+    /*for(let i = 0;i < planegeometry.faces.length; i++)
     {
         let faceColors = planegeometry.faces[i].vertexColors
         faceColors[0] = new THREE.Color(0)
         faceColors[1] = new THREE.Color(0)
         faceColors[2] = new THREE.Color(0)
-    }
+    }*/
     //
     let mesh = new THREE.Mesh(planegeometry, plotmat)
     mesh.frustumCulled = false // that is not needed, because there is only the centered plot object (no need for three.js to check and compute boundingSpheres -> more performance)
     parent.plotmesh = mesh
     parent.plotmesh.name = "selforganizingmap"
     parent.SceneHelper.scene.add(parent.plotmesh)
-
-
-    for(let i = 0; i < df.length; i ++)
-    {
-        let vertex = new THREE.Vector3()
-        vertex.x = df[i][x1col]
-        vertex.y = df[i][x2col]
-        vertex.z = df[i][x3col]
-
-        // three.js handles invalid vertex already by skipping them
-        datapointgeometry.vertices.push(vertex)
-    }
-    
-    // normalize
-    datapointgeometry.scale(xLen/x1frac, yLen/x2frac, zLen/x3frac)
-    datapointgeometry.translate(-minX1/x1frac*xLen, -minX2/x2frac*yLen, -minX3/x3frac*zLen)
-
-    // now geometry contains the normalized datapoints
     
     // SOM Algorithm starts here
-    let datapoints = datapointgeometry.vertices
     let vertices = planegeometry.vertices
-
-    /*// store all the vertex in a 2D array
-    let vertices = new Array(xVerticesCount)
-    for(let i = 0;i < vertices.length;i++)
-    {
-        vertices[i] = new Array(zVerticesCount)
-    }
-    for(let i = 0;i < planegeometry.vertices.length;i++)
-    {
-        let vertex = planegeometry.vertices[i]
-        let a = Math.round(vertex.x*xRes)
-        let b = Math.round(vertex.z*zRes)
-        vertices[a][b] = vertex
-    }*/
 
 
     // learning rate. starts at 1 and slowly decreases
@@ -138,28 +105,33 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
 
     // neighborhood function
     let O = (distance, t) => {
-        let c = 2/(t+4) // decrease the radius of the gaussian function over time
-        // a high numinator of c makes the plot more smooth
 
-        let gauss = Math.pow(Math.E, - distance / c) // distance is already squared
-        return gauss
+        // let c = 2/(t+4) // decrease the radius of the gaussian function over time
+        // a high numinator of c makes the plot more smooth
+        // let gauss = Math.pow(Math.E, - distance / c) // distance is already squared
+        // return gauss
+
+        // this linear neightborhood function is about 4x faster:
+        return Math.max(0, -(t+15) * 0.2 * distance + 1)
     }
 
     // T iterations over all the datapoints
-    let datapoint, guess, checkvertex, oldDist, xdist, zdist, distance, bestMatchingUnit, weight
+    let guess, checkvertex, oldDist, xdist, zdist, distance, bestMatchingUnit, weight, datapointx, datapointy, datapointz
     for(let t = 0;t < 80;t++)
     {
         // iterate once over all datapoints
-        for(let index = 0;index < datapoints.length; index++)
+        for(let index = 0;index < df.length; index++)
         {
-            // 1. select datapoint
-            datapoint = datapoints[Math.random()*datapoints.length|0]
+            // 1. select datapoint (original SOM algorithms takes random point, but random is slower than this)
+            datapointx = (df[index][x1col]-minX1) * xLen / x1frac
+            datapointy = (df[index][x2col]-minX2) * yLen / x2frac
+            datapointz = (df[index][x3col]-minX3) * zLen / x3frac
 
             // the first vertex is at x:0 and z:1
             // first x counts up, then z counts down and x resets to 0, when x reaches the maximum x
             // make a guess where the nearest vertex might be. use xRes and zRes isntead of the verticesCount to avoid making a too large index guess
             // the iterations below will quickly find the bestMatchingUnit because only a few iterations are needed because of the already good guess
-            guess = Math.round((xLen - datapoint.z) * xRes * zRes + datapoint.x * xRes)
+            guess = ((xLen - datapointz) * xRes * zRes + datapointx * xRes)|0
     
             // 2. find nearest vertex from SOM (which is planegeometry)
             checkvertex = vertices[guess]
@@ -167,8 +139,8 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
             xdist, zdist, distance, bestMatchingUnit
             for(let i = guess;i < vertices.length; i++)
             {
-                xdist = checkvertex.x - datapoint.x
-                zdist = checkvertex.z - datapoint.z
+                xdist = checkvertex.x - datapointx
+                zdist = checkvertex.z - datapointz
                 
                 // closest possible vertex already found? (this will quickly be true because of the guess)
                 if(Math.abs(xdist) < xLen/xRes && Math.abs(zdist) < zLen/zRes)
@@ -202,9 +174,9 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     
                 // weight update
                 // restrict it to updating the y-value
-                // weight.x = weight.x + O(distance, t) * a(t) * (datapoint.x - weight.x)
-                weight.y = weight.y + O(distance, t) * a(t) * (datapoint.y - weight.y)
-                // weight.z = weight.z + O(distance, t) * a(t) * (datapoint.z - weight.z)
+                // weight.x = weight.x + O(distance, t) * a(t) * (datapointx - weight.x)
+                weight.y = weight.y + O(distance, t) * a(t) * (datapointy - weight.y)
+                // weight.z = weight.z + O(distance, t) * a(t) * (datapointz - weight.z)
             }
         }
 
