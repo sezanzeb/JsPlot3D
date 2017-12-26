@@ -12,6 +12,7 @@ import lineplot from "./plotModes/Lineplot.js"
 import barchart from "./plotModes/Barchart.js"
 import polygon from "./plotModes/Polygon.js"
 import selforganizingmap from "./plotModes/selforganizingmap.js"
+import interpolatedpolygon from "./plotModes/interpolatedpolygon"
 import * as COLORLIB from "./ColorLib.js"
 
 
@@ -187,16 +188,46 @@ export class Plot
         options.x2title = x2title
         options.x3title = x3title
 
-        if(mode === SCATTERPLOT_MODE || mode === LINEPLOT_MODE)    
+        if(mode == POLYGON_MODE)
         {
-            
+
             //plotFunction
             //-------------------------//
-            //       scatterplot       //
+            //         Polygon         //
+            //-------------------------//
+    
+            // indicates, that a polygon is currently being plotted, which also indicates that a formula is being plotted
+            this.oldData.options.mode = POLYGON_MODE
+
+            let hueOffset = 0
+            let numberDensity = 3
+
+            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = options.hueOffset
+            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = options.numberDensity
+
+            let colors = {hueOffset}
+            let normalization = {normalizeX2, x2frac}
+            let appearance = {numberDensity}
+            let dimensions = this.dimensions
+
+            // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
+            this.populateLegend({x1title, x2title, x3title, title})
+
+            // the y-values are calculated inside the call to polygon, so no df is passed over to this function
+            // note that updating the numbers along the axes is handled in the call to polygon
+            polygon(foo, this, colors, normalization, appearance, dimensions)
+
+        }
+        else
+        {
+            //plotFunction
+            //-------------------------//
+            //     default action      //
             //-------------------------//
 
-            // if scatterplot, create a dataframe and send it to plotDataFrame
-            // multiply those two values for the ArraySize because plotFormula will create that many datapoints
+            // mode unrecognized, maybe plotDataFrame knows what to do
+            // create a dataframe and send it to plotDataFrame
+            // multiply those two values for the ArraySize because that many datapoints will be created
             let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
 
             // three values (x, y and z) that are going to be stored in the dataframe
@@ -227,77 +258,6 @@ export class Plot
 
             // continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
-        }
-        else if(mode === BARCHART_MODE)
-        {
-
-            //plotFunction
-            //-------------------------//
-            //        Bar Chart        //
-            //-------------------------//
-
-
-            // if barchart, create a dataframe and send it to plotDataFrame
-            let df = new Array(this.dimensions.xRes * this.dimensions.zRes)
-
-            // three values (x, y and z) that are going to be stored in the dataframe
-
-            // line number in the new dataframe
-            let i = 0
-            let y = 0
-
-            for(let x = 0; x < this.dimensions.xRes; x++)
-            {
-                for(let z = 0; z < this.dimensions.zRes; z++)
-                {
-                    // calculate y. y = f(x1, x2)
-                    y = foo(x/this.dimensions.xRes, z/this.dimensions.zRes)
-
-                    df[i] = new Float32Array(3)
-                    df[i][0] = x/this.dimensions.xRes // store the datapoint
-                    df[i][1] = y // store the datapoint
-                    df[i][2] = z/this.dimensions.zRes // store the datapoint
-
-                    i++
-                }
-            }
-
-            options.colorCol = 1 // y result of the evaluated formula
-
-            // continue plotting this DataFrame
-            this.plotDataFrame(df, 0, 1, 2, options)
-        }
-        else
-        {
-            if(mode != POLYGON_MODE)
-                console.warn("mode \""+mode+"\" unrecognized. Assuming \""+POLYGON_MODE+"\"")
-
-            //plotFunction
-            //-------------------------//
-            //         Polygon         //
-            //-------------------------//
-    
-            // indicates, that a polygon is currently being plotted, which also indicates that a formula is being plotted
-            this.oldData.options.mode = POLYGON_MODE
-
-            let hueOffset = 0
-            let numberDensity = 3
-
-            if(this.checkNumber("hueOffset", options.hueOffset)) hueOffset = options.hueOffset
-            if(this.checkNumber("numberDensity", options.numberDensity)) numberDensity = options.numberDensity
-
-            let colors = {hueOffset}
-            let normalization = {normalizeX2, x2frac}
-            let appearance = {numberDensity}
-            let dimensions = this.dimensions
-
-            // creating the legend. As this polygon mode does not forward a dataframe to plotDataFrame, creating the legend has to be handled here in plotFormula
-            this.populateLegend({x1title, x2title, x3title, title})
-
-            // the y-values are calculated inside the call to polygon, so no df is passed over to this function
-            // note that updating the numbers along the axes is handled in the call to polygon
-            polygon(foo, this, colors, normalization, appearance, dimensions)
-
         }
     }
 
@@ -344,7 +304,7 @@ export class Plot
      * - barSizeThreshold {number}: smallest allowed y value for the bars. Smaller than that will be hidden. Between 0 and 1. 1 Hides all bars, 0 shows all. Default 0
      * - numberDensity {number}: how many numbers to display when the length (xLen, yLen or zLen) equals 1. A smaller axis displays fewer numbers and a larger axis displays more.
      */
-    plotCsvString(sCsv, x1col, x2col, x3col, options = {})
+    plotCsvString(sCsv, x1col=0, x2col=1, x3col=2, options={})
     {
         //---------------------------//
         //  parameter type checking  //
@@ -458,7 +418,9 @@ export class Plot
             // header auto detection
             if(options.header == undefined)
             {
-                if(isNaN(parseFloat(data[0][x1col])) || isNaN(parseFloat(data[0][x2col])) || isNaN(parseFloat(data[0][x3col])))
+                // split first line and check if it consists of numbers
+                let firstline = data[0].split(separator)
+                if(isNaN(parseFloat(firstline[x1col])) || isNaN(parseFloat(firstline[x2col])) || isNaN(parseFloat(firstline[x3col])))
                 {
                     console.warn("detected headers")
                     options.header = true
@@ -950,9 +912,8 @@ export class Plot
 
             barchart(this, df, colors, columns, normalization, appearance, this.SceneHelper.cameraMode)
             
-            this.benchmarkStamp("made a barchart")
         }
-        /*else if(mode === "polygon")
+        else if(mode === "polygon")
         {
 
             // plotDataFrame
@@ -960,19 +921,10 @@ export class Plot
             //       3D-Mesh Plot      //
             //-------------------------//
 
-            // I unfortunatelly think this can't work in an easy way
-            //(as long as the datapoint coordinates are not grid like.)
-
-            // Method 1:
-            // I could try to align the datapoints to a grid and interpolate it, but when there is supposed to be a hole in the "landscape",
-            // I would interpolate over that hole and close it. But maybe that is acceptable.
-
-            // Method 2:
-            // Self Organizing Maps
-            // They would close holes aswell though.
+            interpolatedpolygon(this, df, colors, columns, normalization, appearance, dimensions)
 
 
-        }*/
+        }
         else if(mode == SOM_MODE)
         {
 
@@ -994,7 +946,6 @@ export class Plot
         
             lineplot(this, df, colors, columns, normalization, appearance, dimensions)
 
-            this.benchmarkStamp("made a lineplot")
         }
         else
         {
@@ -1009,9 +960,10 @@ export class Plot
                 console.error("mode \""+mode+"\" unrecognized. Assuming \"scatterplot\"")
                 
             scatterplot(this, df, colors, columns, normalization, appearance, dimensions)
-                
-            this.benchmarkStamp("made a scatterplot")
+
         }
+
+        this.benchmarkStamp("made a plot")
 
         // those values can be overwritten by the various plotMode functions
         if(normalizeX1)
