@@ -134,7 +134,8 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
         // return gauss
 
         // this linear neightborhood function is about 4x faster:
-        return Math.max(0, -(t+15) * 0.2 * distance + 1)
+        // when t is 0, many datapoints will be affected, with increasing t, the influenced neighborhood gets smaller and smaller
+        return Math.max(0, -(t/2 + 1) * distance + 1)
     }
 
     // T iterations over all the datapoints
@@ -155,7 +156,7 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
             // first x counts up, then z counts down and x resets to 0, when x reaches the maximum x
             // make a guess where the nearest vertex might be. use xRes and zRes isntead of the verticesCount to avoid making a too large index guess
             // the iterations below will quickly find the bestMatchingUnit because only a few iterations are needed because of the already good guess
-            guess = (((xLen - datapointz) * xRes * zRes / zLen) + (datapointx * xRes / xLen)) | 0
+            guess = (((zLen - datapointz) * xRes * zRes / zLen) + (datapointx * xRes / xLen)) | 0
     
             // 2. find nearest vertex from SOM (which is planegeometry)
             checkvertex = vertices[guess]
