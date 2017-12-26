@@ -119,6 +119,7 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     //--------------------//
 
     // store all the vertex(pointers) in a 2D array
+    // by using nearest neighbor
     let vertices = new Array(xVerticesCount)
     let index = 0
     for(let x = 0;x < xVerticesCount;x++)
@@ -130,16 +131,13 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
             index ++
         }
     }
-
-    // 1. store the datapoints in a 2D array by using nearest neighbor for now
     let data = new Array(xVerticesCount)
     for(let x = 0;x < xVerticesCount;x++)
     {
         data[x] = new Array(zVerticesCount)
     }
-
     let datapoint, x, z
-    for(let index = 0;index < df.length;index++)
+    for(index = 0;index < df.length;index++)
     {
         // 1. select datapoint and get x and z
         datapoint = df[index]
@@ -166,199 +164,268 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
             data[x][z] = datapoint[x2col]
         }
     }
-    
+
+
+    let interpolate = (center) =>
+    {
+        // make the function easier to use by checking this. it's only for yet undefined points
+        if(data[center.x][center.y] != undefined) return false
+
+        // diagonal
+        let a = center.clone().add(new THREE.Vector2( 1,  1))
+        let b = center.clone().add(new THREE.Vector2(-1, -1))
+        let c = center.clone().add(new THREE.Vector2(-1,  1))
+        let d = center.clone().add(new THREE.Vector2( 1, -1))
+        while(a.x < data.length && a.y < data[0].length && data[a.x][a.y] == undefined)
+        {
+            a.add(new THREE.Vector2( 1,  1))
+        }
+        while(b.x >= 0 && b.y >= 0 && data[b.x][b.y] == undefined)
+        {
+            b.add(new THREE.Vector2(-1, -1))
+        }
+        while(c.x >= 0 && c.y < data[0].length && data[c.x][c.y] == undefined)
+        {
+            c.add(new THREE.Vector2(-1,  1))
+        }
+        while(d.x < data.length && d.y >= 0 && data[d.x][d.y] == undefined)
+        {
+            d.add(new THREE.Vector2( 1, -1))
+        }
+        
+        // straight
+        let e = center.clone().add(new THREE.Vector2( 1,  0))
+        let f = center.clone().add(new THREE.Vector2(-1,  0))
+        let g = center.clone().add(new THREE.Vector2( 0,  1))
+        let h = center.clone().add(new THREE.Vector2( 0, -1))
+        while(e.x < data.length && data[e.x][e.y] == undefined)
+        {
+            e.add(new THREE.Vector2( 1,  0))
+        }
+        while(f.x >= 0 && data[f.x][f.y] == undefined)
+        {
+            f.add(new THREE.Vector2(-1,  0))
+        }
+        while(g.y < data[0].length && data[g.x][g.y] == undefined)
+        {
+            g.add(new THREE.Vector2( 0,  1))
+        }
+        while(h.y >= 0 && data[h.x][h.y] == undefined)
+        {
+            h.add(new THREE.Vector2( 0, -1))
+        }
+
+        // now check if one of the values points to -1 or length, which means no defined vertex was found
+        // to make sure that this point is not being considered by overwriting it with Infinity
+        // those are the negated conditions from above while-loops
+        // diagonal
+        if(!(a.x < data.length && a.y < data[0].length)) a = new THREE.Vector2(Infinity, Infinity)
+        if(!(b.x >= 0          && b.y >= 0            )) b = new THREE.Vector2(Infinity, Infinity)
+        if(!(c.x >= 0          && c.y < data[0].length)) c = new THREE.Vector2(Infinity, Infinity)
+        if(!(d.x < data.length && d.y >= 0            )) d = new THREE.Vector2(Infinity, Infinity)
+        // straight
+        if(!(e.x < data.length   )) e = new THREE.Vector2(Infinity, Infinity)
+        if(!(f.x >= 0            )) f = new THREE.Vector2(Infinity, Infinity)
+        if(!(g.y < data[0].length)) g = new THREE.Vector2(Infinity, Infinity)
+        if(!(h.y >= 0            )) h = new THREE.Vector2(Infinity, Infinity)
+
+        // now select the two closest points
+        let points = [a, b, c, d, e, f, g, h]
+        let validpoints = []
+        let invdistancesum = 0 // inverse distance sum, because far away points have less weight
+        points.map((point) => {
+            let dist = center.distanceTo(point) // euclidian distance. The squared distance will apply not enough weight on far away points
+            if(dist != Infinity)
+            {
+                validpoints.push(point)
+                invdistancesum += 1/dist
+            }
+        })
+        // now the validpoints array contains all the points that are defined in the data array
+
+        // nothing found? maybe the next iteration can find closeby points that are defined in data
+        if(validpoints.length == 0)
+        {
+            return false
+        }
+
+        let interpolatedY = 0
+        validpoints.map((point) => {
+            let y = data[point.x][point.y] // with point.y z is meant
+            interpolatedY += y * (1/center.distanceTo(point)) // far away points have less weight. euqlidian distance, just like above
+        })
+        // now average
+        interpolatedY /= invdistancesum // divide by the summ of all weights to optain the average
+        data[center.x][center.y] = interpolatedY
+        return true
+    }
+
+
+
+    // first do some stuff like interpolating the border and edges
+    // first draw the edges
+    interpolate(new THREE.Vector2(xRes, zRes))
+    interpolate(new THREE.Vector2(0, zRes))
+    interpolate(new THREE.Vector2(xRes, 0))
+    interpolate(new THREE.Vector2(0, 0))
+    // now the borders
+    x = 0
+    z = 0
+
+    for(; x < data.length; x++)
+        interpolate(new THREE.Vector2(x, z))
+    x --
+
+    for(; z < data[0].length; z++)
+        interpolate(new THREE.Vector2(x, z))
+    z --
+
+    for(; x >= 0; x--)
+        interpolate(new THREE.Vector2(x, z))
+    x ++
+
+    for(; z >= 0; z--)
+        interpolate(new THREE.Vector2(x, z))
+    z --
+
+
+
+
+    // write all undefined vertex down
+    let undefVertexList = new Array(xVerticesCount * zVerticesCount)
+    let undefVertexCount = 0
+    for(x = 0;x < data.length;x++)
+    {
+        for(z = 0;z < data[0].length;z++)
+        {
+            if(data[x][z] === undefined)
+            {
+                undefVertexList[undefVertexCount] = {x, z}
+                undefVertexCount ++
+            }
+        }
+    }
+    let maxIndex = undefVertexCount-1
+
 
     // 2. loop over the array and interpolate all array cells that are undefined
 
-    // 2.1 X-Interpolation
-    let previousValue, nextvalue, xNext, count
+    mesh.geometry.computeFaceNormals()
+    mesh.geometry.computeVertexNormals()
+    mesh.geometry.verticesNeedUpdate = true
+    parent.SceneHelper.render()
 
-    for(let z = 0;z < data[0].length;z++)
+    
+    let undefIndex = 0
+    let maxTries2 = xRes*zRes*10
+    while(undefVertexCount > 0 && maxTries2 --> 0)
     {
-        previousValue = null
-        for(let x = 0;x < data.length;x++)
+        // select random datapoint out of all undefined datapoints
+        let maxTries = 0
+        undefIndex = 0
+        while(undefVertexList[undefIndex] == undefined)
         {
-            if(data[x][z] == undefined)
+            if(maxTries == 0)
             {
-                // now start the interpolation
-
-                // 2.1.1 find next value and count how many undefined fields exist INBETWEEN
-                xNext = x + 1 // check the next index
-
-                // is this already out of bounds?
-                if(xNext == data.length)
+                // maybe random won't be able to 
+                // console.log("now searching once through the array")
+                undefIndex = 0
+                for(;undefIndex < maxIndex;undefIndex++)
                 {
-                    // that means that x is the index to an undifined field AND the last index of this row
-                    // use previousValue in that case
-                    data[x][z] = previousValue
+                    // it's a bit confusing. undefVertexList contains coordinates of undefined Vertices. So if there is an undefined value in this list, that is because it is just an empty field
+                    if(undefVertexList[undefIndex] != undefined)
+                    {
+                        // console.log("found one at", undefIndex)
+                        // undefVertexList[undefIndex]
+                        break
+                    }
                 }
-                else
-                {
-                    while(xNext < data.length && data[xNext][z] == undefined)
-                    {
-                        // is that index also undefined?
-                        // look at the next index next time.
-                        xNext ++
-                    }
-                    // 2.1.2 now make an interpolation, but decrease the value down to minX2 with increasing distance from the defined datapoints
-                    // found something? If not, xNext will be too large
-                    if(xNext == data.length) // out of bounds, so nothing was found
-                    {
-                        // if previousValue is null, that means the first element was already missing
-                        // if there is still nothing found, skip this row
-                        if(previousValue == null)
-                        {
-                            continue
-                        }
-
-                        // xNext is too large by 1 element if it was unsuccessful, because an index was about to be checked that was already out of bounds
-                        xNext --
-                        // if not, fill the whole line with previousValue // TODO leave it empty and try to fill it using Z-Interpolation
-                        data[xNext][z] = minX2
-                    }
-
-                    if(previousValue == null)
-                    {
-                        // if previousValue is null, that means the first element in the row was already missing
-                        // but later a value has been found
-                        // so set previousValue now to minX2 so that an interpolation between minX2 and that found value can happen
-                        previousValue = minX2
-                    }
-
-                    // the number of undefined vertices
-                    count = xNext - x
-
-                    // count contains the number of undefined vertices
-                    nextvalue = data[xNext][z]
-                    let gradient = (previousValue - nextvalue) / (count+1)
-                    let xPrevious = x // remember the position
-                    
-                    let distance = () =>
-                    {
-                        // xNext is the position of the next element
-                        // xPrevious is the position of the previous element
-                        // x is the current position
-                        return Math.min(x - xPrevious + 1, xNext - x)
-                        // the order in the substraction is important, so that the results are always positive
-                        // it always goes from left to right / top to bottom
-                    }
-
-                    // this interpolation makes a curve with increasing distance down to minX2
-                    for(;x < xNext;x ++)
-                    {
-                        if(count <= xRes/20+1)
-                        {
-                            // if only few missing vertex, do linear interpolation
-                            data[x][z] = previousValue - gradient
-                        }
-                        else
-                        {
-                            // if many missing vertex, make a curve to minX2
-                            // make it positive, then divide it, then move it back to it's original position
-                            data[x][z] = (previousValue - gradient - minX2) / (distance()+1) + minX2
-                        }
-                        previousValue = previousValue - gradient
-                    }
-
-                    // xNext (x == xNext after above loop) contains a value, put that into previousValue
-                    previousValue = data[x][z]
-                }
+                break
             }
-            else
-            {
-                previousValue = data[x][z]
-            }
-            index ++
+
+            undefIndex = Math.random() * maxIndex | 0
+
+            maxTries --
         }
+        
+        // the following really shouldn't be the case because the number of undefined vertex is kept in the variable undefVertexCount
+        /*if(undefVertexList[undefIndex] == undefined)
+        {
+            console.error("was not able to find another undefined vertex")
+            break
+        }*/
+
+
+        /*for(;undefIndex < undefVertexList.length;undefIndex++)
+        {
+            // it's a bit confusing. undefVertexList contains coordinates of undefined Vertices. So if there is an undefined value in this list, that is because it is just an empty field
+            if(undefVertexList[undefIndex] != undefined)
+            {
+                undefVertexList[undefIndex]
+                break
+            }
+        }
+        if(undefIndex == undefVertexList.length)
+        {
+            undefIndex = 0
+            continue
+        }*/
+
+        x = undefVertexList[undefIndex].x
+        z = undefVertexList[undefIndex].z
+
+        // 2.1 find nearest defined vertices in -x, x, -z and z direction
+        
+        // startingpoint is x, z
+
+        // search diagonally, because a too large resolution of the plot will rip the plot apart and leave stripes in x and z direction
+        // so searching for defined points in x and z direction might not always work. Diagonal however might work
+        // do both
+        interpolate(new THREE.Vector2(x, z))
+
+        undefVertexList[undefIndex] = undefined
+        undefVertexCount --
     }
 
-    // 2.2 Z-Interpolation (LINEAR)
-    let zNext
-    for(let x = 0;x < data.length;x++)
+    if(maxTries2 <= 0)
     {
-        previousValue = minX2
-        for(let z = 0;z < data[0].length;z++)
-        {
-            if(data[x][z] == undefined)
-            {
-                // now start the interpolation
-
-                // 2.1.1 find next value and count how many undefined fields exist INBETWEEN
-                zNext = z + 1 // check the next index
-
-                // is this already out of bounds?
-                if(zNext == data[0].length)
-                {
-                    // that means that x is the index to an undifined field AND the last index of this row
-                    // use previousValue in that case
-                    data[x][z] = previousValue
-                }
-                else
-                {
-                    while(zNext < data[0].length && data[x][zNext] == undefined)
-                    {
-                        // look at the next index next time.
-                        zNext ++
-                    }
-                    // 2.1.2 now make a linear interpolation
-                    // found something? If not, zNext will be too large
-                    if(zNext == data[0].length) // out of bounds, so nothing was found
-                    {
-                        // zNext is too large by 1 element if it was unsuccessful, because an index was about to be checked that was already out of bounds
-                        zNext --
-
-                        // if not, fill the whole line with previousValue
-                        data[x][zNext] = minX2
-                    }
-
-
-                    if(previousValue == null) // TODO deprecated?
-                    {
-                        // if previousValue is null, that means the first element in the row was already missing
-                        // but later a value has been found
-                        // so set previousValue now to minX2 so that an interpolation between minX2 and that found value can happen
-                        previousValue = minX2
-                    }
-
-                    // the number of undefined vertices
-                    count = zNext - z
-
-                    // count holds the number of vertex with a missing y-value
-                    nextvalue = data[x][zNext] // this is either the found value or the generated one by using minX2
-                    let gradient = (previousValue - nextvalue) / (count+1)
-                    for(;z < zNext;z ++)
-                    {
-                        // the X-Interpolation created the soft descent down to MINX2
-                        // now interpolate between those soft descending vertex. Do it linear
-                        data[x][z] = previousValue - gradient
-                        previousValue = data[x][z]
-                    }
-
-                    // zNext (z == zNext after above loop) contains a value, put that into previousValue
-                    previousValue = data[x][z]
-
-                }
-            }
-            else
-            {
-                previousValue = data[x][z]
-            }
-            index ++
-        }
+        console.error("stopped because mode failed to interpolate",undefVertexCount,"points")
     }
 
 
     // 3. copy the values from that array over to the mesh
 
+    // add a kernel filter over it to smoothen it
+    /*let smooth = (x, z, index) =>
+    {
+        mesh.geometry.vertices[index].y = data[x][z] * 2
+        let sum = 2
+
+        if(data[x-1] && data[x-1][z]) { mesh.geometry.vertices[index].y += data[x-1][z]; sum++ }
+        if(data[x]   && data[x][z-1]) { mesh.geometry.vertices[index].y += data[x][z-1]; sum++ }
+        if(data[x+1] && data[x+1][z]) { mesh.geometry.vertices[index].y += data[x+1][z]; sum++ }
+        if(data[x]   && data[x][z+1]) { mesh.geometry.vertices[index].y += data[x][z+1]; sum++ }
+
+        if(data[x-2] && data[x-2][z]) { mesh.geometry.vertices[index].y += data[x-2][z]; sum++ }
+        if(data[x]   && data[x][z-2]) { mesh.geometry.vertices[index].y += data[x][z-2]; sum++ }
+        if(data[x+2] && data[x+2][z]) { mesh.geometry.vertices[index].y += data[x+2][z]; sum++ }
+        if(data[x]   && data[x][z+2]) { mesh.geometry.vertices[index].y += data[x][z+2]; sum++ }
+        mesh.geometry.vertices[index].y /= sum
+    }*/
+
     index = 0
-    for(let z = 0;z < data[x].length;z++)
+    for(let z = 0;z < data[0].length;z++)
     {
         for(let x = 0;x < data.length;x++)
         {
-            // Important: The geometry first counts up the z value, and afterwards
-            // increments x (actually based on the rotation of the plane I think).
-            // the 2D data array needs to be flattened to the geometry
-            mesh.geometry.vertices[index].y = data[x][z]
+            if(data[x][z] == undefined)
+            {
+                mesh.geometry.vertices[index].y = minX2 - 1
+            }
+            else
+            {
+                mesh.geometry.vertices[index].y = data[x][z]
+            }
             index ++
         }
     }
