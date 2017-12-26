@@ -155,7 +155,7 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
             // first x counts up, then z counts down and x resets to 0, when x reaches the maximum x
             // make a guess where the nearest vertex might be. use xRes and zRes isntead of the verticesCount to avoid making a too large index guess
             // the iterations below will quickly find the bestMatchingUnit because only a few iterations are needed because of the already good guess
-            guess = ((xLen - datapointz) * xRes * zRes + datapointx * xRes)|0
+            guess = (((xLen - datapointz) * xRes * zRes / zLen) + (datapointx * xRes / xLen)) | 0
     
             // 2. find nearest vertex from SOM (which is planegeometry)
             checkvertex = vertices[guess]
@@ -169,6 +169,7 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
                 // closest possible vertex already found? (this will quickly be true because of the guess)
                 if(Math.abs(xdist) < xLen/xRes && Math.abs(zdist) < zLen/zRes)
                 {
+                    bestMatchingUnit = checkvertex
                     break
                 }
 
@@ -254,9 +255,25 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
 
     parent.SceneHelper.makeSureItRenders(parent.animationFunc)
     
+
+
+    //-------------------//
+    //     Returning     //
+    //-------------------//
+    
     // return by using pointers
+    normalization.minX1 = minX1
+    normalization.maxX1 = maxX1
+
     normalization.minX2 = minX2
     normalization.maxX2 = maxX2
+
+    normalization.minX3 = minX3
+    normalization.maxX3 = maxX3
+        
+    normalization.x1frac = x1frac
+    normalization.x2frac = x2frac
+    normalization.x3frac = x3frac
 
     parent.benchmarkStamp("calculated a self organizing map")
 }

@@ -254,7 +254,7 @@ export class Plot
 
             // colorCol is the index that is used to colorate the datapoints.
             // The index of 1 means the y value contains the number that is converted to a color
-            options.colorCol = 1
+            options.colorCol = 1 // it is 1 because of "df[i][1] = y" above
 
             // continue plotting this DataFrame
             this.plotDataFrame(df, 0, 1, 2, options)
@@ -325,26 +325,16 @@ export class Plot
         let csvIsInGoodShape = false
         let header = true
 
-        // make sure options is defined
-        if(typeof(options) !== {})
-        {
-            // seems like the user sent some parameters. check them
+        // check variables. Overwrite if it's good. If not, default value will remain
+        if(this.checkNumber("fraction", options.fraction)) fraction = options.fraction
+        if(this.checkBoolean("csvIsInGoodShape", options.csvIsInGoodShape)) csvIsInGoodShape = options.csvIsInGoodShape
+        if(this.checkBoolean("header", options.header)) header = options.header
 
-            // check variables. Overwrite if it's good. If not, default value will remain
-            if(this.checkNumber("fraction", options.fraction)) fraction = options.fraction
-            if(this.checkBoolean("csvIsInGoodShape", options.csvIsInGoodShape)) csvIsInGoodShape = options.csvIsInGoodShape
-            if(this.checkBoolean("header", options.header)) header = options.header
-
-            // check everything else
-            if(options.separator != undefined)
-                separator = options.separator
-            if(options.title != undefined)
-                title = options.title
-        }
-        else
-        {
-            options = {}
-        }
+        // check everything else
+        if(options.separator != undefined)
+            separator = options.separator
+        if(options.title != undefined)
+            title = options.title
 
         this.benchmarkStamp("start")
 
@@ -367,7 +357,8 @@ export class Plot
         let checkstring = (title+sCsv.length+samples+fraction+separator).replace(/[\s\t\n\r]/g,"_")
 
         // now check if the checksum changed. If yes, remake the dataframe from the input
-        if(this.oldData.checkstring != checkstring)
+        // and also check if oldData even contains any data to make it more failsafe
+        if(this.oldData.checkstring != checkstring || this.oldData.dataframe.length == 0)
         {
             
             //plotCsvString
@@ -913,7 +904,7 @@ export class Plot
             barchart(this, df, colors, columns, normalization, appearance, this.SceneHelper.cameraMode)
             
         }
-        else if(mode === "polygon")
+        else if(mode === POLYGON_MODE)
         {
 
             // plotDataFrame

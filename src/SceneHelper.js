@@ -664,13 +664,18 @@ export default class SceneHelper
 
         // check wether color is a THREE.Color object or not
         let colorObject
-        if(typeof(color) == "object" && color.r != undefined)
+        if(typeof(color) === "object" && color.r != undefined)
         {
             colorObject = color // Three.Color Object
         }
         else
         {
             colorObject = COLORLIB.getColorObjectFromAnyString(color)
+            if(colorObject === undefined)
+            {
+                console.warn("unrecognized color",color,"assuming black")
+                colorObject = new THREE.Color(0x000000)
+            }
         }
 
         // if creating the color was successful
@@ -879,14 +884,16 @@ export default class SceneHelper
     setBackgroundColor(color)
     {
         let colorObject = COLORLIB.getColorObjectFromAnyString(color)
+        if(colorObject === undefined)
+        {
+            console.warn("unrecognized color",color,"assuming white")
+            colorObject = new THREE.Color(0xffffff)
+        }
         
         // for later use. shadows of the text letters that are drawn on canvases
         this.backgroundColor = colorObject
 
-        if(colorObject != undefined)
-            this.renderer.setClearColor(COLORLIB.getColorObjectFromAnyString(color))
-        else
-            this.renderer.setClearColor(color)
+        this.renderer.setClearColor(colorObject)
 
         this.render()
     }

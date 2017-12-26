@@ -144,13 +144,16 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
         // 1. select datapoint and get x and z
         datapoint = df[index]
 
-        // this is the normalized datapoint in 3D Coordinates:
+        /*// this is the normalized datapoint in 3D Coordinates:
         x = (datapoint[x1col] - minX1) * (xLen / x1frac)
         z = (datapoint[x3col] - minX3) * (zLen / x3frac)
 
         // this is the index in the 2D array that will be used:
-        x = x * xRes | 0
-        z = z * zRes | 0
+        x = x * xRes / xLen | 0
+        z = z * zRes / zLen | 0*/
+
+        x = (datapoint[x1col] - minX1) / x1frac * xRes | 0
+        z = (datapoint[x3col] - minX3) / x3frac * zRes | 0
 
         // 2. select vertex in the plane on that position and set the height to it (nearest neighbor)
         if(data[x][z] != undefined)
@@ -191,15 +194,13 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
                 }
                 else
                 {
-                    count = 1 // number of vertices that need to be created by calculating the interpolation. One is already undefined, so start with 1
                     while(xNext < data.length && data[xNext][z] == undefined)
                     {
-                        // is that index also undefined? increase count, because there are 2 missing values
-                        count ++
+                        // is that index also undefined?
                         // look at the next index next time.
                         xNext ++
                     }
-                    // 2.1.2 now make a linear interpolation
+                    // 2.1.2 now make an interpolation, but decrease the value down to minX2 with increasing distance from the defined datapoints
                     // found something? If not, xNext will be too large
                     if(xNext == data.length) // out of bounds, so nothing was found
                     {
@@ -214,8 +215,6 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
                         xNext --
                         // if not, fill the whole line with previousValue // TODO leave it empty and try to fill it using Z-Interpolation
                         data[xNext][z] = minX2
-                        // as that value is now created by using minX2, count needs to be decreased
-                        count --
                     }
 
                     if(previousValue == null)
@@ -226,17 +225,43 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
                         previousValue = minX2
                     }
 
-                    count ++ // can't explain why but this has to be done. otherwise there are small plateaus in the plot
+                    // the number of undefined vertices
+                    count = xNext - x
 
                     // count contains the number of undefined vertices
                     nextvalue = data[xNext][z]
-                    let gradient = (previousValue - nextvalue) / count
-                    for(;x < xNext;x ++)
+                    let gradient = (previousValue - nextvalue) / (count+1)
+                    let xPrevious = x // remember the position
+                    
+                    let distance = () =>
                     {
-                        data[x][z] = previousValue - gradient
-                        previousValue = data[x][z]
+                        // xNext is the position of the next element
+                        // xPrevious is the position of the previous element
+                        // x is the current position
+                        return Math.min(x - xPrevious + 1, xNext - x)
+                        // the order in the substraction is important, so that the results are always positive
+                        // it always goes from left to right / top to bottom
                     }
 
+                    // this interpolation makes a curve with increasing distance down to minX2
+                    for(;x < xNext;x ++)
+                    {
+                        if(count <= xRes/20+1)
+                        {
+                            // if only few missing vertex, do linear interpolation
+                            data[x][z] = previousValue - gradient
+                        }
+                        else
+                        {
+                            // if many missing vertex, make a curve to minX2
+                            // make it positive, then divide it, then move it back to it's original position
+                            data[x][z] = (previousValue - gradient - minX2) / (distance()+1) + minX2
+                        }
+                        previousValue = previousValue - gradient
+                    }
+
+                    // xNext (x == xNext after above loop) contains a value, put that into previousValue
+                    previousValue = data[x][z]
                 }
             }
             else
@@ -247,7 +272,7 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
         }
     }
 
-    // 2.2 Z-Interpolation
+    // 2.2 Z-Interpolation (LINEAR)
     let zNext
     for(let x = 0;x < data.length;x++)
     {
@@ -262,7 +287,7 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
                 zNext = z + 1 // check the next index
 
                 // is this already out of bounds?
-                if(zNext == data.length)
+                if(zNext == data[0].length)
                 {
                     // that means that x is the index to an undifined field AND the last index of this row
                     // use previousValue in that case
@@ -270,11 +295,8 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
                 }
                 else
                 {
-                    count = 1 // number of vertices that need to be created by calculating the interpolation. One is already undefined, so start with 1
                     while(zNext < data[0].length && data[x][zNext] == undefined)
                     {
-                        // is that index also undefined? increase count, because there are 2 missing values
-                        count ++
                         // look at the next index next time.
                         zNext ++
                     }
@@ -287,12 +309,10 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
 
                         // if not, fill the whole line with previousValue
                         data[x][zNext] = minX2
-                        // as that value is now created by using minX2, count needs to be decreased
-                        count --
                     }
 
 
-                    if(previousValue == null)
+                    if(previousValue == null) // TODO deprecated?
                     {
                         // if previousValue is null, that means the first element in the row was already missing
                         // but later a value has been found
@@ -300,16 +320,22 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
                         previousValue = minX2
                     }
 
-                    count ++ // can't explain why but this has to be done. otherwise there are small plateaus in the plot
+                    // the number of undefined vertices
+                    count = zNext - z
 
                     // count holds the number of vertex with a missing y-value
                     nextvalue = data[x][zNext] // this is either the found value or the generated one by using minX2
-                    let gradient = (previousValue - nextvalue) / count
+                    let gradient = (previousValue - nextvalue) / (count+1)
                     for(;z < zNext;z ++)
                     {
+                        // the X-Interpolation created the soft descent down to MINX2
+                        // now interpolate between those soft descending vertex. Do it linear
                         data[x][z] = previousValue - gradient
                         previousValue = data[x][z]
                     }
+
+                    // zNext (z == zNext after above loop) contains a value, put that into previousValue
+                    previousValue = data[x][z]
 
                 }
             }
@@ -353,8 +379,8 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     //        Color       //
     //--------------------//
 
-    let maxClrX2 = maxX2 + (maxX2-minX2)*0.15
-    let minClrX2 = minX2 - (maxX2-minX2)*0.15
+    let maxClrX2 = maxX2 + (maxX2-minX2)*0.1
+    let minClrX2 = minX2 - (maxX2-minX2)*0.1
 
     // now colorate higher vertex get a warmer value
     let getVertexColor = (v) =>
@@ -390,9 +416,24 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
 
     parent.SceneHelper.makeSureItRenders(parent.animationFunc)
     
+
+    //-------------------//
+    //     Returning     //
+    //-------------------//
+    
     // return by using pointers
+    normalization.minX1 = minX1
+    normalization.maxX1 = maxX1
+
     normalization.minX2 = minX2
     normalization.maxX2 = maxX2
 
-    parent.benchmarkStamp("made a scatterplot")
+    normalization.minX3 = minX3
+    normalization.maxX3 = maxX3
+        
+    normalization.x1frac = x1frac
+    normalization.x2frac = x2frac
+    normalization.x3frac = x3frac
+
+    parent.benchmarkStamp("made a polygon")
 }
