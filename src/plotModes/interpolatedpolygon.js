@@ -1,5 +1,6 @@
 import * as THREE from "three"
 import * as NORMLIB from "../NormalizationLib.js"
+import * as COLORLIB from "../ColorLib.js"
 
 // EXPERIMENTAL
 
@@ -24,6 +25,8 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     let x2col = columns.x2col
     let x3col = columns.x3col
     
+    let hueOffset = colors.hueOffset
+
     let x1frac = normalization.x1frac
     let x2frac = normalization.x2frac
     let x3frac = normalization.x3frac
@@ -40,7 +43,6 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
 
     let xLen = dimensions.xLen
     let zLen = dimensions.zLen
-    let yLen = dimensions.yLen
 
     let xRes = dimensions.xRes
     let zRes = dimensions.zRes
@@ -90,11 +92,19 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     planegeometry.translate(xLen/2,0, zLen/2)
     
     // color the plane
-    let plotmat = new THREE.MeshNormalMaterial({
+    let plotmat = new THREE.MeshStandardMaterial({
         side: THREE.DoubleSide,
         vertexColors: THREE.VertexColors,
         roughness: 0.85
     })
+
+    for(let i = 0;i < planegeometry.faces.length; i++)
+    {
+        let faceColors = planegeometry.faces[i].vertexColors
+        faceColors[0] = new THREE.Color(0)
+        faceColors[1] = new THREE.Color(0)
+        faceColors[2] = new THREE.Color(0)
+    }
     
     let mesh = new THREE.Mesh(planegeometry, plotmat)
     mesh.frustumCulled = false // that is not needed, because there is only the centered plot object (no need for three.js to check and compute boundingSpheres -> more performance)
@@ -153,8 +163,7 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
             data[x][z] = datapoint[x2col]
         }
     }
-
-    console.log(data)
+    
 
     // 2. loop over the array and interpolate all array cells that are undefined
 
@@ -337,6 +346,33 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
         // move the plot so that the lowest vertex is at y=0 and the highest is at y=yLen
         mesh.position.y = -minX2/x2frac
     }
+
+
+
+    //--------------------//
+    //        Color       //
+    //--------------------//
+
+    let maxClrX2 = maxX2 + (maxX2-minX2)*0.15
+    let minClrX2 = minX2 - (maxX2-minX2)*0.15
+
+    // now colorate higher vertex get a warmer value
+    let getVertexColor = (v) =>
+    {
+        let y = mesh.geometry.vertices[v].y
+
+        return COLORLIB.convertToHeat(y, minClrX2, maxClrX2, hueOffset)
+    }
+
+    for(let i = 0;i < mesh.geometry.faces.length; i++)
+    {
+        let face = mesh.geometry.faces[i]
+        face.vertexColors[0].set(getVertexColor(face.a))
+        face.vertexColors[1].set(getVertexColor(face.b))
+        face.vertexColors[2].set(getVertexColor(face.c))
+    }
+
+
 
     //--------------------//
     //      Rendering     //

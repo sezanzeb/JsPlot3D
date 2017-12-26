@@ -56,3 +56,5 @@ And a little HowTo can be found in USAGE.md
 ## Attribution
 
 https://fontlibrary.org/en/font/retroscape by Robert Jablonski (public domain)
+
+https://commons.wikimedia.org/wiki/File:Heightmap.png by A3r0 (public domain)

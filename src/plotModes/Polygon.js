@@ -130,6 +130,7 @@ export default function polygon(foo, parent, colors, normalization, appearance, 
             faceIndex2++
         }*/
         
+        // TODO what is the following line doing and why
         mesh.geometry.colors[vIndex] = new THREE.Color(0x6600ff)
 
         if(!isNaN(y) && Math.abs(y) != Number.POSITIVE_INFINITY && vertex)

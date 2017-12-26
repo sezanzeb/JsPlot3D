@@ -5,12 +5,12 @@ const sizeOf = require("image-size")
 
 
 // configuration
-let file = "exampleImages/map.png"
-let out = "../../spatial.csv"
+let file = "exampleImages/Heightmap.png"
+let out = "../../spatial2.csv"
 
 // how many pixels and lines to skip if step > 1.
 // set step to 1 to write all pixels into the csv
-let step = 3
+let step = 1
 
 
 

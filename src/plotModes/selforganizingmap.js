@@ -1,5 +1,6 @@
 import * as THREE from "three"
 import * as NORMLIB from "../NormalizationLib.js"
+import * as COLORLIB from "../ColorLib.js"
 
 // EXPERIMENTAL
 
@@ -24,6 +25,8 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     let x2col = columns.x2col
     let x3col = columns.x3col
     
+    let hueOffset = colors.hueOffset
+
     let x1frac = normalization.x1frac
     let x2frac = normalization.x2frac
     let x3frac = normalization.x3frac
@@ -86,11 +89,19 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
     planegeometry.translate(xLen/2,0, zLen/2)
     
     // material
-    let plotmat = new THREE.MeshNormalMaterial({
+    let plotmat = new THREE.MeshStandardMaterial({
         side: THREE.DoubleSide,
-        // vertexColors: THREE.VertexColors,
-        // roughness: 0.85
+        vertexColors: THREE.VertexColors,
+        roughness: 0.85
     })
+
+    for(let i = 0;i < planegeometry.faces.length; i++)
+    {
+        let faceColors = planegeometry.faces[i].vertexColors
+        faceColors[0] = new THREE.Color(0)
+        faceColors[1] = new THREE.Color(0)
+        faceColors[2] = new THREE.Color(0)
+    }
 
     // finish the mesh
     let mesh = new THREE.Mesh(planegeometry, plotmat)
@@ -198,6 +209,31 @@ export default function selforganizingmap(parent, df, colors, columns, normaliza
         mesh.geometry.computeVertexNormals()
         mesh.geometry.verticesNeedUpdate = true
         parent.SceneHelper.render()*/
+    }
+
+
+
+    //--------------------//
+    //        Color       //
+    //--------------------//
+
+    let maxClrX2 = yLen
+    let minClrX2 = 0
+
+    // now colorate higher vertex get a warmer value
+    let getVertexColor = (v) =>
+    {
+        let y = mesh.geometry.vertices[v].y
+
+        return COLORLIB.convertToHeat(y, minClrX2, maxClrX2, hueOffset)
+    }
+
+    for(let i = 0;i < mesh.geometry.faces.length; i++)
+    {
+        let face = mesh.geometry.faces[i]
+        face.vertexColors[0].set(getVertexColor(face.a))
+        face.vertexColors[1].set(getVertexColor(face.b))
+        face.vertexColors[2].set(getVertexColor(face.c))
     }
 
 
