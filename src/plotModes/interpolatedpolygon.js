@@ -127,16 +127,18 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
         vertices[x] = new Array(zVerticesCount)
         for(let z = 0;z < zVerticesCount;z++)
         {
-            vertices[x][z] = planegeometry.vertices[index] // a vertex with y = 0
+            vertices[x][z] = planegeometry.vertices[index] // a vertex {x,y,z} with y = 0
             index ++
         }
     }
     let data = new Array(xVerticesCount)
-    for(let x = 0;x < xVerticesCount;x++)
+    let counter = new Array(xVerticesCount) // to be able to compute the average
+    let datapoint, x, z
+    for(x = 0;x < xVerticesCount;x++)
     {
         data[x] = new Array(zVerticesCount)
+        counter[x] = new Uint16Array(zVerticesCount)
     }
-    let datapoint, x, z
     for(index = 0;index < df.length;index++)
     {
         // 1. select datapoint and get x and z
@@ -154,141 +156,128 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
         z = (datapoint[x3col] - minX3) / x3frac * zRes | 0
 
         // 2. select vertex in the plane on that position and set the height to it (nearest neighbor)
-        if(data[x][z] != undefined)
+        if(!isNaN(data[x][z]))
         {
+            data[x][z] *= counter[x][z]
             data[x][z] += datapoint[x2col]
-            data[x][z] /= 2
+            counter[x][z] ++
+            data[x][z] /= counter[x][z]
         }
         else
         {
             data[x][z] = datapoint[x2col]
+            counter[x][z] = 1
         }
     }
 
 
-    let interpolate = (center) =>
+    let interpolate = (center, diagonal=true, updown=true, leftright=true) =>
     {
         // make the function easier to use by checking this. it's only for yet undefined points
-        if(data[center.x][center.y] != undefined) return false
+        if(!isNaN(data[center.x][center.y])) return false
 
         // diagonal
-        let a = center.clone().add(new THREE.Vector2( 1,  1))
-        let b = center.clone().add(new THREE.Vector2(-1, -1))
-        let c = center.clone().add(new THREE.Vector2(-1,  1))
-        let d = center.clone().add(new THREE.Vector2( 1, -1))
-        while(a.x < data.length && a.y < data[0].length && data[a.x][a.y] == undefined)
+        let a = null
+        let b = null
+        let c = null
+        let d = null
+        if(diagonal)
         {
-            a.add(new THREE.Vector2( 1,  1))
-        }
-        while(b.x >= 0 && b.y >= 0 && data[b.x][b.y] == undefined)
-        {
-            b.add(new THREE.Vector2(-1, -1))
-        }
-        while(c.x >= 0 && c.y < data[0].length && data[c.x][c.y] == undefined)
-        {
-            c.add(new THREE.Vector2(-1,  1))
-        }
-        while(d.x < data.length && d.y >= 0 && data[d.x][d.y] == undefined)
-        {
-            d.add(new THREE.Vector2( 1, -1))
+            a = center.clone().add(new THREE.Vector2( 1,  1))
+            b = center.clone().add(new THREE.Vector2(-1, -1))
+            c = center.clone().add(new THREE.Vector2(-1,  1))
+            d = center.clone().add(new THREE.Vector2( 1, -1))
+            while(a.x < data.length && a.y < data[0].length && isNaN(data[a.x][a.y]))
+            {
+                a.add(new THREE.Vector2( 1,  1))
+            }
+            while(b.x >= 0 && b.y >= 0 && isNaN(data[b.x][b.y]))
+            {
+                b.add(new THREE.Vector2(-1, -1))
+            }
+            while(c.x >= 0 && c.y < data[0].length && isNaN(data[c.x][c.y]))
+            {
+                c.add(new THREE.Vector2(-1,  1))
+            }
+            while(d.x < data.length && d.y >= 0 && isNaN(data[d.x][d.y]))
+            {
+                d.add(new THREE.Vector2( 1, -1))
+            }
+
+            // now check if one of the values points to -1 or length, which means no defined vertex was found
+            // to make sure that this point is not being considered by overwriting it with Infinity
+            // those are the negated conditions from above while-loops
+            if(!(a.x < data.length && a.y < data[0].length)) a = null
+            if(!(b.x >= 0          && b.y >= 0            )) b = null
+            if(!(c.x >= 0          && c.y < data[0].length)) c = null
+            if(!(d.x < data.length && d.y >= 0            )) d = null
         }
         
-        // straight
-        let e = center.clone().add(new THREE.Vector2( 1,  0))
-        let f = center.clone().add(new THREE.Vector2(-1,  0))
-        let g = center.clone().add(new THREE.Vector2( 0,  1))
-        let h = center.clone().add(new THREE.Vector2( 0, -1))
-        while(e.x < data.length && data[e.x][e.y] == undefined)
+        let g = null
+        let h = null
+        if(updown)
         {
-            e.add(new THREE.Vector2( 1,  0))
-        }
-        while(f.x >= 0 && data[f.x][f.y] == undefined)
-        {
-            f.add(new THREE.Vector2(-1,  0))
-        }
-        while(g.y < data[0].length && data[g.x][g.y] == undefined)
-        {
-            g.add(new THREE.Vector2( 0,  1))
-        }
-        while(h.y >= 0 && data[h.x][h.y] == undefined)
-        {
-            h.add(new THREE.Vector2( 0, -1))
-        }
-
-        // now check if one of the values points to -1 or length, which means no defined vertex was found
-        // to make sure that this point is not being considered by overwriting it with Infinity
-        // those are the negated conditions from above while-loops
-        // diagonal
-        if(!(a.x < data.length && a.y < data[0].length)) a = new THREE.Vector2(Infinity, Infinity)
-        if(!(b.x >= 0          && b.y >= 0            )) b = new THREE.Vector2(Infinity, Infinity)
-        if(!(c.x >= 0          && c.y < data[0].length)) c = new THREE.Vector2(Infinity, Infinity)
-        if(!(d.x < data.length && d.y >= 0            )) d = new THREE.Vector2(Infinity, Infinity)
-        // straight
-        if(!(e.x < data.length   )) e = new THREE.Vector2(Infinity, Infinity)
-        if(!(f.x >= 0            )) f = new THREE.Vector2(Infinity, Infinity)
-        if(!(g.y < data[0].length)) g = new THREE.Vector2(Infinity, Infinity)
-        if(!(h.y >= 0            )) h = new THREE.Vector2(Infinity, Infinity)
-
-        // now select the two closest points
-        let points = [a, b, c, d, e, f, g, h]
-        let validpoints = []
-        let invdistancesum = 0 // inverse distance sum, because far away points have less weight
-        points.map((point) => {
-            let dist = center.distanceTo(point) // euclidian distance. The squared distance will apply not enough weight on far away points
-            if(dist != Infinity)
+            // up and down z
+            g = center.clone().add(new THREE.Vector2( 0,  1))
+            h = center.clone().add(new THREE.Vector2( 0, -1))
+            while(g.y < data[0].length && isNaN(data[g.x][g.y]))
             {
-                validpoints.push(point)
+                g.add(new THREE.Vector2( 0,  1))
+            }
+            while(h.y >= 0 && isNaN(data[h.x][h.y]))
+            {
+                h.add(new THREE.Vector2( 0, -1))
+            }
+            // both have to be valid, so that the average between those two can be made
+            // if only one is valid, that one value will be dragged around the whole plot
+            if(!(g.y < data[0].length) || !(h.y >= 0)) { g = null; h = null }
+        }
+
+        
+        let e = null
+        let f = null
+        if(leftright)
+        {
+            // left and right x
+            e = center.clone().add(new THREE.Vector2( 1,  0))
+            f = center.clone().add(new THREE.Vector2(-1,  0))
+            while(e.x < data.length && isNaN(data[e.x][e.y]))
+            {
+                e.add(new THREE.Vector2( 1,  0))
+            }
+            while(f.x >= 0 && isNaN(data[f.x][f.y]))
+            {
+                f.add(new THREE.Vector2(-1,  0))
+            }
+            if(!(e.x < data.length) || !(f.x >= 0)) { e = null; f = null }
+        }
+
+
+        // now interpolate
+        let points = [a, b, c, d, e, f, g, h]
+        let invdistancesum = 0 // inverse distance sum, because far away points have less weight
+        let interpolatedY = 0
+        let dist
+        points.map((point) => {
+            if(point) // depends on whether or not that point was defined (depends on the diagonal parameter)
+            {
+                dist = center.distanceTo(point) // euclidian distance. The squared distance will apply not enough weight on far away points
                 invdistancesum += 1/dist
+                interpolatedY += data[point.x][point.y] * (1/center.distanceTo(point)) // far away points have less weight. euqlidian distance, just like above
             }
         })
         // now the validpoints array contains all the points that are defined in the data array
-
         // nothing found? maybe the next iteration can find closeby points that are defined in data
-        if(validpoints.length == 0)
+        if(invdistancesum === 0)
         {
             return false
         }
 
-        let interpolatedY = 0
-        validpoints.map((point) => {
-            let y = data[point.x][point.y] // with point.y z is meant
-            interpolatedY += y * (1/center.distanceTo(point)) // far away points have less weight. euqlidian distance, just like above
-        })
-        // now average
-        interpolatedY /= invdistancesum // divide by the summ of all weights to optain the average
+        // now average and write into the data array
+        interpolatedY /= invdistancesum // divide by the sum of all weights to optain the average
         data[center.x][center.y] = interpolatedY
         return true
     }
-
-
-
-    // first do some stuff like interpolating the border and edges
-    // first draw the edges
-    interpolate(new THREE.Vector2(xRes, zRes))
-    interpolate(new THREE.Vector2(0, zRes))
-    interpolate(new THREE.Vector2(xRes, 0))
-    interpolate(new THREE.Vector2(0, 0))
-    // now the borders
-    x = 0
-    z = 0
-
-    for(; x < data.length; x++)
-        interpolate(new THREE.Vector2(x, z))
-    x --
-
-    for(; z < data[0].length; z++)
-        interpolate(new THREE.Vector2(x, z))
-    z --
-
-    for(; x >= 0; x--)
-        interpolate(new THREE.Vector2(x, z))
-    x ++
-
-    for(; z >= 0; z--)
-        interpolate(new THREE.Vector2(x, z))
-    z --
-
-
 
 
     // write all undefined vertex down
@@ -298,7 +287,7 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     {
         for(z = 0;z < data[0].length;z++)
         {
-            if(data[x][z] === undefined)
+            if(isNaN(data[x][z]))
             {
                 undefVertexList[undefVertexCount] = {x, z}
                 undefVertexCount ++
@@ -308,89 +297,55 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     let maxIndex = undefVertexCount-1
 
 
-    // 2. loop over the array and interpolate all array cells that are undefined
-
-    mesh.geometry.computeFaceNormals()
-    mesh.geometry.computeVertexNormals()
-    mesh.geometry.verticesNeedUpdate = true
-    parent.SceneHelper.render()
-
+    let loopOverData = (diagonal=true, updown=true, leftright=true) =>
+    {
+        // 2. loop over the array and interpolate all array cells that are undefined
+        let undefIndex, maxTries
     
-    let undefIndex = 0
-    let maxTries2 = xRes*zRes*10
-    while(undefVertexCount > 0 && maxTries2 --> 0)
-    {
-        // select random datapoint out of all undefined datapoints
-        let maxTries = 0
         undefIndex = 0
-        while(undefVertexList[undefIndex] == undefined)
+        maxTries = xRes*zRes*2
+        // whether or not interpolated points should be used to interpolate. false if only original points are used
+        while(undefVertexCount > 0 && maxTries --> 0)
         {
-            if(maxTries == 0)
+            for(;undefIndex < maxIndex;undefIndex++)
             {
-                // maybe random won't be able to 
-                // console.log("now searching once through the array")
-                undefIndex = 0
-                for(;undefIndex < maxIndex;undefIndex++)
+                // it's a bit confusing. undefVertexList contains coordinates of undefined Vertices.
+                // this list might contain undefined values, because the coordinate that once was on that index
+                // is not about to be interpolated anymore
+                if(undefVertexList[undefIndex] !== undefined)
                 {
-                    // it's a bit confusing. undefVertexList contains coordinates of undefined Vertices. So if there is an undefined value in this list, that is because it is just an empty field
-                    if(undefVertexList[undefIndex] != undefined)
-                    {
-                        // console.log("found one at", undefIndex)
-                        // undefVertexList[undefIndex]
-                        break
-                    }
+                    break
                 }
-                break
             }
 
-            undefIndex = Math.random() * maxIndex | 0
-
-            maxTries --
-        }
-        
-        // the following really shouldn't be the case because the number of undefined vertex is kept in the variable undefVertexCount
-        /*if(undefVertexList[undefIndex] == undefined)
-        {
-            console.error("was not able to find another undefined vertex")
-            break
-        }*/
-
-
-        /*for(;undefIndex < undefVertexList.length;undefIndex++)
-        {
-            // it's a bit confusing. undefVertexList contains coordinates of undefined Vertices. So if there is an undefined value in this list, that is because it is just an empty field
-            if(undefVertexList[undefIndex] != undefined)
+            if(undefVertexList[undefIndex] === undefined)
             {
-                undefVertexList[undefIndex]
-                break
+                undefIndex = 0
+                continue
             }
-        }
-        if(undefIndex == undefVertexList.length)
-        {
-            undefIndex = 0
-            continue
-        }*/
+    
+            x = undefVertexList[undefIndex].x
+            z = undefVertexList[undefIndex].z
+    
+            // startingpoint is x, z. try straight first, if it didn't work, add diagonal search
+            if(interpolate(new THREE.Vector2(x, z), diagonal, updown, leftright))
+            {
+                undefVertexList[undefIndex] = undefined
+                undefVertexCount --
+            }
 
-        x = undefVertexList[undefIndex].x
-        z = undefVertexList[undefIndex].z
-
-        // 2.1 find nearest defined vertices in -x, x, -z and z direction
-        
-        // startingpoint is x, z
-
-        // search diagonally, because a too large resolution of the plot will rip the plot apart and leave stripes in x and z direction
-        // so searching for defined points in x and z direction might not always work. Diagonal however might work
-        // do both
-        interpolate(new THREE.Vector2(x, z))
-
-        undefVertexList[undefIndex] = undefined
-        undefVertexCount --
+            undefIndex ++
+            if(undefIndex > maxIndex)
+                undefIndex = 0
+        } 
     }
 
-    if(maxTries2 <= 0)
-    {
-        console.error("stopped because mode failed to interpolate",undefVertexCount,"points")
-    }
+
+    // 54 25
+    // 2. loop over the array and interpolate all array cells that are undefined
+    loopOverData(false, true, true)
+    loopOverData(true, true, true)
+
 
 
     // 3. copy the values from that array over to the mesh
@@ -418,13 +373,13 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     {
         for(let x = 0;x < data.length;x++)
         {
-            if(data[x][z] == undefined)
+            if(data[x][z] !== undefined)
             {
-                mesh.geometry.vertices[index].y = minX2 - 1
+                mesh.geometry.vertices[index].y = data[x][z]
             }
             else
             {
-                mesh.geometry.vertices[index].y = data[x][z]
+                mesh.geometry.vertices[index].y = minX2 - 1
             }
             index ++
         }
