@@ -171,101 +171,84 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     }
 
 
-    let interpolate = (center, diagonal=true, updown=true, leftright=true) =>
+    let e, f, g, h, points, invdistancesum, interpolatedY, dist
+    let interpolate = (center, mode=0) =>
     {
         // make the function easier to use by checking this. it's only for yet undefined points
         if(!isNaN(data[center.x][center.y])) return false
 
-        // diagonal
-        let a = null
-        let b = null
-        let c = null
-        let d = null
-        if(diagonal)
-        {
-            a = center.clone().add(new THREE.Vector2( 1,  1))
-            b = center.clone().add(new THREE.Vector2(-1, -1))
-            c = center.clone().add(new THREE.Vector2(-1,  1))
-            d = center.clone().add(new THREE.Vector2( 1, -1))
-            while(a.x < data.length && a.y < data[0].length && isNaN(data[a.x][a.y]))
-            {
-                a.add(new THREE.Vector2( 1,  1))
-            }
-            while(b.x >= 0 && b.y >= 0 && isNaN(data[b.x][b.y]))
-            {
-                b.add(new THREE.Vector2(-1, -1))
-            }
-            while(c.x >= 0 && c.y < data[0].length && isNaN(data[c.x][c.y]))
-            {
-                c.add(new THREE.Vector2(-1,  1))
-            }
-            while(d.x < data.length && d.y >= 0 && isNaN(data[d.x][d.y]))
-            {
-                d.add(new THREE.Vector2( 1, -1))
-            }
+        // EDIT 27. dec 2017 diagonal search seems to be rather unimportant actually
+        // also moved memory allocation out of this function and replaced map with for
+        // almost no performance gain apparently though
 
-            // now check if one of the values points to -1 or length, which means no defined vertex was found
-            // to make sure that this point is not being considered by overwriting it with Infinity
-            // those are the negated conditions from above while-loops
-            if(!(a.x < data.length && a.y < data[0].length)) a = null
-            if(!(b.x >= 0          && b.y >= 0            )) b = null
-            if(!(c.x >= 0          && c.y < data[0].length)) c = null
-            if(!(d.x < data.length && d.y >= 0            )) d = null
+        // up/down z
+        g = center.clone().add(new THREE.Vector2( 0,  1))
+        h = center.clone().add(new THREE.Vector2( 0, -1))
+        while(g.y < data[0].length && isNaN(data[g.x][g.y]))
+        {
+            g.add(new THREE.Vector2( 0,  1))
+        }
+        while(h.y >= 0 && isNaN(data[h.x][h.y]))
+        {
+            h.add(new THREE.Vector2( 0, -1))
         }
         
-        let g = null
-        let h = null
-        if(updown)
+
+        // left/right x
+        e = center.clone().add(new THREE.Vector2( 1,  0))
+        f = center.clone().add(new THREE.Vector2(-1,  0))
+        while(e.x < data.length && isNaN(data[e.x][e.y]))
         {
-            // up and down z
-            g = center.clone().add(new THREE.Vector2( 0,  1))
-            h = center.clone().add(new THREE.Vector2( 0, -1))
-            while(g.y < data[0].length && isNaN(data[g.x][g.y]))
-            {
-                g.add(new THREE.Vector2( 0,  1))
-            }
-            while(h.y >= 0 && isNaN(data[h.x][h.y]))
-            {
-                h.add(new THREE.Vector2( 0, -1))
-            }
-            // both have to be valid, so that the average between those two can be made
-            // if only one is valid, that one value will be dragged around the whole plot
+            e.add(new THREE.Vector2( 1,  0))
+        }
+        while(f.x >= 0 && isNaN(data[f.x][f.y]))
+        {
+            f.add(new THREE.Vector2(-1,  0))
+        }
+
+
+        // The mode is very important! Basically see comments inside the following block.
+
+        // When mode is 1 initially, spikes appear in the polygon because two high points, that are at
+        // (-1, 0) and (0, -1) will interpolate to another high point when (+1, 0) and (0, +1) are not yet defined.
+        // but maybe actually (+1, 0) and (0, +1) are supposed to be low? So the interpolated point would be too high -> spike.
+
+        // After this initial round of interpolating only when points of opposite directions are defined,
+        // everything between the plot and the edges of the polygon are undefined. Now switch to mode 1, which
+        // will just look at what's defined and just make up a few points to fill the space
+        
+        if(mode === 0)
+        {
+            // mode 0 means both points that lie in opposite directions have to be valid.
+            // Both have to be valid, so that the average between those two can be made.
+            // If only one is valid, that one value will be dragged around the whole plot.
+            if(!(e.x < data.length) || !(f.x >= 0)) { e = null; f = null }
             if(!(g.y < data[0].length) || !(h.y >= 0)) { g = null; h = null }
         }
-
-        
-        let e = null
-        let f = null
-        if(leftright)
+        else
         {
-            // left and right x
-            e = center.clone().add(new THREE.Vector2( 1,  0))
-            f = center.clone().add(new THREE.Vector2(-1,  0))
-            while(e.x < data.length && isNaN(data[e.x][e.y]))
-            {
-                e.add(new THREE.Vector2( 1,  0))
-            }
-            while(f.x >= 0 && isNaN(data[f.x][f.y]))
-            {
-                f.add(new THREE.Vector2(-1,  0))
-            }
-            if(!(e.x < data.length) || !(f.x >= 0)) { e = null; f = null }
+            // mode 1 is looking for as many points as possible
+            if(!(e.x < data.length)) e = null
+            if(!(f.x >= 0)) f = null
+            if(!(g.y < data[0].length)) g = null
+            if(!(h.y >= 0 )) h = null
         }
 
 
         // now interpolate
-        let points = [a, b, c, d, e, f, g, h]
-        let invdistancesum = 0 // inverse distance sum, because far away points have less weight
-        let interpolatedY = 0
-        let dist
-        points.map((point) => {
-            if(point) // depends on whether or not that point was defined (depends on the diagonal parameter)
+        points = [e, f, g, h]
+        invdistancesum = 0 // inverse distance sum, because far away points have less weight
+        interpolatedY = 0
+        dist
+        for(let i = 0;i < points.length;i++)
+        {
+            if(points[i] !== null) // depends on whether or not that point is null
             {
-                dist = center.distanceTo(point) // euclidian distance. The squared distance will apply not enough weight on far away points
+                dist = center.distanceTo(points[i]) // euclidian distance. The squared distance will apply not enough weight on far away points
                 invdistancesum += 1/dist
-                interpolatedY += data[point.x][point.y] * (1/center.distanceTo(point)) // far away points have less weight. euqlidian distance, just like above
+                interpolatedY += data[points[i].x][points[i].y] * (1/center.distanceTo(points[i])) // far away points have less weight. euqlidian distance, just like above
             }
-        })
+        }
         // now the validpoints array contains all the points that are defined in the data array
         // nothing found? maybe the next iteration can find closeby points that are defined in data
         if(invdistancesum === 0)
@@ -297,13 +280,13 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     let maxIndex = undefVertexCount-1
 
 
-    let loopOverData = (diagonal=true, updown=true, leftright=true) =>
+    let loopOverData = (mode=0) =>
     {
         // 2. loop over the array and interpolate all array cells that are undefined
         let undefIndex, maxTries
     
         undefIndex = 0
-        maxTries = xRes*zRes*2
+        maxTries = xRes*zRes*2 // because the loop might not be able to interpolate all datapoints at first or at all, loop over it more than xRes*zRes times, but not too much
         // whether or not interpolated points should be used to interpolate. false if only original points are used
         while(undefVertexCount > 0 && maxTries --> 0)
         {
@@ -311,7 +294,7 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
             {
                 // it's a bit confusing. undefVertexList contains coordinates of undefined Vertices.
                 // this list might contain undefined values, because the coordinate that once was on that index
-                // is not about to be interpolated anymore
+                // is already interpolated, so it was removed from the list
                 if(undefVertexList[undefIndex] !== undefined)
                 {
                     break
@@ -327,8 +310,8 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
             x = undefVertexList[undefIndex].x
             z = undefVertexList[undefIndex].z
     
-            // startingpoint is x, z. try straight first, if it didn't work, add diagonal search
-            if(interpolate(new THREE.Vector2(x, z), diagonal, updown, leftright))
+            // startingpoint is x, z.
+            if(interpolate(new THREE.Vector2(x, z), mode))
             {
                 undefVertexList[undefIndex] = undefined
                 undefVertexCount --
@@ -341,33 +324,12 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
     }
 
 
-    // 54 25
     // 2. loop over the array and interpolate all array cells that are undefined
-    loopOverData(false, true, true)
-    loopOverData(true, true, true)
-
+    loopOverData(0)
+    loopOverData(1)
 
 
     // 3. copy the values from that array over to the mesh
-
-    // add a kernel filter over it to smoothen it
-    /*let smooth = (x, z, index) =>
-    {
-        mesh.geometry.vertices[index].y = data[x][z] * 2
-        let sum = 2
-
-        if(data[x-1] && data[x-1][z]) { mesh.geometry.vertices[index].y += data[x-1][z]; sum++ }
-        if(data[x]   && data[x][z-1]) { mesh.geometry.vertices[index].y += data[x][z-1]; sum++ }
-        if(data[x+1] && data[x+1][z]) { mesh.geometry.vertices[index].y += data[x+1][z]; sum++ }
-        if(data[x]   && data[x][z+1]) { mesh.geometry.vertices[index].y += data[x][z+1]; sum++ }
-
-        if(data[x-2] && data[x-2][z]) { mesh.geometry.vertices[index].y += data[x-2][z]; sum++ }
-        if(data[x]   && data[x][z-2]) { mesh.geometry.vertices[index].y += data[x][z-2]; sum++ }
-        if(data[x+2] && data[x+2][z]) { mesh.geometry.vertices[index].y += data[x+2][z]; sum++ }
-        if(data[x]   && data[x][z+2]) { mesh.geometry.vertices[index].y += data[x][z+2]; sum++ }
-        mesh.geometry.vertices[index].y /= sum
-    }*/
-
     index = 0
     for(let z = 0;z < data[0].length;z++)
     {
@@ -384,9 +346,9 @@ export default function interpolatedpolygon(parent, df, colors, columns, normali
             index ++
         }
     }
+    
 
     // 4. scale and translate the mesh to fit normalization
-
     if(normalizeX2)
     {
         x2frac = Math.abs(maxX2-minX2)/dimensions.yLen
