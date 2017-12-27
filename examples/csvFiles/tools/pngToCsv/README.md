@@ -5,4 +5,5 @@ small script to turn an image into a csv, which can be used to create spatial da
 # usage
 
     # make sure to cd to the pngToCsv folder inside your terminal
+    npm install
     npm start

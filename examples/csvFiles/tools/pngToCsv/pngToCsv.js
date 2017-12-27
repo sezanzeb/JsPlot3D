@@ -37,10 +37,10 @@ sizeOf(file, function(err, dimensions) {
     let pngIndex, clr, long, lat
     png.decode(file, function(pixels)
     {
-        for(let y = 0;y < height; y+=step)
+        for(let y = 0;y < height-1; y+=step)
         {
             let x = 0
-            for(; x < width; x+=step)
+            for(; x < width-1; x+=step)
             {
                 pngIndex = (y*width+x)*4 // 4 because r g b FF
                 clr = pixels[pngIndex] + "," + pixels[pngIndex+1] + "," + pixels[pngIndex+2]
