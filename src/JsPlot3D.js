@@ -396,8 +396,10 @@ export class Plot
                 if(data[0].indexOf(separator) === -1)
                     separator = ","
 
+                // tabbed data. either a combination of whitespaces and tabs, mutliple whitespaces (at least 2) or at least one tab
+                // ?: will not capture the group
                 if(data[0].indexOf(separator) === -1)
-                    separator = /[\s\t]{2,}/g // tabbed data
+                    separator = /(?:[\s\t]{2,}|\t+)/g
 
                 if(data[0].search(separator) === -1)
                     return console.error("no csv separator/delimiter was detected. Please set separator:\"...\" according to your file format: \""+data[0]+"\"")

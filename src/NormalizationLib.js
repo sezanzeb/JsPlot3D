@@ -23,6 +23,13 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
         max = df[0][col]
     }
 
+    // due to wrong configuration (parameter col), there could be a string stored in min and max
+    if(typeof min !== "number" || typeof max !== "number")
+    {
+        return console.error("your dataframe contained a non-number value \"", min, "\" at column", col, ". This could be due to " +
+        "wrong configuration of your csv-separator, because of a corrupted dataframe or you have selected the wrong column index.")
+    }
+
     // determine min and max for normalisation
     for(let i = 0; i < df.length; i++)
     {
