@@ -38,13 +38,6 @@ see USAGE.md
 - arrange the live example settings in a more clean way
 - make a quick tutorial for the live example when v1.0 is about to be released
 
-**experimental:**
-
-- for recursive formulas use the scatterplot mode by default
-- for recursive formulas, offer some start value setter
-- maybe there is some way of creating a polygon from unevenly distributed datapoints. (imagine an island floating somewhere that is made up of datapoints and then connect that to a mesh). So that geographic height data could be displayed.
-- creating 3D meshes from labeled data that encapsulate the whole group/cluster
-
 
 ## Documentation
 

@@ -35,3 +35,47 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
 
     return {min, max}
 }
+
+
+
+
+
+
+
+
+
+// Not yet implemented:
+
+
+
+/**
+ * - TODO logarithmic normalizing (what about the displayed numbers, how are they going to
+ * get logarithmic scaling? What about the helper lines)
+ * - could be implemented by providing conversion functions here that are used everywhere
+ * - I also need to somehow modify the numbers on the axis. I guess the function that creates
+ * the numbers on the axis needs to call this function to get the logarithmic scaling
+ * - will convert a point to 3D coordinates
+ * @param {number} x x-value of the not-yet normalized datapoint
+ * @param {number} y y-value of the not-yet normalized datapoint
+ * @param {number} z z-value of the not-yet normalized datapoint
+ * @param {object} normalization {minX1, minX2, minX3, maxX1, maxX2, maxX3}
+ * @param {object} dimensions {xLen, yLen, zLen}
+ * @param {boolean} logarithmic when false, linear normalization will be done. When true, a logarithmic scale will be used
+ */
+function convertTo3DCoordinate(x, y, z, normalization, dimensions, logarithmic=false)
+{
+    return {x, y, z}
+}
+
+
+
+/**
+ * TODO this will iterate over the vertex in a geometry and apply a logarithmic scale on them
+ * @param {object} geometry any THREE.Geometry, but not a BufferGeometry probably
+ * @param {*} normalization {minX1, minX2, minX3, maxX1, maxX2, maxX3}
+ * @param {object} dimensions {xLen, yLen, zLen}
+ */
+function logscaleGeometry(geometry, normalization, dimensions)
+{
+    return geometry
+}

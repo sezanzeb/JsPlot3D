@@ -6,6 +6,12 @@ body {
     color:#222;
 }
 
+.centeredWithLeftText {
+    text-align: left;
+    display: table;
+    margin: 0px auto;
+}
+
 #stats {
     position:fixed;
     top:10px;

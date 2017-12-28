@@ -592,7 +592,7 @@ export class Plot
         let normalizeX2 = true
         let normalizeX3 = true
         let title = ""
-        let fraction = 1 // TODO
+        let fraction = 1
         let labeled = false
         let defaultColor = 0 // black
         let barchartPadding = 0.5
@@ -605,28 +605,17 @@ export class Plot
         let keepOldPlot = false
         let updateOldData = true
         let barSizeThreshold = 0
-        let x1frac = 1
-        let x2frac = 1
+        let x1frac = 1 // TODO i think it would be ok to remove them and make the individual plotmodes create them themselfes
+        let x2frac = 1 // that would make the code here a little bit cleaner
         let x3frac = 1
         let numberDensity = 3
 
-        let headerRow // for later
 
-        // TODO probably deprecated won't implement
-        // when true, the dataframe is a 2D Array an can be accessed like this: df[x][z] = y
-        // it's experiemental and does not work yet for all plotting modes. It's there for performance increasing
-        // because sometimes I am calculating a dataframe from a formula and then convert it to that [x][z] shape
-        // instead of calculating this shape right away
-        // let dfIsA2DMap = false
-
-
-        // make sure options is defined
-        // TODO fastforward the following in case of addDataPoint or something to increase animation performance
+        // fastforward the following in case of addDataPoint or something to increase animation performance
         // if(optoins.variable1) variable1 = options.variable1
         // if(optoins.variable2) variable2 = options.variable2
         // ...
-        
-
+        let headerRow 
         if(!options.fastForward) // if not undefined or false
         {
             // seems like the user sent some parameters. check them
@@ -822,6 +811,8 @@ export class Plot
         //-------------------------//
         //       normalizing       //
         //-------------------------//
+        // EDIT moved most parts of the normalization to the files in ./plotModes/ and ./NormalizationLib.js
+
         // finds out by how much the values (as well as colors) to divide and for the colors also a displacement
 
         // minX1, maxX2, etc. are being loaded from the oldData object. They initially have 0 values
@@ -834,9 +825,7 @@ export class Plot
         // what is the initial plot? that's the dataframe one plotted initially (for example using plotCsvString(...) before using addDataPoint
 
         // normalize, so that the farthest away point is still within the xLen yLen zLen frame
-        // TODO logarithmic normalizing (what about the displayed numbers, how are they going to get logarithmic scaling? What about the helper lines)
 
-        // EDIT moved most parts of the normalization to the files in ./plotModes/ and ./NormalizationLib.js
        
         // the default values are 0. after the normalization loops the case of
         // them still being 0 will be handled by assigning 1 to x1frac, x2frac and/or x3frac

@@ -8,12 +8,12 @@ import * as NORMLIB from "../NormalizationLib.js"
  * @param {object} df df
  * @param {object} colors {dfColors, hueOffset}
  * @param {object} columns {x1col, x2col, x3col}
- * @param {object} normalization {normalizeX1, normalizeX2, normalizeX3, x1frac, x2frac, x3frac, minX1, minX2, minX3, maxX1, maxX2, maxX3}
+ * @param {object} normalization {normalizeX1, normalizeX2, normalizeX3, minX1, minX2, minX3, maxX1, maxX2, maxX3}
  * @param {object} appearance {keepOldPlot, barchartPadding, barSizeThreshold, dataPointSize}
- * @param {object} mode 0 or 1 (JSPLOT3D.DEFAULTCAMERA or JSPLOT3D.TOPCAMERA)
+ * @param {object} mode 0 or 1 (JSPLOT3D.DEFAULTCAMERA or JSPLOT3D.TOPCAMERA). This is just used to warn the user in the console, that there are much better alternatives (optional)
  * @private
  */
-export default function barchart(parent, df, colors, columns, normalization, appearance, mode)
+export default function barchart(parent, df, colors, columns, normalization, appearance, mode=0)
 {    
 
     let dfColors = colors.dfColors
@@ -26,10 +26,6 @@ export default function barchart(parent, df, colors, columns, normalization, app
     let normalizeX1 = normalization.normalizeX1
     let normalizeX2 = normalization.normalizeX2
     let normalizeX3 = normalization.normalizeX3
-
-    let x1frac = normalization.x1frac
-    let x2frac = normalization.x2frac
-    let x3frac = normalization.x3frac
 
     let minX1 = normalization.minX1
     let minX2 = normalization.minX2
@@ -60,10 +56,10 @@ export default function barchart(parent, df, colors, columns, normalization, app
         maxX3 = newDataMax.max
     }
 
-    x1frac = Math.abs(maxX1-minX1)
+    let x1frac = Math.abs(maxX1-minX1)
     if(x1frac === 0) x1frac = 1 // prevent division by zero
 
-    x3frac = Math.abs(maxX3-minX3)
+    let x3frac = Math.abs(maxX3-minX3)
     if(x3frac === 0) x3frac = 1
 
 
@@ -74,7 +70,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // let zBarOffset = 1/parent.dimensions.zRes/2
 
     if(mode == 1)
-        console.warn("scatterplot mode is recommended") // much more performance
+        console.warn("scatterplot or polygon mode are recommended, because they are much more performant and create better looking results") // much more performance
 
     // if normalization is on, make sure that the bars at x=0 or z=0 don't intersect the axes
     let xOffset = 0
@@ -188,6 +184,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
         
         // take care that x_float-x and z_float-z are both positive
         let oppositeSquareArea = (1-Math.abs(x_float-x))*(1-Math.abs(z_float-z))
+        // the sum of the 4 oppositeSquareAreas always has to be 1
 
         if(oppositeSquareArea === 0)
             return
@@ -329,6 +326,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
     // percent of largest bar
     barSizeThreshold = barSizeThreshold*Math.max(Math.abs(maxX2), Math.abs(minX2))
 
+    let x2frac = 1
     if(normalizeX2 === true)
     {
         // let a = Math.max(Math.abs(maxX2), Math.abs(minX2)) // based on largest |value|
@@ -348,7 +346,7 @@ export default function barchart(parent, df, colors, columns, normalization, app
 
 
     // now color the children & normalize
-    let factor = 1/(x2frac) // normalize y
+    let factor = 1/x2frac // normalize y
     for(let x in barsGrid)
     {
         for(let z in barsGrid[x])
