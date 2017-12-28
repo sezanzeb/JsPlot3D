@@ -6,7 +6,7 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
     <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/bar.png">
     <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/polygon.png">
     <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/line.png">
-    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/spatial.png">
+    <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/spatial.jpg">
     <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/barchart.png">
     <img width="16%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/scatter.png">
 </p>
