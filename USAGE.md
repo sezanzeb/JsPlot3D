@@ -75,7 +75,7 @@ Here are the modes and their values:
 
 <br/>
 
-## Display Arrays of Data (Dataframes)
+## Display Arrays of Data
 
 ```js
     var data = [
