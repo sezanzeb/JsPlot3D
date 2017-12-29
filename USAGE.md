@@ -94,6 +94,23 @@ Here are the modes and their values:
     })
 ```
 
+or
+
+```js
+    var X = [1, 1, 2]
+    var Y = [2, 2, 1]
+    var Z = [3, 4, 5]
+    var labels = ["tree", "flower", "painting"]
+
+    plot.plotArrays(X, Y, Z, labels, {
+        labeled: true,
+        dataPointSize: 0.5,
+        x1title: "x",
+        x2title: "y",
+        x3title: "z"
+    })
+```
+
 ## Activating the 2D Mode
 
 Set one of xLen, yLen or zLen to zero.

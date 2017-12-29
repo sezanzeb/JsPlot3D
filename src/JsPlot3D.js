@@ -129,6 +129,58 @@ export class Plot
 
 
     /**
+     * Instead of passing one single array of data, you can select three different arrays. X[n], Y[n], Z[n] is treated as the n-th datapoint.
+     * labels[n] is the label of this datapoint, that is used for coloration. All those 4 arrays should have the same length. Only as many points can
+     * be plotted as the shortest array's length.
+     * @param {number} X Array of X-Values [1, 2, 0.6, 3]
+     * @param {number} Y Array of Y-Values []
+     * @param {number} Z 
+     * @param {number} labels Array of labels, e.g. ["Tree", "Bird", "Fox", "Fox", "Dog", "Tree"] or [1, 2, 3, 1, 2, 2, 1].
+     * - When this parameter is defined, the default value of options.colorCol is set to the column of labels (3).
+     * But it can also be overwritten to one of 0, 1 or 2 by using the options parameter
+     * - Default: null
+     * @param {object} options same as the options parameter in plotDataFrame
+     */
+    plotArrays(X, Y, Z, labels=null, options={})
+    {
+        // how many datapoints
+        let length = Math.min(X.length, Y.length, Z.length)
+
+        // this is going to be filled with datapoints
+        let df = new Array(length)
+
+        // how many attributes(x, y, z and maybe labels) each datapoint has
+        let attributes = 3
+
+        if(labels !== null)
+        {
+            // if labels is defined, assume that as colorCol and add it to the dataframe
+            length = Math.min(length, labels.length)
+            if(options.colorCol === undefined) options.colorCol = 3
+            attributes = 4
+        }
+
+        // transpose [X, Y, Z]
+        for(let i = 0; i < length; i++)
+        {
+            df[i] = new Array(attributes)
+            df[i][0] = X[i]
+            df[i][1] = Y[i]
+            df[i][2] = Z[i]
+        }
+
+        // add the labels
+        for(let i = 0; i < length; i++)
+        {
+            df[i][3] = labels[i]
+        }
+
+        this.plotDataFrame(df, 0, 1, 2, options)
+    }
+
+
+
+    /**
      * plots a function into the container as 3D Plot. It will execute the function with varying parameters a few times
      * @param {function} foo function. For example: function(x, z) { return x+z }
      * @param {object} options json object with one or more of the following parameters:
@@ -318,6 +370,12 @@ export class Plot
             return console.error("dataframe arrived empty")
         }
 
+        if(typeof sCsv !== "string")
+        {
+            return console.error("the value of the first parameter of plotCsvString is not a string, but it has to be a string in the "+
+                                 "shape of a .csv file. If you are looking for a way to plot an array, please take a look at plotDataFrame")
+        }
+
         // default config
         let separator = ","
         let title = ""
@@ -345,7 +403,7 @@ export class Plot
 
         // still the same data?
         // create a very quick checksum sort of string
-        let stepsize = (sCsv.length/20)|0
+        let stepsize = (sCsv.length/20)+1|0
         let samples = ""
 
         for(let i = 0;i < sCsv.length; i+= stepsize)
