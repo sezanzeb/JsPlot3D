@@ -30,6 +30,7 @@ export function getMinMax(df, col, oldData, keepOldPlot, min, max)
         "wrong configuration of your csv-separator, because of a corrupted dataframe or you have selected the wrong column index.")
     }
 
+    // TODO could this be made faster using webassembly?
     // determine min and max for normalisation
     for(let i = 0; i < df.length; i++)
     {

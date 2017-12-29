@@ -147,6 +147,7 @@ export class Plot
         let length = Math.min(X.length, Y.length, Z.length)
 
         // this is going to be filled with datapoints
+        // TODO new Float32Array when the array contains integers (see GitHub issue #16, might contain strings at some point in the future)
         let df = new Array(length)
 
         // how many attributes(x, y, z and maybe labels) each datapoint has
@@ -160,6 +161,7 @@ export class Plot
             attributes = 4
         }
 
+        // TODO I wonder if this is faster when using webassembly?
         // transpose [X, Y, Z]
         for(let i = 0; i < length; i++)
         {
