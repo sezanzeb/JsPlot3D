@@ -79,7 +79,6 @@ Here are the modes and their values:
 
 ```js
     var data = [
-        ["x", "y", "z", "label"],
         [1, 2, 3, "tree"],
         [1, 2, 4, "flower"],
         [2, 1, 5, "painting"],
@@ -88,8 +87,10 @@ Here are the modes and their values:
     plot.plotDataFrame(data, 0, 1, 2, {
         labeled: true,
         colorCol: 3,
-        header: true,
-        dataPointSize: 0.5
+        dataPointSize: 0.5,
+        x1title: "x",
+        x2title: "y",
+        x3title: "z"
     })
 ```
 
