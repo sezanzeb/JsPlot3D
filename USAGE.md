@@ -51,14 +51,12 @@ Here are the modes and their values:
     SCATTERPLOT_MODE = "scatterplot"
     BARCHART_MODE = "barchart"
     LINEPLOT_MODE = "lineplot"
-    POLYGON_MODE = "polygon" // works only for formulas
+    POLYGON_MODE = "polygon"
 ```
 
 <br/>
 
-## Displaying Labeled Data
-
-it works with all modes (Except polygon, which is not available outside of plotFormula)
+## Displaying Labeled CSV Data
 
 ```js
     var data = "x;y;z;label\n"+
@@ -76,6 +74,24 @@ it works with all modes (Except polygon, which is not available outside of plotF
 ```
 
 <br/>
+
+## Display Arrays of Data (Dataframes)
+
+```js
+    var data = [
+        ["x", "y", "z", "label"],
+        [1, 2, 3, "tree"],
+        [1, 2, 4, "flower"],
+        [2, 1, 5, "painting"],
+    ]
+
+    plot.plotDataFrame(data, 0, 1, 2, {
+        labeled: true,
+        colorCol: 3,
+        header: true,
+        dataPointSize: 0.5
+    })
+```
 
 ## Activating the 2D Mode
 
