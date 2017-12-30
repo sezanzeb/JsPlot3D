@@ -111,6 +111,8 @@ or
     })
 ```
 
+The default for labels is []. So if you don't have a fourth array for labels available, set it to [].
+
 <br/>
 
 ## Activating the 2D Mode

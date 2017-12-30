@@ -134,14 +134,14 @@ export class Plot
      * be plotted as the shortest array's length.
      * @param {number} X Array of X-Values [1, 2, 0.6, 3]
      * @param {number} Y Array of Y-Values []
-     * @param {number} Z 
+     * @param {number} Z Array of Z-Values []
      * @param {number} labels Array of labels, e.g. ["Tree", "Bird", "Fox", "Fox", "Dog", "Tree"] or [1, 2, 3, 1, 2, 2, 1].
      * - When this parameter is defined, the default value of options.colorCol is set to the column of labels (3).
      * But it can also be overwritten to one of 0, 1 or 2 by using the options parameter
-     * - Default: null
+     * - Default: []
      * @param {object} options same as the options parameter in plotDataFrame
      */
-    plotArrays(X, Y, Z, labels=null, options={})
+    plotArrays(X, Y, Z, labels=[], options={})
     {
         // how many datapoints
         let length = Math.min(X.length, Y.length, Z.length)
@@ -153,7 +153,7 @@ export class Plot
         // how many attributes(x, y, z and maybe labels) each datapoint has
         let attributes = 3
 
-        if(labels !== null)
+        if(labels.length !== 0)
         {
             // if labels is defined, assume that as colorCol and add it to the dataframe
             length = Math.min(length, labels.length)
@@ -172,9 +172,12 @@ export class Plot
         }
 
         // add the labels
-        for(let i = 0; i < length; i++)
+        if(labels.length !== 0)
         {
-            df[i][3] = labels[i]
+            for(let i = 0; i < length; i++)
+            {
+                df[i][3] = labels[i]
+            }
         }
 
         this.plotDataFrame(df, 0, 1, 2, options)
