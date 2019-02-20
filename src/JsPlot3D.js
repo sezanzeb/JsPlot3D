@@ -1410,7 +1410,10 @@ export class Plot
 
 
     /**
-     * clears the checkstring, so that plotCsvString knows that the stored dataframe does not originate from it.
+     * clears the checkstring, so that plotCsvString knows that the stored dataframe is deprecated. Hence, plotCsvString
+     * will be forced to parse the sCsv parameter into a dataframe again, which is slow.
+     * TODO: instead, check in plotCsvSTring if sCsv is none. If so, then use the old stored dataframe instead. That's
+     * certainly a better solution.
      * The point of the checkstring is to prevent parsing the same dataframe twice in a row, to increase performance.
      */
     clearCheckString()

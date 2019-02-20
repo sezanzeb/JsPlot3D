@@ -19,6 +19,8 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
 
 **Documentation:** https://doclets.io/sezanzeb/JsPlot3D/master ("API")
 
+**Building:** https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
+
 <br/>
 
 ## Live Example
