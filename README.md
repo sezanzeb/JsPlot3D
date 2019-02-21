@@ -13,16 +13,6 @@ Plots functions and .csv files. Based on three.js. It is written in ES6 syntax a
 
 <br/>
 
-**Download:** http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js
-
-**How To:** If you want to start using JsPlot3D, take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/USAGE.md
-
-**Documentation:** https://doclets.io/sezanzeb/JsPlot3D/master ("API")
-
-**Building:** https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
-
-<br/>
-
 ## Live Example
 
 Click here for a live example:
@@ -30,6 +20,18 @@ Click here for a live example:
 http://hip70890b.de/JsPlot3D/examples/playground/index.html
 
 You can uploade one of the csvs in /examples/csvFiles. Or get a .csv dataset (for example on kaggle.com). The live example also gives insight about the settings that can be handed over to plotCsvString, plotDataFrame, plotFormula and addDataPoints.
+
+<br/>
+
+## Info
+
+**Download:** http://hip70890b.de/JsPlot3D/compiled/JsPlot3D.js
+
+**How To:** If you want to start using JsPlot3D, take a look at https://github.com/sezanzeb/JsPlot3D/blob/master/USAGE.md
+
+**Documentation:** https://doclets.io/sezanzeb/JsPlot3D/master ("API")
+
+**Building:** https://github.com/sezanzeb/JsPlot3D/blob/master/MORE.md
 
 <br/>
 
