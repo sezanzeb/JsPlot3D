@@ -1,3 +1,5 @@
+I did this for the sole purpose of learning and practice three.js, there are far better and more complete solutions out there, **don't even try to use this.**
+
 <p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/title.png"/></p>
 
 Plots functions and .csv files. Based on three.js. It is written in ES6 syntax and compiled using Webpack.
