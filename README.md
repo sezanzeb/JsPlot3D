@@ -1,4 +1,4 @@
-I did this for the sole purpose of learning and practice three.js, there are far better and more complete solutions out there, **don't even try to use this.**
+I did this for the sole purpose of learning and practice three.js, there are far better and more complete solutions out there, **don't even try to use this.** The code quality and everything is, due to me not having much experience back then, probably really bad.
 
 <p align="center"><img width="32%" src="https://raw.githubusercontent.com/sezanzeb/JsPlot3D/master/images/title.png"/></p>
 
